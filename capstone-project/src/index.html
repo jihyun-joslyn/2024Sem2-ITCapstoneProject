@@ -1,12 +1,69 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Hello World!</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electron App</title>
+</head>
+<body>
+    <div class="top-bar">
+        <div class = "dropdown">
+            <button class="dropdown-button">File</button>
+            <div class="dropdown-content">
+                <button id="import">Import</button>
+                <input type="file" id="file-input" accept=".stl. .obk" style="display: none;" />
+            </div>
+        </div>
+        <div class = "dropdown">
+            <button class="dropdown-button">Settings</button>
+            <div class="dropdown-content">
+                <a href="#" id="s1">s1</a>
+                <a href="#" id="s2">s2</a>
+            </div>
+        </div>
+        <button>Help</button>
+    </div>
 
-  </head>
-  <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
-  </body>
+    <div class="main-container">
+        <div class="side-bar">
+            <button class="mouse">Tool 1</button>
+            <button class="move">Tool 2</button>
+            <button class="lasso">Tool 3</button>
+            <button class="lasso">Tool 4</button>
+            <button class="spary">Tool 5</button>
+        </div>
+
+        <div class="display-area" id="display-area">
+
+        </div>
+
+        <div class="side-panel">
+            <div class="item-list">
+                <p>Item List</p>
+                <div class="item-details">
+                    <ul>
+                        <li>Item 1</li>
+                        <li>Item 2</li>
+                        <li>Item 3</li>
+                    </ul>
+                </div>
+            </div>
+
+
+            <div class="bottom-panel">
+                <div class="tabs">
+                    <button id="label-button" >Label</button>
+                    <button id="problem-button" >Problem</button>
+                </div>
+                <div id="label-panel" class="panel-content">
+                    <p>Label Content Here</p>
+                </div>
+                <div id="problem-panel" class="panel-content" style="display: none;">
+                    <p>Problem Content Here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>

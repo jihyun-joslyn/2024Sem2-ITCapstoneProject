@@ -1,7 +1,160 @@
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: flex-start;
+  background-color: #af936c;
+  padding: 10px;
+}
+
+.top-bar button {
+  margin-right: 10px;
+  background-color: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.top-bar button:last-child{
+  margin-left: auto;
+}
+
+.dropdown{
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content{
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a{
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-button:focus + .dropdown-content,
+.dropdown-content:hover{
+  display: block;
+}
+
+.dropdown-button{
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.main-container {
+  display: flex;
+  flex-grow: 1;
+  background-color: #f2eee4;
+}
+
+.side-bar {
+  width: 60px;
+  background-color: #f1d8b5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.side-bar .tool {
+  width: 50px;
+  height: 50px;
+  margin: 5px 0;
+  background-color: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.display-area {
+  flex-grow: 2;
+  background-color: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-bottom: 10%;
+}
+
+
+.side-panel {
+  flex-grow: 0;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  background-color:#f1d8b5;
+  overflow: hidden;
+}
+
+.item-list {
+  flex-grow: 1;
+  padding: 10px;
+  background-color:#f1d8b5;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-details {
+  flex-grow: 1;
+  padding: 10px;
+  background-color: #ffffff;
+  overflow-y: auto; 
+}
+
+.item-details ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.item-details li {
+  padding: 5px;
+  background-color: #f1d8b5;
+  margin-bottom: 5px;
+}
+
+.bottom-panel {
+  flex-grow: 1;
+  background-color: #e0d6c5;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.tabs button {
+  margin-right: 10px;
+  background-color: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.panel-content {
+  flex-grow: 1;
+  padding: 10px;
+  background-color: #f9f4ec;
+  border: 1px solid #d1c5b2;
+  margin-top: 10px;
+  overflow: auto;
 }
