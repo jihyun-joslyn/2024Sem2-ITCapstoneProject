@@ -129,7 +129,7 @@ function setHotkeyListeners() {
 
     hotkeyKeys.forEach(hotkeyId => {
         const hotkeyInput = document.getElementById(hotkeyId) as HTMLInputElement;
-        hotkeyInput.value = hotkeys[hotkeyId]; // 显示当前热键
+        hotkeyInput.value = hotkeys[hotkeyId]; // display current hotkey
         hotkeyInput.addEventListener('click', () => {
             document.addEventListener('keydown', function handler(e) {
                 hotkeys[hotkeyId] = e.code;
