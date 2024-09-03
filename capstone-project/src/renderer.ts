@@ -28,8 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 import * as THREE from 'three';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 
 function setupScene() {
     const scene = new THREE.Scene();
@@ -102,3 +102,53 @@ function importSTL() {
 window.onload = function() {
     importSTL();
 };
+
+//hotkey page
+document.getElementById('hotkey').addEventListener('click', () => {
+    const hotkeySettings = document.getElementById('hotkeySettings');
+    if (hotkeySettings) {
+        hotkeySettings.style.display = 'block';
+    }
+});
+
+document.getElementById('closeHotkeySettings').addEventListener('click', () => {
+    const hotkeySettings = document.getElementById('hotkeySettings');
+    if (hotkeySettings) {
+        hotkeySettings.style.display = 'none';
+    }
+});
+
+const hotkeys = {
+    hotkey1: 'KeyA',
+    hotkey2: 'KeyB',
+    hotkey3: 'KeyC',
+};
+
+function setHotkeyListeners() {
+    const hotkeyKeys = ['hotkey1', 'hotkey2', 'hotkey3'] as const;
+
+    hotkeyKeys.forEach(hotkeyId => {
+        const hotkeyInput = document.getElementById(hotkeyId) as HTMLInputElement;
+        hotkeyInput.value = hotkeys[hotkeyId]; // 显示当前热键
+        hotkeyInput.addEventListener('click', () => {
+            document.addEventListener('keydown', function handler(e) {
+                hotkeys[hotkeyId] = e.code;
+                hotkeyInput.value = e.code;
+                document.removeEventListener('keydown', handler);
+            });
+        });
+    });
+}
+
+
+document.getElementById('saveHotkeys').addEventListener('click', () => {
+    console.log('Hotkeys saved:', hotkeys);
+    alert('Hotkeys saved successfully!');
+    const hotkeySettings = document.getElementById('hotkeySettings');
+    if (hotkeySettings) {
+        hotkeySettings.style.display = 'none';
+    }
+});
+
+// initialize hot key
+setHotkeyListeners();
