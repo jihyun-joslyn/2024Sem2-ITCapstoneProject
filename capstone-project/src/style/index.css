@@ -38,3 +38,27 @@ body {
   padding: 18px;
   font-size: 24px;
 }
+
+#right-pane {
+  background-color: #E8D7C6;
+  border-radius: 0% !important;
+  border-left: 1px !important;
+  border-bottom: 0px !important;
+  border-top: 0px !important;
+}
+
+#right-pane .card-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 0px !important;
+  border-top: 0px !important;
+}
+
+#right-pane .card-body {
+  background-color: white;
+  padding: 0px !important;
+}
+
+#right-pane .card-body .accordion {
+  border: 0px !important;
+}
