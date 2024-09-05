@@ -10,6 +10,8 @@ body {
 #header{
   background-color: #A48569;
   color: white !important;
+  box-shadow: none !important;
+  padding-left: 0px !important;
 }
 
 #file-dropdown, #setting-dropdown {
@@ -59,6 +61,16 @@ body {
   padding: 0px !important;
 }
 
-#right-pane .card-body .accordion {
-  border: 0px !important;
+.accordion {
+  /* border: 0px !important;*/
+  padding: 0px !important
+}
+
+#detail-pane-header {
+  background-color: #DDC5B0;
+}
+
+#right-pane .MuiList-root, #right-pane .MuiList-root .MuiListItem-root {
+  padding: 0px !important;
+  
 }
