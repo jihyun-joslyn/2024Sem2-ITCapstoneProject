@@ -24,7 +24,7 @@ body {
   content: none;
 }
 
-#documentation-icon {
+#documentation-icon, #detail-icon {
   font-size: 1.2rem;
   padding: 0.3rem;
   align-content: end;

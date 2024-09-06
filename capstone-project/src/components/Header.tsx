@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppBar, Toolbar, Button, Menu, MenuItem, Box, Grid2 as Grid, Container } from '@mui/material';
-import { HelpOutline as HelpOutlineIcon } from '@mui/icons-material';
+import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 
 export type Header = {
@@ -28,61 +28,64 @@ export default function Header({ }: Header) {
 
 
     return (
-        <AppBar position="static" id="header" >
-            <Toolbar variant="dense" sx={{ flexGrow: 1 }}>
-                <Container sx={{ flexGrow: 1, display: 'block'  }}>
-                <span>
-                    <Button
-                        id="file-dropdown"
-                        aria-controls={fileMenuOpen ? 'file-menu' : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={fileMenuOpen ? 'true' : undefined}
-                        onClick={handleFileClick}
-                        
-                    >
-                        File
-                    </Button>
-                    <Menu
-                        id="file-menu"
-                        anchorEl={fileAnchorEl}
-                        open={fileMenuOpen}
-                        onClose={handleFileClose}
-                        MenuListProps={{
-                            'aria-labelledby': 'basic-button',
-                        }}
-                    >
-                        <MenuItem onClick={handleFileClose}>Import</MenuItem>
-                        <MenuItem onClick={handleFileClose}>Save</MenuItem>
-                    </Menu>
+        <div>
+            <AppBar position="static" id="header" >
+                <Toolbar variant="dense" sx={{ flexGrow: 1 }}>
+                    <Container sx={{ flexGrow: 1, display: 'block' }}>
+                        <span>
+                            <Button
+                                id="file-dropdown"
+                                aria-controls={fileMenuOpen ? 'file-menu' : undefined}
+                                aria-haspopup="true"
+                                aria-expanded={fileMenuOpen ? 'true' : undefined}
+                                onClick={handleFileClick}
 
-                </span>
-                <span>
-                    <Button
-                        id="setting-dropdown"
-                        aria-controls={settingMenuOpen ? 'setting-menu' : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={settingMenuOpen ? 'true' : undefined}
-                        onClick={handleSettingClick}
-                        >
-                        Settings
-                    </Button>
-                    <Menu
-                        id="setting-menu"
-                        anchorEl={settingAnchorEl}
-                        open={settingMenuOpen}
-                        onClose={handleSettingClose}
-                        MenuListProps={{
-                            'aria-labelledby': 'basic-button',
-                        }}
-                    >
-                        <MenuItem onClick={handleSettingClose}>Preferences</MenuItem>
-                    </Menu>
-                </span>
-                </Container>
-                <div >
-                    <Button id="documentation-icon"><HelpOutlineIcon /></Button>
-                </div>
-            </Toolbar>
-        </AppBar>
+                            >
+                                File
+                            </Button>
+                            <Menu
+                                id="file-menu"
+                                anchorEl={fileAnchorEl}
+                                open={fileMenuOpen}
+                                onClose={handleFileClose}
+                                MenuListProps={{
+                                    'aria-labelledby': 'basic-button',
+                                }}
+                            >
+                                <MenuItem onClick={handleFileClose}>Import</MenuItem>
+                                <MenuItem onClick={handleFileClose}>Save</MenuItem>
+                            </Menu>
+
+                        </span>
+                        <span>
+                            <Button
+                                id="setting-dropdown"
+                                aria-controls={settingMenuOpen ? 'setting-menu' : undefined}
+                                aria-haspopup="true"
+                                aria-expanded={settingMenuOpen ? 'true' : undefined}
+                                onClick={handleSettingClick}
+                            >
+                                Settings
+                            </Button>
+                            <Menu
+                                id="setting-menu"
+                                anchorEl={settingAnchorEl}
+                                open={settingMenuOpen}
+                                onClose={handleSettingClose}
+                                MenuListProps={{
+                                    'aria-labelledby': 'basic-button',
+                                }}
+                            >
+                                <MenuItem onClick={handleSettingClose}>Preferences</MenuItem>
+                            </Menu>
+                        </span>
+                    </Container>
+                    <div >
+                        <Button id="documentation-icon"><HelpOutlineIcon /></Button>
+                        <Button id="detail-icon"><MoreVertIcon /></Button>
+                    </div>
+                </Toolbar>
+            </AppBar>
+        </div>
     );
 }

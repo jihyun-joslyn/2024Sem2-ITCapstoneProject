@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { } from '@mui/material/styles';
-import { Box, createSvgIcon, Tab, Tabs } from '@mui/material';
-// import FolderIcon from '@mui/icons-material/Folder';
-import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon } from '@mui/icons-material'
+import { createSvgIcon, Tab, Tabs } from '@mui/material';
+import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon } from '@mui/icons-material';
+import FilePane from './FilePane';
 
 export type Sidebar = {
 
@@ -41,20 +40,23 @@ export default function Sidebar({ }: Sidebar) {
         setValue(newValue);
     };
 
+    const [open, setOpen] = useState(false);
+
     return (
-        
+        <div id="side">
+            <FilePane isShow={open}/>
             <Tabs
                 orientation="vertical"
                 value={value}
                 onChange={handleChange}
                 id="toolbar"
             >
-                <Tab icon={<FolderIcon sx={{ color: '#9c806c'}}/>} aria-label="Folder" />
+                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { setOpen(!open); }} />
                 <Tab icon={<ArrowIcon />} />
-                <Tab icon={<PanToolIcon sx={{ color: '#9c806c'}}/>} />
-                <Tab icon={<BrushIcon sx={{ color: '#9c806c'}}/>} />
+                <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
+                <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<SprayIcon />} />
             </Tabs>
-
+        </div>
     );
 }
