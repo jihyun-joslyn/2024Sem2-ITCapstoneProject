@@ -22,7 +22,7 @@ function main() {
         <Sidebar />
       </Grid>
       <Grid size={3} offset={ 'auto' }>
-        {/* <DetailPane isShow={true}/> */}
+        <DetailPane />
       </Grid>
     </Grid>
   </div>
