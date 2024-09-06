@@ -1,4 +1,11 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import './index.css';
+
+let camera: THREE.PerspectiveCamera;
+let controls: OrbitControls;
+
 
 function showPanel(panel: string): void {
     const labelPanel = document.getElementById('label-panel');
@@ -26,10 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 
 function setupScene() {
     const scene = new THREE.Scene();
@@ -100,7 +103,11 @@ function importSTL() {
     });
 }
 window.onload = function() {
+    const { scene, camera: sceneCamera, controls: sceneControls } = setupScene();
+    camera = sceneCamera;
+    controls = sceneControls;
     importSTL();
+;
 };
 
 //hotkey page
@@ -118,37 +125,84 @@ document.getElementById('closeHotkeySettings').addEventListener('click', () => {
     }
 });
 
-const hotkeys = {
-    hotkey1: 'KeyA',
-    hotkey2: 'KeyB',
-    hotkey3: 'KeyC',
-};
 
-function setHotkeyListeners() {
-    const hotkeyKeys = ['hotkey1', 'hotkey2', 'hotkey3'] as const;
+// store current hotkey settings
+let currentZoomInHotkey = 'Z';
+let currentZoomOutHotkey = 'X';
+let hotkeyBeingSet: 'zoomIn' | 'zoomOut' | null = null;
+let modifierKey = '';
 
-    hotkeyKeys.forEach(hotkeyId => {
-        const hotkeyInput = document.getElementById(hotkeyId) as HTMLInputElement;
-        hotkeyInput.value = hotkeys[hotkeyId]; // display current hotkey
-        hotkeyInput.addEventListener('click', () => {
-            document.addEventListener('keydown', function handler(e) {
-                hotkeys[hotkeyId] = e.code;
-                hotkeyInput.value = e.code;
-                document.removeEventListener('keydown', handler);
-            });
-        });
-    });
-}
+const zoomInInput = document.getElementById('zoomInHotkey') as HTMLInputElement;
+const zoomOutInput = document.getElementById('zoomOutHotkey') as HTMLInputElement;
 
+document.getElementById('zoomInHotkey')!.addEventListener('click', function () {
+    hotkeyBeingSet = 'zoomIn';
+    zoomInInput.value = 'Press a key...';
+});
 
-document.getElementById('saveHotkeys').addEventListener('click', () => {
-    console.log('Hotkeys saved:', hotkeys);
-    alert('Hotkeys saved successfully!');
-    const hotkeySettings = document.getElementById('hotkeySettings');
-    if (hotkeySettings) {
-        hotkeySettings.style.display = 'none';
+document.getElementById('zoomOutHotkey')!.addEventListener('click', function () {
+    hotkeyBeingSet = 'zoomOut';
+    zoomInInput.value = 'Press a key...';
+});
+
+// key presses and mouse events
+document.addEventListener('keydown', (event) => {
+    if (hotkeyBeingSet) {
+        const key = event.key.toUpperCase();
+        if (['SHIFT', 'ALT', 'CONTROL'].includes(key)) {
+            modifierKey = key;
+        } else {
+            setHotkey(key);
+        }
     }
 });
 
-// initialize hot key
-setHotkeyListeners();
+document.addEventListener('keyup', (event) => {
+    if (['SHIFT', 'ALT', 'CONTROL'].includes(event.key.toUpperCase())) {
+        modifierKey = '';
+    }
+});
+
+document.addEventListener('wheel', (event) => {
+    if (hotkeyBeingSet) {
+        setHotkey(event.deltaY > 0 ? 'MouseWheelDown' : 'MouseWheelUp');
+    }
+});
+
+document.addEventListener('mousedown', (event) => {
+    if (hotkeyBeingSet) {
+        const mouseButton = event.button === 0 ? 'MouseLeft' : event.button === 2 ? 'MouseRight' : '';
+        if (mouseButton) {
+            setHotkey(mouseButton);
+        }
+    }
+});
+
+function setHotkey(newKey: string) {
+    const fullHotkey = modifierKey ? `${modifierKey}+${newKey}` : newKey;
+
+    // unique hotkey
+    if (fullHotkey === currentZoomInHotkey || fullHotkey === currentZoomOutHotkey) {
+        alert('This hotkey is already assigned.');
+        return;
+    }
+
+    // Apply the hotkey(?)
+    if (hotkeyBeingSet === 'zoomIn') {
+        currentZoomInHotkey = fullHotkey;
+        (document.getElementById('zoomInHotkey') as HTMLInputElement).value = fullHotkey;
+    } else if (hotkeyBeingSet === 'zoomOut') {
+        currentZoomOutHotkey = fullHotkey;
+        (document.getElementById('zoomOutHotkey') as HTMLInputElement).value = fullHotkey;
+    }
+
+    hotkeyBeingSet = null;
+}
+
+document.getElementById('saveHotkeys')!.addEventListener('click', function () {
+    applyHotkeys();//(not finished)
+});
+
+function applyHotkeys() {
+    
+}
