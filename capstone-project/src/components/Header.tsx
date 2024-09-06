@@ -8,13 +8,22 @@ export type Header = {
 };
 
 export default function Header({ }: Header) {
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const open = Boolean(anchorEl);
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
+    const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
+    const fileMenuOpen = Boolean(fileAnchorEl);
+    const handleFileClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setFileAnchorEl(event.currentTarget);
     };
-    const handleClose = () => {
-        setAnchorEl(null);
+    const handleFileClose = () => {
+        setFileAnchorEl(null);
+    };
+
+    const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
+    const settingMenuOpen = Boolean(settingAnchorEl);
+    const handleSettingClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setSettingAnchorEl(event.currentTarget);
+    };
+    const handleSettingClose = () => {
+        setSettingAnchorEl(null);
     };
 
 
@@ -25,48 +34,48 @@ export default function Header({ }: Header) {
                 <span>
                     <Button
                         id="file-dropdown"
-                        aria-controls={open ? 'file-menu' : undefined}
+                        aria-controls={fileMenuOpen ? 'file-menu' : undefined}
                         aria-haspopup="true"
-                        aria-expanded={open ? 'true' : undefined}
-                        onClick={handleClick}
+                        aria-expanded={fileMenuOpen ? 'true' : undefined}
+                        onClick={handleFileClick}
                         
                     >
                         File
                     </Button>
                     <Menu
                         id="file-menu"
-                        anchorEl={anchorEl}
-                        open={open}
-                        onClose={handleClose}
+                        anchorEl={fileAnchorEl}
+                        open={fileMenuOpen}
+                        onClose={handleFileClose}
                         MenuListProps={{
                             'aria-labelledby': 'basic-button',
                         }}
                     >
-                        <MenuItem onClick={handleClose}>Import</MenuItem>
-                        <MenuItem onClick={handleClose}>Save</MenuItem>
+                        <MenuItem onClick={handleFileClose}>Import</MenuItem>
+                        <MenuItem onClick={handleFileClose}>Save</MenuItem>
                     </Menu>
 
                 </span>
                 <span>
                     <Button
                         id="setting-dropdown"
-                        aria-controls={open ? 'setting-menu' : undefined}
+                        aria-controls={settingMenuOpen ? 'setting-menu' : undefined}
                         aria-haspopup="true"
-                        aria-expanded={open ? 'true' : undefined}
-                        onClick={handleClick}
+                        aria-expanded={settingMenuOpen ? 'true' : undefined}
+                        onClick={handleSettingClick}
                         >
                         Settings
                     </Button>
                     <Menu
                         id="setting-menu"
-                        anchorEl={anchorEl}
-                        open={open}
-                        onClose={handleClose}
+                        anchorEl={settingAnchorEl}
+                        open={settingMenuOpen}
+                        onClose={handleSettingClose}
                         MenuListProps={{
                             'aria-labelledby': 'basic-button',
                         }}
                     >
-                        <MenuItem onClick={handleClose}>Preferences</MenuItem>
+                        <MenuItem onClick={handleSettingClose}>Preferences</MenuItem>
                     </Menu>
                 </span>
                 </Container>

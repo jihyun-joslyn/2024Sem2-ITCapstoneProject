@@ -32,15 +32,15 @@ body {
 
 }
 
-#toolbar {
+#toolbar, #file-pane, .MuiDrawer-root .MuiDrawer-paper {
   background-color: #E8D7C6;
-  /* padding-left: 18px; */
   width: fit-content;
 }
 
-.toolbar-icon {
-  padding: 18px;
-  font-size: 24px;
+#toolbar .MuiTabs-scroller .MuiTabs-flexContainer button svg {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  font-size: 1.5rem;
 }
 
 #right-pane {
@@ -51,11 +51,16 @@ body {
   border-top: 0px !important;
 }
 
-#right-pane .card-header {
-  font-size: 1.25rem;
+#right-pane .MuiToolbar-root, #file-pane-header {
+  
+  min-height: 0px !important;
+  padding: 8px 16px!important;
+}
+
+#right-pane .MuiToolbar-root p, #file-pane-header p {
+  font-size: 1.25em;
   font-weight: 600;
-  border-bottom: 0px !important;
-  border-top: 0px !important;
+  color: #824D28;
 }
 
 #right-pane .card-body {
@@ -68,13 +73,13 @@ body {
   padding: 0px !important
 }
 
-#detail-pane-header {
+#detail-pane-header, #file-pane-header {
   background-color: #DDC5B0;
 }
 
 #right-pane .MuiList-root, #right-pane .MuiList-root .MuiListItem-root {
   padding: 0px !important;
-  
+  background-color: #E8D7C6;
 }
 
 #header .MuiToolbar-root, #header .MuiToolbar-root .MuiContainer-root {
@@ -91,6 +96,22 @@ body {
   background-color: #824D28;
 }
 
-#toolbar .MuiTabs-scroller .MuiTabs-flexContainer .Mui-selected {
+#toolbar .MuiTabs-scroller .MuiTabs-flexContainer .Mui-selected, 
+#file-pane ul {
   color: #824D28 !important;
+}
+
+#detail-list .MuiListItem-root .MuiAccordion-root {
+  background-color: #E8D7C6;
+  box-shadow: none !important;
+  color: #824D28 !important;
+
+}
+
+#side {
+  display: flex;
+}
+
+#file-pane {
+  padding-right: 8px !important
 }
