@@ -4,10 +4,11 @@ import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/i
 
 
 export type Header = {
-
+    showDetailPane: (isShow: boolean) => void
 };
 
-export default function Header({ }: Header) {
+
+export default function Header({ showDetailPane }: Header) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const fileMenuOpen = Boolean(fileAnchorEl);
     const handleFileClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -26,6 +27,7 @@ export default function Header({ }: Header) {
         setSettingAnchorEl(null);
     };
 
+    const [isShowDetailPane, setIsShowDetailPane] = useState(false);
 
     return (
         <div>
@@ -82,7 +84,7 @@ export default function Header({ }: Header) {
                     </Container>
                     <div >
                         <Button id="documentation-icon"><HelpOutlineIcon /></Button>
-                        <Button id="detail-icon"><MoreVertIcon /></Button>
+                        <Button id="detail-icon" onClick={() => { setIsShowDetailPane(!isShowDetailPane); showDetailPane(isShowDetailPane); }}><MoreVertIcon /></Button>
                     </div>
                 </Toolbar>
             </AppBar>
