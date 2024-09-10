@@ -110,99 +110,99 @@ window.onload = function() {
 ;
 };
 
-//hotkey page
-document.getElementById('hotkey').addEventListener('click', () => {
-    const hotkeySettings = document.getElementById('hotkeySettings');
-    if (hotkeySettings) {
-        hotkeySettings.style.display = 'block';
-    }
-});
+// //hotkey page
+// document.getElementById('hotkey').addEventListener('click', () => {
+//     const hotkeySettings = document.getElementById('hotkeySettings');
+//     if (hotkeySettings) {
+//         hotkeySettings.style.display = 'block';
+//     }
+// });
 
-document.getElementById('closeHotkeySettings').addEventListener('click', () => {
-    const hotkeySettings = document.getElementById('hotkeySettings');
-    if (hotkeySettings) {
-        hotkeySettings.style.display = 'none';
-    }
-});
+// document.getElementById('closeHotkeySettings').addEventListener('click', () => {
+//     const hotkeySettings = document.getElementById('hotkeySettings');
+//     if (hotkeySettings) {
+//         hotkeySettings.style.display = 'none';
+//     }
+// });
 
 
-// store current hotkey settings
-let currentZoomInHotkey = 'Z';
-let currentZoomOutHotkey = 'X';
-let hotkeyBeingSet: 'zoomIn' | 'zoomOut' | null = null;
-let modifierKey = '';
+// // store current hotkey settings
+// let currentZoomInHotkey = 'Z';
+// let currentZoomOutHotkey = 'X';
+// let hotkeyBeingSet: 'zoomIn' | 'zoomOut' | null = null;
+// let modifierKey = '';
 
-const zoomInInput = document.getElementById('zoomInHotkey') as HTMLInputElement;
-const zoomOutInput = document.getElementById('zoomOutHotkey') as HTMLInputElement;
+// const zoomInInput = document.getElementById('zoomInHotkey') as HTMLInputElement;
+// const zoomOutInput = document.getElementById('zoomOutHotkey') as HTMLInputElement;
 
-document.getElementById('zoomInHotkey')!.addEventListener('click', function () {
-    hotkeyBeingSet = 'zoomIn';
-    zoomInInput.value = 'Press a key...';
-});
+// document.getElementById('zoomInHotkey')!.addEventListener('click', function () {
+//     hotkeyBeingSet = 'zoomIn';
+//     zoomInInput.value = 'Press a key...';
+// });
 
-document.getElementById('zoomOutHotkey')!.addEventListener('click', function () {
-    hotkeyBeingSet = 'zoomOut';
-    zoomInInput.value = 'Press a key...';
-});
+// document.getElementById('zoomOutHotkey')!.addEventListener('click', function () {
+//     hotkeyBeingSet = 'zoomOut';
+//     zoomInInput.value = 'Press a key...';
+// });
 
-// key presses and mouse events
-document.addEventListener('keydown', (event) => {
-    if (hotkeyBeingSet) {
-        const key = event.key.toUpperCase();
-        if (['SHIFT', 'ALT', 'CONTROL'].includes(key)) {
-            modifierKey = key;
-        } else {
-            setHotkey(key);
-        }
-    }
-});
+// // key presses and mouse events
+// document.addEventListener('keydown', (event) => {
+//     if (hotkeyBeingSet) {
+//         const key = event.key.toUpperCase();
+//         if (['SHIFT', 'ALT', 'CONTROL'].includes(key)) {
+//             modifierKey = key;
+//         } else {
+//             setHotkey(key);
+//         }
+//     }
+// });
 
-document.addEventListener('keyup', (event) => {
-    if (['SHIFT', 'ALT', 'CONTROL'].includes(event.key.toUpperCase())) {
-        modifierKey = '';
-    }
-});
+// document.addEventListener('keyup', (event) => {
+//     if (['SHIFT', 'ALT', 'CONTROL'].includes(event.key.toUpperCase())) {
+//         modifierKey = '';
+//     }
+// });
 
-document.addEventListener('wheel', (event) => {
-    if (hotkeyBeingSet) {
-        setHotkey(event.deltaY > 0 ? 'MouseWheelDown' : 'MouseWheelUp');
-    }
-});
+// document.addEventListener('wheel', (event) => {
+//     if (hotkeyBeingSet) {
+//         setHotkey(event.deltaY > 0 ? 'MouseWheelDown' : 'MouseWheelUp');
+//     }
+// });
 
-document.addEventListener('mousedown', (event) => {
-    if (hotkeyBeingSet) {
-        const mouseButton = event.button === 0 ? 'MouseLeft' : event.button === 2 ? 'MouseRight' : '';
-        if (mouseButton) {
-            setHotkey(mouseButton);
-        }
-    }
-});
+// document.addEventListener('mousedown', (event) => {
+//     if (hotkeyBeingSet) {
+//         const mouseButton = event.button === 0 ? 'MouseLeft' : event.button === 2 ? 'MouseRight' : '';
+//         if (mouseButton) {
+//             setHotkey(mouseButton);
+//         }
+//     }
+// });
 
-function setHotkey(newKey: string) {
-    const fullHotkey = modifierKey ? `${modifierKey}+${newKey}` : newKey;
+// function setHotkey(newKey: string) {
+//     const fullHotkey = modifierKey ? `${modifierKey}+${newKey}` : newKey;
 
-    // unique hotkey
-    if (fullHotkey === currentZoomInHotkey || fullHotkey === currentZoomOutHotkey) {
-        alert('This hotkey is already assigned.');
-        return;
-    }
+//     // unique hotkey
+//     if (fullHotkey === currentZoomInHotkey || fullHotkey === currentZoomOutHotkey) {
+//         alert('This hotkey is already assigned.');
+//         return;
+//     }
 
-    // Apply the hotkey(?)
-    if (hotkeyBeingSet === 'zoomIn') {
-        currentZoomInHotkey = fullHotkey;
-        (document.getElementById('zoomInHotkey') as HTMLInputElement).value = fullHotkey;
-    } else if (hotkeyBeingSet === 'zoomOut') {
-        currentZoomOutHotkey = fullHotkey;
-        (document.getElementById('zoomOutHotkey') as HTMLInputElement).value = fullHotkey;
-    }
+//     // Apply the hotkey(?)
+//     if (hotkeyBeingSet === 'zoomIn') {
+//         currentZoomInHotkey = fullHotkey;
+//         (document.getElementById('zoomInHotkey') as HTMLInputElement).value = fullHotkey;
+//     } else if (hotkeyBeingSet === 'zoomOut') {
+//         currentZoomOutHotkey = fullHotkey;
+//         (document.getElementById('zoomOutHotkey') as HTMLInputElement).value = fullHotkey;
+//     }
 
-    hotkeyBeingSet = null;
-}
+//     hotkeyBeingSet = null;
+// }
 
-document.getElementById('saveHotkeys')!.addEventListener('click', function () {
-    applyHotkeys();//(not finished)
-});
+// document.getElementById('saveHotkeys')!.addEventListener('click', function () {
+//     applyHotkeys();//(not finished)
+// });
 
-function applyHotkeys() {
+// function applyHotkeys() {
     
-}
+// }
