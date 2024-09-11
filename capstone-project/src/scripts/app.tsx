@@ -24,7 +24,7 @@ const App = () => {
     }
 
     return (
-        <Container maxWidth="xl" sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div>
             <Box sx={{ flexGrow: 0 }}>
                 <Header onModelLoad={handleModelLoad} showDetailPane={showDetailPane} />
             </Box>
@@ -39,7 +39,7 @@ const App = () => {
                     <DetailPane isShow={isShowDetailPane} />
                 </Grid>
             </Grid>
-        </Container>
+        </div>
     );
 };
 
