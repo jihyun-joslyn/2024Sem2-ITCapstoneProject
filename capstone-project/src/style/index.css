@@ -40,6 +40,11 @@ body {
   width: fit-content;
 }
 
+#toolbar,
+#file-pane {
+  height: 100vh !important;
+}
+
 #toolbar .MuiTabs-scroller .MuiTabs-flexContainer button svg {
   padding-top: 18px;
   padding-bottom: 18px;
@@ -56,6 +61,7 @@ body {
   border-left: 1px !important;
   border-bottom: 0px !important;
   border-top: 0px !important;
+  height: 100vh !important;
 }
 
 #right-pane .MuiToolbar-root,
@@ -70,11 +76,6 @@ body {
   font-size: 1.25em;
   font-weight: 600;
   color: #824D28;
-}
-
-#right-pane .card-body {
-  background-color: white;
-  padding: 0px !important;
 }
 
 .accordion {

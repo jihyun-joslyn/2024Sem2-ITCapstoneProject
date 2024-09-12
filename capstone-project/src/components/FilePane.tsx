@@ -1,7 +1,5 @@
-import { Toolbar, Typography, Accordion, AccordionDetails, AccordionSummary, List, ListItem, } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { Toolbar, Typography, } from '@mui/material';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
-
 
 export type FilePane = {
     isShow: Boolean
@@ -9,9 +7,6 @@ export type FilePane = {
 };
 
 export default function FilePane({ isShow }: FilePane) {
-
-
-
     return (
         <div>
             {isShow && (
