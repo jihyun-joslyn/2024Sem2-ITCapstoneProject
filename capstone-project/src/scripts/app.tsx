@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from "react-dom/client";
-import { Box, Grid, Container } from '@mui/material';
+import { Box, Grid2 as Grid, Container } from '@mui/material';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';
@@ -24,22 +24,20 @@ const App = () => {
 
   return (
     <ModelProvider>
-    <Container maxWidth="xl" sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ flexGrow: 0 }}>
         <Header showDetailPane={showDetailPane} onModelLoad={handleModelLoad} />
       </Box>
-      <Grid container spacing={2} sx={{ flexGrow: 1 }}>
-        <Grid item xs={2}>
+      <Grid container rowSpacing={1}>
+        <Grid size="auto">
           <Sidebar />
         </Grid>
-        <Grid item xs={8} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+        <Grid size={8} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
         </Grid>
-        <Grid item xs={2}>
-          <DetailPane isShow={isShowDetailPane}/>
+        <Grid size={3} offset={'auto'}>
+          <DetailPane isShow={isShowDetailPane} />
         </Grid>
       </Grid>
-    </Container>
     </ModelProvider>
   );
 };
