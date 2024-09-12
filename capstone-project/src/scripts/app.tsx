@@ -1,28 +1,6 @@
-/* import { createRoot } from "react-dom/client";
-import Main from '../components/Main';
-
-const container = document.getElementById('root');
-
-const root = createRoot(container);
-
-
-function main() {
-
-  root.render(<div>
-   <Main />
-  </div>
-  );
-}
-
-main();
-
-
- */
-
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from "react-dom/client";
-import { Box, Grid2 as Grid, Container } from '@mui/material';
+import { Grid2 as Grid } from '@mui/material';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';

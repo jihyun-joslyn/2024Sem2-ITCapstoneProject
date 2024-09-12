@@ -44,7 +44,6 @@ export default function Sidebar({ }: Sidebar) {
 
     return (
         <div id="side">
-            <FilePane isShow={open}/>
             <Tabs
                 orientation="vertical"
                 value={value}
@@ -57,6 +56,7 @@ export default function Sidebar({ }: Sidebar) {
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<SprayIcon />} />
             </Tabs>
+            <FilePane isShow={open} />
         </div>
     );
 }
