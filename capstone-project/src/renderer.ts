@@ -31,6 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+let globalControls: OrbitControls | null = null;
+let globalCamera: THREE.PerspectiveCamera | null = null;
+let globalScene: THREE.Scene | null = null;
+let globalRenderer: THREE.WebGLRenderer | null = null;
+
+
+
 function setupScene() {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -52,8 +59,15 @@ function setupScene() {
     controls.dampingFactor = 0.05;
     controls.screenSpacePanning = false;
 
+    globalControls = controls;
+    globalCamera = camera;
+    globalScene = scene;
+    globalRenderer = renderer;
+
     return { scene, camera, renderer, controls };
 }
+
+
 
 function importSTL() {
     const { scene, camera, renderer, controls } = setupScene();
@@ -100,8 +114,17 @@ function importSTL() {
     });
 }
 window.onload = function() {
+    setupScene();
     importSTL();
-;
+    applyHotkeys();
+
+    // Setup UI event listeners for new hotkeys
+    ['flipRight', 'flipLeft', 'undo', 'redo'].forEach(action => {
+        document.getElementById(`${action}Hotkey`)?.addEventListener('click', function () {
+            hotkeyBeingSet = action as any;
+            (this as HTMLInputElement).value = 'Press a key...';
+        });
+    });
 };
 
 
@@ -121,14 +144,23 @@ document.getElementById('closeHotkeySettings').addEventListener('click', () => {
 });
 
 
+// History for undo/redo
+let history: THREE.Vector3[] = [];
+let historyIndex: number = -1;
+
 // store current hotkey settings
 let currentZoomInHotkey = 'Z';
 let currentZoomOutHotkey = 'X';
-let hotkeyBeingSet: 'zoomIn' | 'zoomOut' | null = null;
+let currentFlipRightHotkey = 'R';
+let currentFlipLeftHotkey = 'L';
+let currentUndoHotkey = 'CONTROL+Z';
+let currentRedoHotkey = 'CONTROL+Y';
+let hotkeyBeingSet: 'zoomIn' | 'zoomOut' | 'flipRight' | 'flipLeft' | 'undo' | 'redo' | null = null;
 let modifierKey = '';
-
 const zoomInInput = document.getElementById('zoomInHotkey') as HTMLInputElement;
 const zoomOutInput = document.getElementById('zoomOutHotkey') as HTMLInputElement;
+
+
 
 document.getElementById('zoomInHotkey')!.addEventListener('click', function () {
     hotkeyBeingSet = 'zoomIn';
@@ -176,26 +208,200 @@ document.addEventListener('mousedown', (event) => {
 function setHotkey(newKey: string) {
     const fullHotkey = modifierKey ? `${modifierKey}+${newKey}` : newKey;
 
-    // unique hotkey
-    if (fullHotkey === currentZoomInHotkey || fullHotkey === currentZoomOutHotkey) {
+    // Check for unique hotkey
+    const currentHotkeys = [currentZoomInHotkey, currentZoomOutHotkey, currentFlipRightHotkey, currentFlipLeftHotkey, currentUndoHotkey, currentRedoHotkey];
+    if (currentHotkeys.includes(fullHotkey)) {
         alert('This hotkey is already assigned.');
         return;
     }
 
-    // Apply the hotkey(?)
-    if (hotkeyBeingSet === 'zoomIn') {
-        currentZoomInHotkey = fullHotkey;
-        (document.getElementById('zoomInHotkey') as HTMLInputElement).value = fullHotkey;
-    } else if (hotkeyBeingSet === 'zoomOut') {
-        currentZoomOutHotkey = fullHotkey;
-        (document.getElementById('zoomOutHotkey') as HTMLInputElement).value = fullHotkey;
+    // Apply the hotkey
+    switch (hotkeyBeingSet) {
+        case 'zoomIn':
+            currentZoomInHotkey = fullHotkey;
+            (document.getElementById('zoomInHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
+        case 'zoomOut':
+            currentZoomOutHotkey = fullHotkey;
+            (document.getElementById('zoomOutHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
+        case 'flipRight':
+            currentFlipRightHotkey = fullHotkey;
+            (document.getElementById('flipRightHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
+        case 'flipLeft':
+            currentFlipLeftHotkey = fullHotkey;
+            (document.getElementById('flipLeftHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
+        case 'undo':
+            currentUndoHotkey = fullHotkey;
+            (document.getElementById('undoHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
+        case 'redo':
+            currentRedoHotkey = fullHotkey;
+            (document.getElementById('redoHotkey') as HTMLInputElement).value = fullHotkey;
+            break;
     }
 
     hotkeyBeingSet = null;
 }
 
-document.getElementById('saveHotkeys')!.addEventListener('click', function () {
-    applyHotkeys();//(not finished)
-});
+function handleHotkey(fullHotkey: string) {
+    switch (fullHotkey) {
+        case currentZoomInHotkey:
+            zoomIn();
+            break;
+        case currentZoomOutHotkey:
+            zoomOut();
+            break;
+        case currentFlipRightHotkey:
+            flipRight();
+            break;
+        case currentFlipLeftHotkey:
+            flipLeft();
+            break;
+        case currentUndoHotkey:
+            undo();
+            break;
+        case currentRedoHotkey:
+            redo();
+            break;
+    }
+}
 
-function applyHotkeys() {}
+function applyHotkeys() {
+    document.addEventListener('keydown', (event) => {
+        const fullHotkey = getFullHotkey(event);
+        handleHotkey(fullHotkey);
+    });
+
+    document.addEventListener('wheel', (event) => {
+        const fullHotkey = getFullHotkey(event);
+        handleHotkey(fullHotkey);
+        // Prevent default scrolling behavior if the wheel is used for any hotkey
+        if ([currentZoomInHotkey, currentZoomOutHotkey, currentFlipRightHotkey, currentFlipLeftHotkey].includes(fullHotkey)) {
+            event.preventDefault();
+        }
+    });
+
+    document.addEventListener('mousedown', (event) => {
+        const fullHotkey = getFullHotkey(event);
+        handleHotkey(fullHotkey);
+    });
+}
+
+// assigned function
+function zoomIn() {
+    if (globalCamera) {
+        globalCamera.zoom *= 1.1;
+        globalCamera.updateProjectionMatrix();
+    }
+}
+
+function zoomOut() {
+    if (globalCamera) {
+        globalCamera.zoom /= 1.1;
+        globalCamera.updateProjectionMatrix();
+    }
+}
+
+function flipRight() {
+    if (globalCamera && globalControls) {
+        const axis = new THREE.Vector3(0, 1, 0);
+        const angle = -Math.PI / 8; // -22.5 degrees
+        const point = globalControls.target;
+        
+        const rotationMatrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+        const translationMatrix = new THREE.Matrix4().makeTranslation(point.x, point.y, point.z);
+        const inverseTranslationMatrix = new THREE.Matrix4().makeTranslation(-point.x, -point.y, -point.z);
+        
+        const matrix = new THREE.Matrix4().multiply(translationMatrix).multiply(rotationMatrix).multiply(inverseTranslationMatrix);
+        
+        globalCamera.position.applyMatrix4(matrix);
+        globalCamera.updateProjectionMatrix();
+        saveState();
+    }
+}
+
+function flipLeft() {
+    if (globalCamera && globalControls) {
+        const axis = new THREE.Vector3(0, 1, 0);
+        const angle = Math.PI / 8; // 22.5 degrees
+        const point = globalControls.target;
+        
+        const rotationMatrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+        const translationMatrix = new THREE.Matrix4().makeTranslation(point.x, point.y, point.z);
+        const inverseTranslationMatrix = new THREE.Matrix4().makeTranslation(-point.x, -point.y, -point.z);
+        
+        const matrix = new THREE.Matrix4().multiply(translationMatrix).multiply(rotationMatrix).multiply(inverseTranslationMatrix);
+        
+        globalCamera.position.applyMatrix4(matrix);
+        globalCamera.updateProjectionMatrix();
+        saveState();
+    }
+}
+
+function saveState() {
+    if (globalCamera) {
+        history = history.slice(0, historyIndex + 1);
+        history.push(globalCamera.position.clone());
+        historyIndex = history.length - 1;
+    }
+}
+
+function undo() {
+    if (historyIndex > 0 && globalCamera) {
+        historyIndex--;
+        globalCamera.position.copy(history[historyIndex]);
+        globalCamera.updateProjectionMatrix();
+        if (globalRenderer && globalScene) {
+            globalRenderer.render(globalScene, globalCamera);
+        }
+    }
+}
+
+function redo() {
+    if (historyIndex < history.length - 1 && globalCamera) {
+        historyIndex++;
+        globalCamera.position.copy(history[historyIndex]);
+        globalCamera.updateProjectionMatrix();
+        if (globalRenderer && globalScene) {
+            globalRenderer.render(globalScene, globalCamera);
+        }
+    }
+}
+
+
+
+function getModifiers(event: KeyboardEvent | MouseEvent | WheelEvent): string[] {
+    const modifiers = [];
+    if (event.shiftKey) modifiers.push('SHIFT');
+    if (event.ctrlKey) modifiers.push('CONTROL');
+    if (event.altKey) modifiers.push('ALT');
+    return modifiers;
+}
+
+function getFullHotkey(event: KeyboardEvent | MouseEvent | WheelEvent): string {
+    const modifiers = getModifiers(event);
+
+    let key = '';
+    if (event instanceof KeyboardEvent) {
+        key = event.key.toUpperCase();
+    } else if (event instanceof MouseEvent && !(event instanceof WheelEvent)) {
+        key = event.button === 0 ? 'MouseLeft' : event.button === 2 ? 'MouseRight' : '';
+    } else if (event instanceof WheelEvent) {
+        key = event.deltaY > 0 ? 'MouseWheelDown' : 'MouseWheelUp';
+    }
+
+    return [...modifiers, key].join('+');
+}
+
+function handleZoom(fullHotkey: string) {
+    if (fullHotkey === currentZoomInHotkey) {
+        zoomIn();
+    } else if (fullHotkey === currentZoomOutHotkey) {
+        zoomOut();
+    }
+}
+
+
