@@ -4,12 +4,11 @@ import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/i
 
 
 export type Header = {
-    showDetailPane: (isShow: boolean) => void,
-    onModelLoad: (data: ArrayBuffer) => void;
+    showDetailPane: (isShow: boolean) => void
 };
 
 
-export default function Header({ onModelLoad, showDetailPane }: Header) {
+export default function Header({ showDetailPane }: Header) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const fileMenuOpen = Boolean(fileAnchorEl);
     const handleFileClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -29,27 +28,6 @@ export default function Header({ onModelLoad, showDetailPane }: Header) {
     };
 
     const [isShowDetailPane, setIsShowDetailPane] = useState(false);
-
-    const handleImport = async () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = ".stl";
-        input.onchange = async (e) => {
-            const target = e.target as HTMLInputElement;
-            const file = target.files ? target.files[0] : null;
-            if (file) {
-                const reader = new FileReader();  
-                reader.readAsArrayBuffer(file);
-                reader.onload = () => {
-                    if (reader.result instanceof ArrayBuffer) {
-                        onModelLoad(reader.result);
-                    }
-                };
-                reader.onerror = () => console.error('File read error');
-            }
-        };
-        input.click();
-    };
 
     return (
         <div>
@@ -76,7 +54,7 @@ export default function Header({ onModelLoad, showDetailPane }: Header) {
                                     'aria-labelledby': 'basic-button',
                                 }}
                             >
-                                <MenuItem onClick={handleImport}>Import</MenuItem>
+                                <MenuItem onClick={handleFileClose}>Import</MenuItem>
                                 <MenuItem onClick={handleFileClose}>Save</MenuItem>
                             </Menu>
 
