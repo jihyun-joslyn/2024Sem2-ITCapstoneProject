@@ -1,0 +1,148 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: auto;
+  background-color: #F1E3D7;
+}
+
+#header {
+  background-color: #A48569;
+  color: white !important;
+  box-shadow: none !important;
+  padding-left: 0px !important;
+}
+
+#file-dropdown,
+#setting-dropdown {
+  color: white !important;
+  margin-left: 18px;
+  margin-right: 18px;
+}
+
+#file-dropdown::after,
+#setting-dropdown::after {
+  content: none;
+}
+
+#documentation-icon,
+#detail-icon {
+  font-size: 1.2rem;
+  padding: 0.3rem;
+  align-content: end;
+  color: white !important;
+
+}
+
+#toolbar,
+#file-pane,
+.MuiDrawer-root .MuiDrawer-paper {
+  background-color: #E8D7C6;
+  width: fit-content;
+}
+
+#toolbar .MuiTabs-scroller .MuiTabs-flexContainer button svg {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  font-size: 1.5rem;
+}
+
+#toolbar .MuiTabs-scroller .MuiTabs-flexContainer button {
+  min-width: auto !important;
+}
+
+#right-pane {
+  background-color: #E8D7C6;
+  border-radius: 0% !important;
+  border-left: 1px !important;
+  border-bottom: 0px !important;
+  border-top: 0px !important;
+}
+
+#right-pane .MuiToolbar-root,
+#file-pane-header {
+
+  min-height: 0px !important;
+  padding: 8px 16px !important;
+}
+
+#right-pane .MuiToolbar-root p,
+#file-pane-header p {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: #824D28;
+}
+
+#right-pane .card-body {
+  background-color: white;
+  padding: 0px !important;
+}
+
+.accordion {
+  /* border: 0px !important;*/
+  padding: 0px !important
+}
+
+#detail-pane-header,
+#file-pane-header {
+  background-color: #DDC5B0;
+}
+
+#right-pane .MuiList-root,
+#right-pane .MuiList-root .MuiListItem-root {
+  padding: 0px !important;
+  background-color: #E8D7C6;
+}
+
+#header .MuiToolbar-root,
+#header .MuiToolbar-root .MuiContainer-root {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+}
+
+#header .MuiToolbar-root {
+  padding-right: 0px !important;
+  min-height: 0px !important;
+}
+
+#toolbar .MuiTabs-scroller .MuiTabs-indicator {
+  background-color: #824D28;
+}
+
+#toolbar .MuiTabs-scroller .MuiTabs-flexContainer .Mui-selected,
+#file-pane ul {
+  color: #824D28 !important;
+}
+
+#detail-list .MuiListItem-root .MuiAccordion-root {
+  background-color: #E8D7C6;
+  box-shadow: none !important;
+  color: #824D28 !important;
+
+}
+
+#side {
+  display: flex;
+}
+
+#file-pane {
+  padding-right: 8px !important
+}
+
+.upsert-button {
+  position: absolute;
+  right: 1rem;
+}
+
+.upsert-button button {
+
+  color: #824D28;
+  min-width: 0px !important;
+}
+
+.MuiAccordionSummary-content .upsert-button {
+  margin-right: 1.5rem !important;
+}
+
+.MuiAccordionSummary-content .upsert-button button {
+  padding: 0px 8px !important
+}
