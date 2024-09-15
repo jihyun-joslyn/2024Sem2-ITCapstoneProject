@@ -6,7 +6,7 @@ import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
 
 export type Sidebar = {
-
+    showFilePane: (isShow: boolean) => void;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -34,7 +34,7 @@ const SprayIcon = createSvgIcon(
 );
 /* <!--!Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--> */
 
-export default function Sidebar({ }: Sidebar) {
+export default function Sidebar({ showFilePane }: Sidebar) {
 
     const [value, setValue] = useState(0);
     const [color, setColor] = useState("#ffffff");
@@ -66,13 +66,14 @@ export default function Sidebar({ }: Sidebar) {
 
     return (
         <div id="side">
+            
             <Tabs
                 orientation="vertical"
                 value={value}
                 onChange={handleChange}
                 id="toolbar"
             >
-                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { setOpen(!open); }} />
+                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { showFilePane(!open); setOpen(!open); }} />
                 <Tab icon={<ArrowIcon />} />
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
@@ -88,7 +89,7 @@ export default function Sidebar({ }: Sidebar) {
                     </>
                 </Tooltip>
             )}
-            <FilePane isShow={open} />
+            <FilePane isShow={open}/>
         </div>
     );
 }
