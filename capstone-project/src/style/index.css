@@ -118,7 +118,6 @@ body {
   background-color: #E8D7C6;
   box-shadow: none !important;
   color: #824D28 !important;
-
 }
 
 #side {
@@ -146,4 +145,26 @@ body {
 
 .MuiAccordionSummary-content .upsert-button button {
   padding: 0px 8px !important
+}
+
+.class-list-item {
+  box-shadow: none !important;
+  border: 0px !important;
+  width: 100% !important;
+  padding-left: 8px !important;
+}
+
+.class-detail {
+  padding-left: 32px !important;
+  border: 0px !important;
+  box-shadow: none !important;
+}
+
+#right-pane .Mui-expanded {
+ margin: 0px !important;
+ /* min-height: 0px !important; */
+}
+
+.class-list-item .MuiAccordionSummary-root {
+  /* min-height: 0px !important; */
 }
