@@ -11,7 +11,7 @@ export type DetailPane = {
 export default function DetailPane({ isShow }: DetailPane) {
 
     const [problemArr, setProblemArr] = useState(['Problem 1', 'Problem 2', 'Problem 3']);
-    const [labelArr, setLabelArr] = useState([[['Class 1-1', 'Detail 1-1-1', 'Detail 1-1-2'], ['Class 1-2'], ['Class 1-3']], [['Class 2-1'], ['Class 2-2']], []]);
+    const [labelArr, setLabelArr] = useState([[['Class 1-1', 'Detail 1-1-1', 'Detail 1-1-2'], ['Class 1-2'], ['Class 1-3']], [['Class 2-1', 'Detail 2-1-1'], ['Class 2-2']], []]);
     const [userInput, setUserInput] = useState("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
@@ -40,22 +40,32 @@ export default function DetailPane({ isShow }: DetailPane) {
 
     }
 
-    const deleteProblem = (arrIndex: number) : void => {
-        var _problemArr: string[] = problemArr;
-        var _labelArr: string[][][] = labelArr;
+    const deleteProblem = (arrIndex: number): void => {
+        var _problemArr: string[] = [];
+        var _labelArr: string[][][] = [];
 
-        _problemArr = _.filter(_problemArr, function(p, i) {
-            return i != arrIndex;
+        problemArr.forEach((p, i) => {
+            if (i != arrIndex) {
+                _problemArr.push(p);
+            }
         });
 
-        _labelArr = _.filter(_labelArr, function(p, i) {
-            return i != arrIndex;
-        });
+        labelArr.forEach((l, i) => {
+            if(i != arrIndex)
+                _labelArr.push(l);
+        })
 
         setProblemArr(_problemArr);
         setLabelArr(_labelArr);
     }
-    
+
+    const updateLabel = (labels: string[][], arrIndex: number): void => {
+        var _labelArr: string[][][] = labelArr;
+
+        _labelArr[arrIndex] = labels;
+        setLabelArr(_labelArr);
+    }
+
     return (
         <div>
             {isShow && (
@@ -77,14 +87,28 @@ export default function DetailPane({ isShow }: DetailPane) {
 
                             return (
                                 <ListItem key={i} className="problem-arr">
-                                    <Problem problemName={p} labelArr={_labelArr} problemKey={i} updateProblem={updateProblem} deleteProblem={deleteProblem}/>
+                                    <Problem
+                                        problemName={p}
+                                        labelArr={_labelArr}
+                                        problemKey={i}
+                                        updateProblem={updateProblem}
+                                        deleteProblem={deleteProblem}
+                                        updateLabel={updateLabel}
+                                    />
                                 </ListItem>
                             )
                         }
                         )}
                         {isAddNewProblem && (
                             <ListItem id="add-problem-input">
-                                <TextField id="add-problem" label="New Problem" variant="standard" value={userInput} onChange={e => { setUserInput(e.target.value); }} onKeyDown={e => { onAddProblemInputChange(e) }} />
+                                <TextField
+                                    id="add-problem"
+                                    label="New Problem"
+                                    variant="standard"
+                                    value={userInput}
+                                    onChange={e => { setUserInput(e.target.value); }}
+                                    onKeyDown={e => { onAddProblemInputChange(e) }}
+                                />
                             </ListItem>
                         )}
                     </List>
