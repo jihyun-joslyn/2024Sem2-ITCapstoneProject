@@ -4,12 +4,13 @@ import { useState } from 'react';
 
 
 export type UpsertMenu = {
-    // onClickAdd : () => void;
+    onClickAdd : () => void;
     onClickEdit: () => void;
     onClickDelete: () => void;
+    isNeedAdd: boolean;
 };
 
-export default function UpsertMenu({ onClickEdit, onClickDelete }: UpsertMenu) {
+export default function UpsertMenu({ onClickEdit, onClickDelete, isNeedAdd, onClickAdd }: UpsertMenu) {
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -40,7 +41,9 @@ export default function UpsertMenu({ onClickEdit, onClickDelete }: UpsertMenu) {
                     'aria-labelledby': 'basic-button',
                 }}
             >
-                <MenuItem onClick={handleClose}>Add</MenuItem>
+                {isNeedAdd && (
+                    <MenuItem onClick={() => { onClickAdd(); handleClose(); }}>Add</MenuItem>
+                )}
                 <MenuItem onClick={() => { onClickEdit(); handleClose(); }} >Edit</MenuItem>
                 <MenuItem onClick={() => { onClickDelete(); handleClose(); }}>Delete</MenuItem>
             </Menu>

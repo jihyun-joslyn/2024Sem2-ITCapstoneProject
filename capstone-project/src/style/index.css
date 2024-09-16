@@ -162,7 +162,7 @@ body {
   /* min-height: 0px !important; */
 }
 
-#add-problem-label {
+#add-problem-label, #edit-problem-label, #add-new-class-label, #edit-class-label {
   color: rgba(130, 77, 40, 0.6);
 }
 
@@ -170,10 +170,24 @@ body {
   padding-left: 16px !important;
 }
 
-#add-problem::before {
+#add-problem::before, #edit-problem::before, #add-new-class::before, #edit-class::before {
   border-bottom-color: rgba(130, 77, 40, 0.42) !important;
 }
 
-#add-problem::after {
+#add-problem::after, #edit-problem::after, #add-new-class::after, #edit-class::after {
   border-bottom: #824D28 !important;
+}
+
+#add-problem, #edit-problem, #add-new-class, #edit-class {
+  color: #824D28;
+}
+
+#detail-list .Mui-focusVisible, #detail-list .Mui-focused {
+  color: #824D28;
+  background-color: #E8D7C6;
+}
+
+#detail-list .MuiInput-root::after {
+  border-bottom: 2px solid #824D28 !important;
+
 }
