@@ -125,10 +125,6 @@ body {
   display: flex;
 }
 
-#file-pane {
-  padding-right: 8px !important
-}
-
 .upsert-button {
   position: absolute;
   right: 1rem;
