@@ -89,7 +89,9 @@ body {
 }
 
 #right-pane .MuiList-root,
-#right-pane .MuiList-root .MuiListItem-root {
+/* #right-pane .MuiList-root .MuiListItem-root  */
+.problem-arr
+{
   padding: 0px !important;
   background-color: #E8D7C6;
 }
@@ -161,10 +163,22 @@ body {
 }
 
 #right-pane .Mui-expanded {
- margin: 0px !important;
- /* min-height: 0px !important; */
+  margin: 0px !important;
+  /* min-height: 0px !important; */
 }
 
-.class-list-item .MuiAccordionSummary-root {
-  /* min-height: 0px !important; */
+#add-problem-label {
+  color: rgba(130, 77, 40, 0.6);
+}
+
+#add-problem-input {
+  padding-left: 16px !important;
+}
+
+#add-problem::before {
+  border-bottom-color: rgba(130, 77, 40, 0.42) !important;
+}
+
+#add-problem::after {
+  border-bottom: #824D28 !important;
 }
