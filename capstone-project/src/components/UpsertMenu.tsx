@@ -4,10 +4,12 @@ import { useState } from 'react';
 
 
 export type UpsertMenu = {
-
+    // onClickAdd : () => void;
+    onClickEdit: () => void;
+    onClickDelete: () => void;
 };
 
-export default function UpsertMenu({ }: UpsertMenu) {
+export default function UpsertMenu({ onClickEdit, onClickDelete }: UpsertMenu) {
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -39,8 +41,8 @@ export default function UpsertMenu({ }: UpsertMenu) {
                 }}
             >
                 <MenuItem onClick={handleClose}>Add</MenuItem>
-                <MenuItem onClick={handleClose}>Edit</MenuItem>
-                <MenuItem onClick={handleClose}>Delete</MenuItem>
+                <MenuItem onClick={() => { onClickEdit(); handleClose(); }} >Edit</MenuItem>
+                <MenuItem onClick={() => { onClickDelete(); handleClose(); }}>Delete</MenuItem>
             </Menu>
 
         </div>

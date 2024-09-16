@@ -1,24 +1,51 @@
-import { Accordion, AccordionDetails, AccordionSummary, IconButton, Menu, MenuItem, } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, TextField, } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, KeyboardEvent, useEffect } from 'react';
+import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
 
 
 export type Problem = {
     problemName: string,
-    labelArr: string[][]
+    labelArr: string[][],
+    problemKey: number,
+    updateProblem: (userInput: string, arrIndex: number) => void;
+    deleteProblem: (arrIndex: number) => void;
 };
 
-export default function Problem({ problemName, labelArr }: Problem) {
+export default function Problem({ problemName, labelArr, problemKey, updateProblem, deleteProblem }: Problem) {
+    const [problem, setProblem] = useState(problemName);
+    const [isEditProblem, setIsEditProblem] = useState(false);
+    const [problemInput, setProblemInput] = useState(problemName);
+
+    useEffect(() => {
+        setProblem(problemName);
+        setProblemInput(problemName);
+    })
+
+    const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
+        if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {
+            setProblem(problemInput);
+
+            setIsEditProblem(false);
+            updateProblem(problemInput, problemKey);
+        }
+    }
+
+   
 
     return (
         <Accordion sx={{ width: '100%' }}>
             <AccordionSummary
                 expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}
             >
-                {problemName}
+                {!isEditProblem && problem}
+                {isEditProblem && (
+                    <TextField id="edit-problem" label="Edit Problem" variant="standard" value={problemInput} onChange={e => { setProblemInput(e.target.value); }} onKeyDown={e => { editProblem(e) }} />
+                )}
+
                 <span className='upsert-button'>
-                    <UpsertMenu />
+                    <UpsertMenu onClickEdit={() => { setIsEditProblem(true); }} onClickDelete={() => { deleteProblem(problemKey); setProblem(problemName); setProblemInput(problemName); }} />
                 </span>
             </AccordionSummary>
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
@@ -31,12 +58,12 @@ export default function Problem({ problemName, labelArr }: Problem) {
                                         return (
                                             <AccordionSummary
                                                 expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}
-                                                sx={{ border: '0px' }} 
+                                                sx={{ border: '0px' }}
                                                 key={x}
                                             >
                                                 {_l}
                                                 <span className='upsert-button'>
-                                                    <UpsertMenu />
+                                                    {/* <UpsertMenu /> */}
                                                 </span>
                                             </AccordionSummary>
                                         )
