@@ -1,5 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, TextField, Typography, } from '@mui/material';
-import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
+import { TextField, } from '@mui/material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
@@ -38,37 +37,37 @@ export default function Problem({ labelArr, labelIndex, updateLabel, deleteClass
     return (
         <div className='class-list-item'>
             {labels.map((_l, i) => {
-              if(i == 0) {
-                        return (
-                            <p
-                                style={{ border: '0px', paddingLeft: '0px' }}
-                                key={i}
-                            >
-                                {isEditClass && (
-                                    <TextField
-                                        id="edit-class"
-                                        label="Edit Class"
-                                        variant="standard"
-                                        value={className}
-                                        onChange={e => { setClassName(e.target.value); }}
-                                        onKeyDown={e => { editClass(e) }}
-                                    />
-                                )}
-                                {!isEditClass && (
-                                    <span>
-                                        {_l}
-                                        <span className='upsert-button'>
-                                            <UpsertMenu
-                                                onClickEdit={() => { setIsEditClass(true); }}
-                                                onClickDelete={() => { deleteClass(labelIndex); }}
-                                                onClickAdd={() => { }}
-                                                isNeedAdd={false}
-                                            />
-                                        </span>
+                if (i == 0) {
+                    return (
+                        <p
+                            style={{ border: '0px', paddingLeft: '0px' }}
+                            key={i}
+                        >
+                            {isEditClass && (
+                                <TextField
+                                    id="edit-class"
+                                    label="Edit Class"
+                                    variant="standard"
+                                    value={className}
+                                    onChange={e => { setClassName(e.target.value); }}
+                                    onKeyDown={e => { editClass(e) }}
+                                />
+                            )}
+                            {!isEditClass && (
+                                <span>
+                                    {_l}
+                                    <span className='upsert-button'>
+                                        <UpsertMenu
+                                            onClickEdit={() => { setIsEditClass(true); }}
+                                            onClickDelete={() => { deleteClass(labelIndex); }}
+                                            onClickAdd={() => { }}
+                                            isNeedAdd={false}
+                                        />
                                     </span>
-                                )}
-                            </p>
-                        )
+                                </span>
+                            )}
+                        </p>
+                    )
                 }
 
             })}

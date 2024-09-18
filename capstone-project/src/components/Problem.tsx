@@ -64,7 +64,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
         var _labels: string[][] = [];
 
         labels.forEach((l, i) => {
-            if(i != arrIndex)
+            if (i != arrIndex)
                 _labels.push(l);
         })
 
@@ -106,7 +106,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                     {labels.map((l, j) => {
                         return (
                             <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
-                                <Class labelArr={l} labelIndex={j} updateLabel={updateLabelArr} deleteClass={deleteClass}/>
+                                <Class labelArr={l} labelIndex={j} updateLabel={updateLabelArr} deleteClass={deleteClass} />
                             </ListItem>
                         )
 

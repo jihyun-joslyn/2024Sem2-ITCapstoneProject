@@ -51,7 +51,7 @@ export default function DetailPane({ isShow }: DetailPane) {
         });
 
         labelArr.forEach((l, i) => {
-            if(i != arrIndex)
+            if (i != arrIndex)
                 _labelArr.push(l);
         })
 

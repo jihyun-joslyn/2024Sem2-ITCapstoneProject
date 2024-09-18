@@ -158,7 +158,6 @@ body {
 
 #right-pane .Mui-expanded {
   margin: 0px !important;
-  /* min-height: 0px !important; */
 }
 
 #add-problem-label, #edit-problem-label, #add-new-class-label, #edit-class-label {
