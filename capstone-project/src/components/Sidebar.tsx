@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { createSvgIcon, Tab, Tabs } from '@mui/material';
-import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon } from '@mui/icons-material';
+import { useState, useContext} from 'react';
+import { createSvgIcon, Tab, Tabs, IconButton, Tooltip } from '@mui/material';
+import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon ,ColorLens as ColorLensIcon} from '@mui/icons-material';
 import FilePane from './FilePane';
+import ModelContext from './ModelContext';
+import { SketchPicker, ColorResult } from 'react-color';
 
 export type Sidebar = {
-
+    showFilePane: (isShow: boolean) => void;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -32,15 +34,35 @@ const SprayIcon = createSvgIcon(
 );
 /* <!--!Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--> */
 
-export default function Sidebar({ }: Sidebar) {
+export default function Sidebar({ showFilePane }: Sidebar) {
 
     const [value, setValue] = useState(0);
+    const [color, setColor] = useState("#ffffff");
+    const [showColorSelector, setColorSelector] = useState(false);
+    const {setTool, setSpray} = useContext(ModelContext);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
+        switch (newValue){
+            case 2:
+                setTool('pan');
+                break;
+            case 4:
+                setTool('spray');
+                setColorSelector(true);
+                break;
+            default:
+                setTool('none');
+        }
     };
 
     const [open, setOpen] = useState(false);
+
+    const handleColorChange = (color : ColorResult) =>{
+        setColor(color.hex);
+        setSpray(color.hex);
+        setColorSelector(false);   
+    }
 
     return (
         <div id="side">
@@ -50,13 +72,23 @@ export default function Sidebar({ }: Sidebar) {
                 onChange={handleChange}
                 id="toolbar"
             >
-                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { setOpen(!open); }} />
+                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { showFilePane(!open); setOpen(!open); }} />
                 <Tab icon={<ArrowIcon />} />
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
-                <Tab icon={<SprayIcon />} />
+                <Tab icon={<SprayIcon />} onClick={() => setColorSelector(!showColorSelector)} />
             </Tabs>
-            <FilePane isShow={open} />
+            {showColorSelector && (
+                <Tooltip title="Choose color" placement="right">
+                    <>
+                    <IconButton onClick={() => setColorSelector(false)}>
+                        <ColorLensIcon />
+                    </IconButton>
+                    <SketchPicker color={color} onChangeComplete={handleColorChange} />
+                    </>
+                </Tooltip>
+            )}
+            <FilePane isShow={open}/>
         </div>
     );
 }

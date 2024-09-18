@@ -78,11 +78,6 @@ body {
   color: #824D28;
 }
 
-.accordion {
-  /* border: 0px !important;*/
-  padding: 0px !important
-}
-
 #detail-pane-header,
 #file-pane-header {
   background-color: #DDC5B0;
@@ -118,15 +113,14 @@ body {
   background-color: #E8D7C6;
   box-shadow: none !important;
   color: #824D28 !important;
-
 }
 
 #side {
   display: flex;
 }
 
-#file-pane {
-  padding-right: 8px !important
+#file-pane .Mui-selected {
+  background-color: rgba(221, 197, 176, 0.08);
 }
 
 .upsert-button {
