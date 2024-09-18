@@ -11,7 +11,7 @@ export type DetailPane = {
 export default function DetailPane({ isShow }: DetailPane) {
 
     const [problemArr, setProblemArr] = useState(['Problem 1', 'Problem 2', 'Problem 3']);
-    const [labelArr, setLabelArr] = useState([[['Class 1-1', 'Detail 1-1-1', 'Detail 1-1-2'], ['Class 1-2'], ['Class 1-3']], [['Class 2-1', 'Detail 2-1-1'], ['Class 2-2']], []]);
+    const [labelArr, setLabelArr] = useState([[['Class 1-1', 'Class Color'], ['Class 1-2'], ['Class 1-3']], [['Class 2-1', 'Class Color'], ['Class 2-2']], []]);
     const [userInput, setUserInput] = useState("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
