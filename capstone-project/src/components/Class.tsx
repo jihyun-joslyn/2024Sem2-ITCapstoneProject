@@ -1,4 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, TextField, } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, TextField, Typography, } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
@@ -36,14 +36,12 @@ export default function Problem({ labelArr, labelIndex, updateLabel, deleteClass
 
 
     return (
-        <Accordion sx={{}} className='class-list-item'>
+        <div className='class-list-item'>
             {labels.map((_l, i) => {
-                switch (i) {
-                    case 0:
+              if(i == 0) {
                         return (
-                            <AccordionSummary
-                                expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}
-                                sx={{ border: '0px', paddingLeft: '0px' }}
+                            <p
+                                style={{ border: '0px', paddingLeft: '0px' }}
                                 key={i}
                             >
                                 {isEditClass && (
@@ -69,21 +67,11 @@ export default function Problem({ labelArr, labelIndex, updateLabel, deleteClass
                                         </span>
                                     </span>
                                 )}
-                            </AccordionSummary>
-                        )
-                    default:
-                        return (
-                            <AccordionDetails
-                                sx={{ paddingLeft: '16px' }}
-                                className='class-detail'
-                                key={i}
-                            >
-                                {_l}
-                            </AccordionDetails>
+                            </p>
                         )
                 }
 
             })}
-        </Accordion>
+        </div>
     );
 }

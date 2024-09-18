@@ -26,7 +26,6 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     useEffect(() => {
         setProblem(problemName);
         setProblemInput(problemName);
-        // setLabels(labelArr);
     })
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
