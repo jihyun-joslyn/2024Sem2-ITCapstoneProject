@@ -4,14 +4,14 @@ import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
 
 
-export type Problem = {
+export type Class = {
     labelArr: string[],
     labelIndex: number,
     updateLabel: (labels: string[], arrIndex: number) => void;
     deleteClass: (arrIndex: number) => void;
 };
 
-export default function Problem({ labelArr, labelIndex, updateLabel, deleteClass }: Problem) {
+export default function Class({ labelArr, labelIndex, updateLabel, deleteClass }: Class) {
     const [labels, setLabels] = useState(labelArr);
     const [className, setClassName] = useState(labelArr[0]);
     const [isEditClass, setIsEditClass] = useState(false);
