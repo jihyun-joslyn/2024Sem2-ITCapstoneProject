@@ -7,6 +7,7 @@ import { SketchPicker, ColorResult } from 'react-color';
 
 export type Sidebar = {
     showFilePane: (isShow: boolean) => void;
+    showColorSpraySelector: (isShow: boolean) => void;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -34,7 +35,7 @@ const SprayIcon = createSvgIcon(
 );
 /* <!--!Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--> */
 
-export default function Sidebar({ showFilePane }: Sidebar) {
+export default function Sidebar({ showFilePane, showColorSpraySelector }: Sidebar) {
 
     const [value, setValue] = useState(0);
     const [color, setColor] = useState("#ffffff");
@@ -64,6 +65,8 @@ export default function Sidebar({ showFilePane }: Sidebar) {
         setColorSelector(false);   
     }
 
+    // const folderOnClick =
+
     return (
         <div id="side">
             <Tabs
@@ -76,14 +79,14 @@ export default function Sidebar({ showFilePane }: Sidebar) {
                 <Tab icon={<ArrowIcon />} />
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
-                <Tab icon={<SprayIcon />} onClick={() => setColorSelector(!showColorSelector)} />
+                <Tab icon={<SprayIcon />} onClick={() => {showColorSpraySelector(!showColorSelector); setColorSelector(!showColorSelector);}} />
             </Tabs>
             {showColorSelector && (
                 <Tooltip title="Choose color" placement="right">
                     <>
-                    <IconButton onClick={() => setColorSelector(false)}>
+                    {/* <IconButton onClick={() => setColorSelector(false)}>
                         <ColorLensIcon />
-                    </IconButton>
+                    </IconButton> */}
                     <SketchPicker color={color} onChangeComplete={handleColorChange} />
                     </>
                 </Tooltip>
