@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from "react-dom/client";
-import { Grid2 as Grid } from '@mui/material';
+import { Grid2 as Grid, Box } from '@mui/material';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';
