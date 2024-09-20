@@ -38,8 +38,10 @@ const App = () => {
     setIsShowFilePane(isShow);
     isShowFile = isShow;
 
-    setIsShowColorSpraySelector(!isShow);
-    isShowColorSpray = !isShow;
+    if (isShowColorSpraySelector) {
+      setIsShowColorSpraySelector(false);
+      isShowColorSpray = false;
+    }
 
 
     setComponentsGridWidth();
@@ -49,8 +51,10 @@ const App = () => {
     setIsShowColorSpraySelector(isShow);
     isShowColorSpray = isShow;
 
-    setIsShowFilePane(!isShow);
-    isShowFile = !isShow;
+    if (isShowFilePane) {
+      setIsShowFilePane(false);
+      isShowFile = false;
+    }
 
     setComponentsGridWidth();
   }
@@ -113,7 +117,7 @@ const App = () => {
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
-          <Sidebar showFilePane={showFilePane} showColorSpraySelector={showColorSpraySelector}/>
+          <Sidebar showFilePane={showFilePane} showColorSpraySelector={showColorSpraySelector} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
