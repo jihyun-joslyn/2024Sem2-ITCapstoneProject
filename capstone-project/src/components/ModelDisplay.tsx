@@ -13,25 +13,35 @@ type ModelDisplay = {
 };
 
 const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
-    const {tool, color } = useContext(ModelContext);
-    const {scene, camera, raycaster} = useThree();
+    const { tool, color } = useContext(ModelContext);
+    const { scene, camera, raycaster } = useThree();
     const meshRef = useRef<Mesh>(null); 
     const wireframeRef = useRef<LineSegments>(null); 
     const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2());
     const [isMouseDown, setIsMouseDown] = useState(false);
 
     useEffect(() => {
-        if (!meshRef.current || !wireframeRef.current) return; 
+        if (!meshRef.current || !wireframeRef.current) return;
 
+         
+        if (meshRef.current.geometry) {
+            meshRef.current.geometry.dispose();
+            meshRef.current.geometry = null;
+        }
+        if (wireframeRef.current.geometry) {
+            wireframeRef.current.geometry.dispose();
+            wireframeRef.current.geometry = null;
+        }
+
+         
         const loader = new STLLoader();
         const geometry: BufferGeometry = loader.parse(modelData);
-
         meshRef.current.geometry = geometry;
 
         const wireframeGeometry = new WireframeGeometry(geometry);
         wireframeRef.current.geometry = wireframeGeometry;
 
-    }, [modelData]);
+    }, [modelData]);  
 
     useEffect(() => {
         const handleMouseDown = () => {
@@ -54,8 +64,8 @@ const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
             window.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('mousemove', handleMouseMove);
-        };  
-    }) ,[];
+        };
+    }, []);
 
     //Starting KeyPoint Marking function.
     const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
@@ -102,11 +112,11 @@ const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
 
 
 
-    useFrame (() => {
+    useFrame(() => {
         if (tool === 'spray' && isMouseDown) {
             raycaster.setFromCamera(mousePosition, camera);
             const intersects = raycaster.intersectObjects(scene.children, true);
-            
+
             if (intersects.length > 0) {
                 const [intersect] = intersects;
                 const sprayDot = new THREE.Mesh(
@@ -124,7 +134,7 @@ const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
             <ambientLight intensity={0.5} />
             <spotLight position={[10, 15, 10]} angle={0.3} />
             <mesh ref={meshRef} material={new MeshStandardMaterial({ color: 'gray' })} />
-            <OrbitControls enableRotate={tool === 'pan'} enableZoom={true} enablePan={true} rotateSpeed={1.0} />   
+            <OrbitControls enableRotate={tool === 'pan'} enableZoom={true} enablePan={true} rotateSpeed={1.0} />
             <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
         </>
     );

@@ -1,12 +1,15 @@
-import { Toolbar, Typography, } from '@mui/material';
-import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
+import { Toolbar, Typography, List, ListItem, ListItemText } from '@mui/material';
 
-export type FilePane = {
-    isShow: Boolean
-
+export type FilePaneProps = {
+    isShow: boolean;
+    stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
+    onFileSelect: (fileName: string) => void;
 };
 
-export default function FilePane({ isShow }: FilePane) {
+export default function FilePane({ isShow, stlFiles, onFileSelect }: FilePaneProps) {
+    if (!isShow) {
+        return null; 
+    }
     return (
         <div>
             {isShow && (
@@ -14,26 +17,22 @@ export default function FilePane({ isShow }: FilePane) {
                     <Toolbar id="file-pane-header">
                         <Typography>File Pane</Typography>
                     </Toolbar>
-                    <SimpleTreeView>
-                        <TreeItem itemId="grid" label="Data Grid">
-                            <TreeItem itemId="grid-community" label="@mui/x-data-grid" />
-                            <TreeItem itemId="grid-pro" label="@mui/x-data-grid-pro" />
-                            <TreeItem itemId="grid-premium" label="@mui/x-data-grid-premium" />
-                        </TreeItem>
-                        <TreeItem itemId="pickers" label="Date and Time Pickers">
-                            <TreeItem itemId="pickers-community" label="@mui/x-date-pickers" />
-                            <TreeItem itemId="pickers-pro" label="@mui/x-date-pickers-pro" />
-                        </TreeItem>
-                        <TreeItem itemId="charts" label="Charts">
-                            <TreeItem itemId="charts-community" label="@mui/x-charts" />
-                        </TreeItem>
-                        <TreeItem itemId="tree-view" label="Tree View">
-                            <TreeItem itemId="tree-view-community" label="@mui/x-tree-view" />
-                        </TreeItem>
-                    </SimpleTreeView>
+                    <List>
+                        {stlFiles.map((file, index) => (
+                            <ListItem 
+                            component="button" 
+                            key={index}
+                            onClick={() => onFileSelect(file.fileName)}
+                            sx={{ paddingLeft: '16px' }} 
+                          >
+                            <ListItemText primary={file.fileName}
+                            sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }}  />
+                          </ListItem>
+                          
+                        ))}
+                    </List>
                 </div>
             )}
-
         </div>
     );
 }

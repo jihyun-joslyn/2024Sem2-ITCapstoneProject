@@ -78,12 +78,18 @@ body {
   color: #824D28;
 }
 
+.accordion {
+  /* border: 0px !important;*/
+  padding: 0px !important
+}
+
 #detail-pane-header,
 #file-pane-header {
   background-color: #DDC5B0;
 }
 
 #right-pane .MuiList-root,
+/* #right-pane .MuiList-root .MuiListItem-root  */
 .problem-arr
 {
   padding: 0px !important;
@@ -120,8 +126,8 @@ body {
   display: flex;
 }
 
-#file-pane .Mui-selected {
-  background-color: rgba(221, 197, 176, 0.08);
+#file-pane {
+  padding-right: 8px !important
 }
 
 .upsert-button {
@@ -158,6 +164,7 @@ body {
 
 #right-pane .Mui-expanded {
   margin: 0px !important;
+  /* min-height: 0px !important; */
 }
 
 #add-problem-label, #edit-problem-label, #add-new-class-label, #edit-class-label {
@@ -188,4 +195,30 @@ body {
 #detail-list .MuiInput-root::after {
   border-bottom: 2px solid #824D28 !important;
 
+}
+
+#file-pane .MuiList-root .MuiListItem-root {
+  background-color: #E8D7C6; 
+  border: none; 
+  margin-bottom: 4px;
+  padding: 8px; 
+}
+
+
+#file-pane .MuiList-root .MuiListItem-root .MuiListItemText-root {
+  background-color: transparent; 
+  white-space: normal; 
+  word-wrap: break-word; 
+  color: #824D28; 
+}
+
+
+#file-pane .MuiList-root {
+  background-color: #E8D7C6;
+  color: #824D28; 
+}
+
+#file-pane {
+  width: 200px; 
+  word-wrap: break-word; 
 }
