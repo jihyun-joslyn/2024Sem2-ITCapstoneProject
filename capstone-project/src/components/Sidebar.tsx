@@ -6,7 +6,8 @@ import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
 
 export type Sidebar = {
-
+    showFilePane: (isShow: boolean) => void;
+    showColorSpraySelector: (isShow: boolean) => void;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -34,8 +35,9 @@ const SprayIcon = createSvgIcon(
 );
 /* <!--!Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--> */
 
-export default function Sidebar({ }: Sidebar) {
+export default function Sidebar({ showFilePane, showColorSpraySelector }: Sidebar) {
 
+    const [isShowFilePane, setIsShowFilePane] = useState(false);
     const [value, setValue] = useState(0);
     const [color, setColor] = useState("#ffffff");
     const [showColorSelector, setColorSelector] = useState(false);
@@ -56,7 +58,6 @@ export default function Sidebar({ }: Sidebar) {
         }
     };
 
-    const [open, setOpen] = useState(false);
 
     const handleColorChange = (color : ColorResult) =>{
         setColor(color.hex);
@@ -64,31 +65,45 @@ export default function Sidebar({ }: Sidebar) {
         setColorSelector(false);   
     }
 
+    const folderOnClick = () => {
+        showFilePane(!isShowFilePane);
+        setIsShowFilePane(!isShowFilePane);
+
+        setColorSelector(false);
+    }
+
+    const sprayOnClick = () => {
+        showColorSpraySelector(!showColorSelector);
+        setColorSelector(!showColorSelector);
+
+        setIsShowFilePane(false);
+    }
+
     return (
         <div id="side">
-            <FilePane isShow={open}/>
             <Tabs
                 orientation="vertical"
                 value={value}
                 onChange={handleChange}
                 id="toolbar"
             >
-                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { setOpen(!open); }} />
+                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={folderOnClick} />
                 <Tab icon={<ArrowIcon />} />
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
-                <Tab icon={<SprayIcon />} onClick={() => setColorSelector(!showColorSelector)} />
+                <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
             </Tabs>
             {showColorSelector && (
                 <Tooltip title="Choose color" placement="right">
                     <>
-                    <IconButton onClick={() => setColorSelector(false)}>
+                    {/* <IconButton onClick={() => setColorSelector(false)}>
                         <ColorLensIcon />
-                    </IconButton>
+                    </IconButton> */}
                     <SketchPicker color={color} onChangeComplete={handleColorChange} />
                     </>
                 </Tooltip>
             )}
+            <FilePane isShow={isShowFilePane}/>
         </div>
     );
 }
