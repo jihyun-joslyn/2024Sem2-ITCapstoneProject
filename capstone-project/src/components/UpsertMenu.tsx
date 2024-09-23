@@ -22,7 +22,7 @@ export default function UpsertMenu({ onClickEdit, onClickDelete, isNeedAdd, onCl
     };
 
     return (
-        <div>
+        <span>
             <IconButton
                 aria-label="more"
                 aria-controls={open ? 'upsert-menu' : undefined}
@@ -48,6 +48,6 @@ export default function UpsertMenu({ onClickEdit, onClickDelete, isNeedAdd, onCl
                 <MenuItem onClick={() => { onClickDelete(); handleClose(); }}>Delete</MenuItem>
             </Menu>
 
-        </div>
+        </span>
     );
 }
