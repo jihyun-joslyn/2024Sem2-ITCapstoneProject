@@ -78,8 +78,10 @@ const App = () => {
 
   const showDetailPane = (isShow: boolean): void => {
     setIsShowDetailPane(isShow);
+    isShowDetail = isShow;
+
     setComponentsGridWidth();
-  };
+  }
 
   const showFilePane = (isShow: boolean): void => {
     setIsShowFilePane(isShow);
