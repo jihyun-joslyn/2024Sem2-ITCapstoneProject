@@ -75,7 +75,7 @@ const App = () => {
         } else {
           if (isShowColorSpray) {
             setSidebarWidth(2);
-            setModelGridWidth(6);
+            setModelGridWidth(7);
           } else {
             setSidebarWidth(1);
             setModelGridWidth(8);
