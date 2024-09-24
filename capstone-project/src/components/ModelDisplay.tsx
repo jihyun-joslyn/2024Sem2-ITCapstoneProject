@@ -57,6 +57,51 @@ const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
         };  
     }) ,[];
 
+    //Starting KeyPoint Marking function.
+    const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
+    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
+  
+    useEffect(() => {
+      const handlePointerClick = (event: MouseEvent) => {
+        if (!meshRef.current || tool !== 'keypoint') return;
+  
+        // Update raycaster with the mouse position and camera
+        raycaster.setFromCamera(mousePosition, camera);
+        
+        // Raycast to find intersections with the mesh
+        const intersects = raycaster.intersectObject(meshRef.current, true);
+        
+        if (intersects.length > 0) {
+          const intersection = intersects[0];
+          const localPoint = intersection.point.clone(); // The point of intersection
+  
+          // Apply object matrix world to get the correct local position
+          const inverseMatrix = new THREE.Matrix4();
+          inverseMatrix.copy(meshRef.current.matrixWorld).invert(); // Invert the world matrix
+          localPoint.applyMatrix4(inverseMatrix); // Transform point into local coordinates
+  
+          // Create a precise sphere at the local intersection point
+          const preciseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+          preciseSphere.position.copy(localPoint); // Apply precise local point
+          meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
+  
+          // Debugging log to show precise coordinates
+          console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
+        }
+      };
+  
+      if (tool === 'keypoint') {
+        window.addEventListener('click', handlePointerClick);
+      }
+  
+      return () => {
+        window.removeEventListener('click', handlePointerClick);
+      };
+    }, [tool, camera, scene, meshRef, mousePosition, raycaster]);
+  
+
+
+
     useFrame (() => {
         if (tool === 'spray' && isMouseDown) {
             raycaster.setFromCamera(mousePosition, camera);
