@@ -84,7 +84,8 @@ body {
 }
 
 #right-pane .MuiList-root,
-#right-pane .MuiList-root .MuiListItem-root {
+.problem-arr
+{
   padding: 0px !important;
   background-color: #E8D7C6;
 }
@@ -140,4 +141,51 @@ body {
 
 .MuiAccordionSummary-content .upsert-button button {
   padding: 0px 8px !important
+}
+
+.class-list-item {
+  box-shadow: none !important;
+  border: 0px !important;
+  width: 100% !important;
+  padding-left: 8px !important;
+}
+
+.class-detail {
+  padding-left: 32px !important;
+  border: 0px !important;
+  box-shadow: none !important;
+}
+
+#right-pane .Mui-expanded {
+  margin: 0px !important;
+}
+
+#add-problem-label, #edit-problem-label, #add-new-class-label, #edit-class-label {
+  color: rgba(130, 77, 40, 0.6);
+}
+
+#add-problem-input {
+  padding-left: 16px !important;
+}
+
+#add-problem::before, #edit-problem::before, #add-new-class::before, #edit-class::before {
+  border-bottom-color: rgba(130, 77, 40, 0.42) !important;
+}
+
+#add-problem::after, #edit-problem::after, #add-new-class::after, #edit-class::after {
+  border-bottom: #824D28 !important;
+}
+
+#add-problem, #edit-problem, #add-new-class, #edit-class {
+  color: #824D28;
+}
+
+#detail-list .Mui-focusVisible, #detail-list .Mui-focused {
+  color: #824D28;
+  background-color: #E8D7C6;
+}
+
+#detail-list .MuiInput-root::after {
+  border-bottom: 2px solid #824D28 !important;
+
 }
