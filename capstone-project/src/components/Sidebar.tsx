@@ -1,6 +1,6 @@
 import { useState, useContext} from 'react';
 import { createSvgIcon, Tab, Tabs, IconButton, Tooltip } from '@mui/material';
-import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon ,ColorLens as ColorLensIcon} from '@mui/icons-material';
+import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon ,LocationSearching as KeypointIcon, ColorLens as ColorLensIcon} from '@mui/icons-material';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
@@ -53,6 +53,9 @@ export default function Sidebar({ showFilePane, showColorSpraySelector }: Sideba
                 setTool('spray');
                 setColorSelector(true);
                 break;
+            case 5:
+                setTool('keypoint');
+                break;
             default:
                 setTool('none');
         }
@@ -92,6 +95,7 @@ export default function Sidebar({ showFilePane, showColorSpraySelector }: Sideba
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
                 <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
+                <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }}/>} onClick={() =>{ /*something here*/ }} />
             </Tabs>
             {showColorSelector && (
                 <Tooltip title="Choose color" placement="right">
