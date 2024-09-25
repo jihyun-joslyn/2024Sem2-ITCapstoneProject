@@ -1,70 +1,101 @@
 import { Toolbar, Typography, List, ListItem, TextField, IconButton } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material'
-import { useState, KeyboardEvent } from 'react';
+import { Add as AddIcon } from '@mui/icons-material';
+import { useState, useEffect, KeyboardEvent } from 'react';
 import * as _ from "lodash";
 import Problem from './Problem';
 
-export type DetailPane = {
-    isShow: boolean
+export type ProblemType = {
+    name: string;
+    classes: string[][];
 };
 
-export default function DetailPane({ isShow }: DetailPane) {
+export type DetailPaneProps = {
+    isShow: boolean;
+    selectedFile: string | null;
+    stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
+    setStlFiles: React.Dispatch<React.SetStateAction<{ fileName: string; fileObject: File; problem: string; class: string }[]>>;
+    onFileSelect: (fileName: string) => void;
+    problems: ProblemType[];
+    setProblems: React.Dispatch<React.SetStateAction<ProblemType[]>>;
+};
 
-    const [problemArr, setProblemArr] = useState(['Problem 1', 'Problem 2', 'Problem 3']);
-    const [labelArr, setLabelArr] = useState([[['Class 1-1', 'Class Color'], ['Class 1-2'], ['Class 1-3']], [['Class 2-1', 'Class Color'], ['Class 2-2']], []]);
-    const [userInput, setUserInput] = useState("");
+export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles, problems, setProblems }: DetailPaneProps) {
+    const [userInput, setUserInput] = useState<string>("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
+    useEffect(() => {
+        if (selectedFile) {
+            const selectedFileData = stlFiles.find(file => file.fileName === selectedFile);
+            if (selectedFileData) {
+                const loadedProblems = [
+                    {
+                        name: "Problem 1",
+                        classes: ["class1", "class2"]
+                    },
+                    {
+                        name: "Problem 2",
+                        classes: ["class3", "class4"]
+                    }
+                ];
+
+                const convertedProblems: ProblemType[] = loadedProblems.map(p => ({
+                    ...p,
+                    classes: p.classes.map(c => [c])
+                }));
+
+                if (!_.isEqual(convertedProblems, problems)) {
+                    setProblems(convertedProblems);
+                }
+            }
+        }
+    }, [selectedFile, stlFiles, problems, setProblems]);
+
+    useEffect(() => {
+        if (selectedFile) {
+            updateStlFile(problems);
+        }
+    }, [problems, selectedFile]);
+
     const onAddProblemInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
-        var _problemArr: string[] = problemArr;
-        var _labelArr: string[][][] = labelArr;
-
         if (!_.isEmpty(_.trim(userInput)) && (e.key === "Enter")) {
-            _problemArr.push(userInput);
-            _labelArr.push([]);
-
-            setProblemArr(_problemArr);
-            setLabelArr(_labelArr);
+            const updatedProblems: ProblemType[] = [...problems, { name: userInput, classes: [] }];
+            setProblems(updatedProblems); 
             setUserInput("");
-
             setIsAddNewProblem(false);
         }
-
     };
 
-    const updateProblem = (userInput: string, arrIndex: number): void => {
-        var _problemArr: string[] = problemArr;
+    const updateProblem = (userInput: string, index: number): void => {
+        const updatedProblems: ProblemType[] = problems.map((p: ProblemType, i: number) =>
+            i === index ? { ...p, name: userInput } : p
+        );
+        setProblems(updatedProblems);
+    };
 
-        _problemArr[arrIndex] = userInput;
-        setProblemArr(_problemArr);
+    const deleteProblem = (index: number): void => {
+        const updatedProblems: ProblemType[] = problems.filter((_, i: number) => i !== index);
+        setProblems(updatedProblems);
+    };
 
-    }
+    const updateLabel = (labels: string[][], index: number): void => {
+        const updatedProblems: ProblemType[] = problems.map((p: ProblemType, i: number) =>
+            i === index ? { ...p, classes: labels } : p
+        );
+        setProblems(updatedProblems);
+    };
 
-    const deleteProblem = (arrIndex: number): void => {
-        var _problemArr: string[] = [];
-        var _labelArr: string[][][] = [];
-
-        problemArr.forEach((p, i) => {
-            if (i != arrIndex) {
-                _problemArr.push(p);
+    const updateStlFile = (updatedProblems: ProblemType[]): void => {
+        const updatedFiles = stlFiles.map((file) => {
+            if (file.fileName === selectedFile) {
+                return {
+                    ...file,
+                    problem: updatedProblems.map(p => `${p.name},${p.classes.flat().join(',')}`).join(';'),
+                };
             }
+            return file;
         });
-
-        labelArr.forEach((l, i) => {
-            if (i != arrIndex)
-                _labelArr.push(l);
-        })
-
-        setProblemArr(_problemArr);
-        setLabelArr(_labelArr);
-    }
-
-    const updateLabel = (labels: string[][], arrIndex: number): void => {
-        var _labelArr: string[][][] = labelArr;
-
-        _labelArr[arrIndex] = labels;
-        setLabelArr(_labelArr);
-    }
+        setStlFiles(updatedFiles); 
+    };
 
     return (
         <div>
@@ -75,30 +106,25 @@ export default function DetailPane({ isShow }: DetailPane) {
                         <span className='upsert-button'>
                             <IconButton
                                 aria-label="add-new-problem"
-                                onClick={() => { setIsAddNewProblem(true); }}
+                                onClick={() => setIsAddNewProblem(true)}
                             >
                                 <AddIcon />
                             </IconButton>
                         </span>
                     </Toolbar>
                     <List sx={{ width: '100%' }} id="detail-list">
-                        {problemArr.map((p, i) => {
-                            var _labelArr = labelArr.at(i);
-
-                            return (
-                                <ListItem key={i} className="problem-arr">
-                                    <Problem
-                                        problemName={p}
-                                        labelArr={_labelArr}
-                                        problemKey={i}
-                                        updateProblem={updateProblem}
-                                        deleteProblem={deleteProblem}
-                                        updateLabel={updateLabel}
-                                    />
-                                </ListItem>
-                            )
-                        }
-                        )}
+                        {problems.map((p: ProblemType, i: number) => (
+                            <ListItem key={i} className="problem-arr">
+                                <Problem
+                                    problemName={p.name}
+                                    labelArr={p.classes}  
+                                    problemKey={i}
+                                    updateProblem={updateProblem}
+                                    deleteProblem={deleteProblem}
+                                    updateLabel={updateLabel}  
+                                />
+                            </ListItem>
+                        ))}
                         {isAddNewProblem && (
                             <ListItem id="add-problem-input">
                                 <TextField
@@ -106,8 +132,8 @@ export default function DetailPane({ isShow }: DetailPane) {
                                     label="New Problem"
                                     variant="standard"
                                     value={userInput}
-                                    onChange={e => { setUserInput(e.target.value); }}
-                                    onKeyDown={e => { onAddProblemInputChange(e) }}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    onKeyDown={onAddProblemInputChange}
                                 />
                             </ListItem>
                         )}
@@ -117,5 +143,3 @@ export default function DetailPane({ isShow }: DetailPane) {
         </div>
     );
 }
-
-

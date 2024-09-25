@@ -1,21 +1,20 @@
-import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, TextField, } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, TextField } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
 import Class from './Class';
 
-
-export type Problem = {
-    problemName: string,
-    labelArr: string[][],
-    problemKey: number,
-    updateProblem: (userInput: string, arrIndex: number) => void;
-    deleteProblem: (arrIndex: number) => void;
-    updateLabel: (labels: string[][], arrIndex: number) => void;
+export type ProblemProps = {
+    problemName: string;
+    labelArr: string[][]; 
+    problemKey: number;
+    updateProblem: (userInput: string, index: number) => void;
+    deleteProblem: (index: number) => void;
+    updateLabel: (labels: string[][], arrIndex: number) => void; 
 };
 
-export default function Problem({ problemName, labelArr, problemKey, updateProblem, deleteProblem, updateLabel }: Problem) {
+export default function Problem({ problemName, labelArr, problemKey, updateProblem, deleteProblem, updateLabel }: ProblemProps) {
     const [problem, setProblem] = useState(problemName);
     const [isEditProblem, setIsEditProblem] = useState(false);
     const [problemInput, setProblemInput] = useState(problemName);
@@ -26,58 +25,47 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     useEffect(() => {
         setProblem(problemName);
         setProblemInput(problemName);
-    })
+        setLabels(labelArr);
+    }, [problemName, labelArr]);
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {
             setProblem(problemInput);
-
             setIsEditProblem(false);
-            updateProblem(problemInput, problemKey);
+            updateProblem(problemInput, problemKey); 
         }
-    }
+    };
 
+    // 添加新 Class
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
-        var _labels: string[][] = labels;
-
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            _labels.push([inputNewClass]);
-
-            setLabels(_labels);
+            const newLabels = [...labels, [inputNewClass]]; 
+            setLabels(newLabels);
             setInputNewClass("");
-
             setIsAddNewClass(false);
-            updateLabel(labels, problemKey);
+            updateLabel(newLabels, problemKey); 
         }
-
     };
 
     const updateLabelArr = (classes: string[], arrIndex: number): void => {
-        var _labels: string[][] = labels;
-
-        _labels[arrIndex] = classes;
-        setLabels(_labels);
-        updateLabel(labels, problemKey);
-    }
+        const newLabels = [...labels];
+        newLabels[arrIndex] = classes;
+        setLabels(newLabels);
+        updateLabel(newLabels, problemKey); 
+    };
 
     const deleteClass = (arrIndex: number): void => {
-        var _labels: string[][] = [];
-
-        labels.forEach((l, i) => {
-            if (i != arrIndex)
-                _labels.push(l);
-        })
-
-        setLabels(_labels);
-        updateLabel(_labels, problemKey);
-    }
+        const newLabels = labels.filter((_, i) => i !== arrIndex); 
+        setLabels(newLabels);
+        updateLabel(newLabels, problemKey); 
+    };
 
     return (
         <Accordion sx={{ width: '100%' }}>
             <AccordionSummary
                 expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}
             >
-                {!isEditProblem && (
+                {!isEditProblem ? (
                     <span>
                         {problem}
                         <span className='upsert-button'>
@@ -89,8 +77,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                             />
                         </span>
                     </span>
-                )}
-                {isEditProblem && (
+                ) : (
                     <TextField
                         id="edit-problem"
                         label="Edit Problem"
@@ -102,15 +89,17 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                 )}
             </AccordionSummary>
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
-                <List >
-                    {labels.map((l, j) => {
-                        return (
-                            <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
-                                <Class labelArr={l} labelIndex={j} updateLabel={updateLabelArr} deleteClass={deleteClass} />
-                            </ListItem>
-                        )
-
-                    })}
+                <List>
+                    {labels.map((l, j) => (
+                        <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
+                            <Class 
+                                labelArr={l} 
+                                labelIndex={j} 
+                                updateLabel={updateLabelArr} 
+                                deleteClass={deleteClass} 
+                            />
+                        </ListItem>
+                    ))}
                     {isAddNewClass && (
                         <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                             <TextField
@@ -121,12 +110,10 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                                 onChange={e => { setInputNewClass(e.target.value); }}
                                 onKeyDown={e => { onAddClassInputChange(e) }}
                             />
-
                         </ListItem>
                     )}
                 </List>
             </AccordionDetails>
-
         </Accordion>
     );
 }

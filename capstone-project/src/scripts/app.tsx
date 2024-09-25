@@ -7,6 +7,11 @@ import DetailPane from '../components/DetailPane';
 import ModelDisplay from "../components/ModelDisplay";
 import { ModelProvider } from '../components/ModelContext';
 
+type ProblemType = {
+  name: string;
+  classes: string[][];
+};
+
 const container = document.getElementById('root');
 const root = createRoot(container);
 
@@ -22,9 +27,53 @@ const App = () => {
   const [modelGridWidth, setModelGridWidth] = useState(11);
   const [detailPaneWidth, setDetailPaneWidth] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(1);
+  const [stlFiles, setStlFiles] = useState<{ fileName: string, fileObject: File, problem: string, class: string }[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [problems, setProblems] = useState<ProblemType[]>([]);
 
   const handleModelLoad = (data: ArrayBuffer) => {
     setModelData(data);
+  };
+
+  const loadSTLFile = (file: File) => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        setModelData(reader.result);
+      }
+    };
+  };
+
+  const updateStlFilesWithProblems = (updatedProblems: ProblemType[], fileName: string) => {
+    const updatedFiles = stlFiles.map((file) => {
+      if (file.fileName === fileName) {
+        return {
+          ...file,
+          problem: updatedProblems.map(p => `${p.name},${p.classes.flat().join(',')}`).join(';')
+        };
+      }
+      return file;
+    });
+    setStlFiles(updatedFiles);
+  };
+
+  const handleFileSelect = (fileName: string) => {
+    const selectedFileData = stlFiles.find(file => file.fileName === fileName);
+    if (selectedFileData) {
+      setSelectedFile(fileName);
+
+      const parsedProblems: ProblemType[] = selectedFileData.problem
+        .split(';')
+        .map(problemStr => {
+          const [name, ...classes] = problemStr.split(',');
+          const classArrays = classes.map(c => [c]);
+          return { name, classes: classArrays };
+        });
+
+      setProblems(parsedProblems);
+      loadSTLFile(selectedFileData.fileObject);
+    }
   };
 
   const showDetailPane = (isShow: boolean): void => {
@@ -42,7 +91,6 @@ const App = () => {
       setIsShowColorSpraySelector(false);
       isShowColorSpray = false;
     }
-
 
     setComponentsGridWidth();
   }
@@ -108,22 +156,45 @@ const App = () => {
       default:
         break;
     }
-  }
+  };
 
   return (
     <ModelProvider>
       <Box sx={{ flexGrow: 0 }}>
-        <Header showDetailPane={showDetailPane} onModelLoad={handleModelLoad} />
+        <Header
+          showDetailPane={showDetailPane}
+          onModelLoad={handleModelLoad}
+          isShowDetailPane={isShowDetailPane}
+          stlFiles={stlFiles}
+          setStlFiles={setStlFiles}
+          selectedFile={selectedFile}
+          setSelectedFile={setSelectedFile} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
-          <Sidebar showFilePane={showFilePane} showColorSpraySelector={showColorSpraySelector} />
+          <Sidebar
+            showFilePane={showFilePane}
+            showColorSpraySelector={showColorSpraySelector}
+            stlFiles={stlFiles}
+            onFileSelect={handleFileSelect} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
-          <DetailPane isShow={isShowDetailPane} />
+          <DetailPane
+            isShow={isShowDetailPane}
+            selectedFile={selectedFile}
+            stlFiles={stlFiles}
+            setStlFiles={setStlFiles}
+            onFileSelect={handleFileSelect}
+            problems={problems}
+            setProblems={(updatedProblems: ProblemType[]) => {
+              setProblems(updatedProblems);
+              if (selectedFile) {
+                updateStlFilesWithProblems(updatedProblems, selectedFile);
+              }
+            }} />
         </Grid>
       </Grid>
     </ModelProvider>
