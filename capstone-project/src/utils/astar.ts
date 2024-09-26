@@ -1,17 +1,17 @@
 // src/utils/astar.ts
 
-import * as THREE from 'three';
+import { Vector3 } from 'three';
 
 // 节点类，表示模型上的一个顶点
 export class Node {
-    position: THREE.Vector3;
+    position: Vector3;
     neighbors: Set<Node>;
     g: number;
     h: number;
     f: number;
     parent: Node | null;
 
-    constructor(position: THREE.Vector3) {
+    constructor(position: Vector3) {
         this.position = position;
         this.neighbors = new Set<Node>();
         this.g = 0;
@@ -86,4 +86,24 @@ export function astar(start: Node, goal: Node): Node[] | null {
 
     // 未找到路径
     return null;
+}
+
+// 测试A*算法
+export function testAstar() {
+    const nodeA = new Node(new Vector3(0, 0, 0));
+    const nodeB = new Node(new Vector3(1, 0, 0));
+    const nodeC = new Node(new Vector3(1, 1, 0));
+    const nodeD = new Node(new Vector3(0, 1, 0));
+
+    nodeA.neighbors.add(nodeB);
+    nodeA.neighbors.add(nodeD);
+    nodeB.neighbors.add(nodeA);
+    nodeB.neighbors.add(nodeC);
+    nodeC.neighbors.add(nodeB);
+    nodeC.neighbors.add(nodeD);
+    nodeD.neighbors.add(nodeC);
+    nodeD.neighbors.add(nodeA);
+
+    const path = astar(nodeA, nodeC);
+    console.log('Test Path:', path ? path.map(node => node.position) : 'No Path Found');
 }

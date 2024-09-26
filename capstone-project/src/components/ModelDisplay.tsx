@@ -4,13 +4,31 @@ import React, { useRef, useEffect, useContext } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { OrbitControls } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, BufferGeometry, Line, LineBasicMaterial, Raycaster, Vector2, Vector3, BufferAttribute, LineSegments } from 'three';
+import {
+    Mesh,
+    MeshStandardMaterial,
+    BufferGeometry,
+    LineBasicMaterial,
+    LineSegments,
+    Raycaster,
+    Vector2,
+    Vector3,
+    BufferAttribute,
+    SphereGeometry,
+    MeshBasicMaterial,
+    Line,
+    WireframeGeometry
+} from 'three';
 import ModelContext from './ModelContext';
-import * as THREE from 'three';
 import { astar, Node } from '../utils/astar';
 
 type ModelDisplayProps = {
     modelData: ArrayBuffer;
+};
+
+// 辅助函数：带有容差的向量比较
+const vectorsAlmostEqual = (a: Vector3, b: Vector3, tolerance: number = 1e-4): boolean => {
+    return a.distanceTo(b) < tolerance;
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
@@ -64,9 +82,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         // 设置网格和线框几何体
         meshRef.current.geometry = loadedGeometry;
 
-        const wireframeGeometry = new THREE.WireframeGeometry(loadedGeometry);
+        // 移除旧的线框（如果存在）
+        const existingWireframe = scene.getObjectByName('wireframe');
+        if (existingWireframe) {
+            scene.remove(existingWireframe);
+        }
+
+        const wireframeGeometry = new WireframeGeometry(loadedGeometry);
         const wireframeMaterial = new LineBasicMaterial({ color: 'white' });
         const wireframe = new LineSegments(wireframeGeometry, wireframeMaterial);
+        wireframe.name = 'wireframe';
         scene.add(wireframe);
 
     }, [modelData, scene]);
@@ -74,7 +99,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     // 鼠标点击事件处理
     useEffect(() => {
         const handleClick = (event: MouseEvent) => {
-            if (tool === 'path') {
+            const currentTool = tool; // 捕获当前工具
+            if (currentTool === 'path' || currentTool === 'spray') {
                 const canvas = document.querySelector('canvas');
                 if (!canvas) return;
 
@@ -85,73 +111,93 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
                 raycaster.current.setFromCamera(mouse.current, camera);
 
                 if (meshRef.current) {
-                    // 使用raycaster查找最近的顶点
                     const intersects = raycaster.current.intersectObject(meshRef.current);
                     if (intersects.length > 0) {
                         const intersect = intersects[0];
-
-                        // 获取所有顶点
                         const positionAttribute = meshRef.current.geometry.attributes.position as BufferAttribute;
 
-                        // 找到距离点击点最近的顶点
-                        let closestVertex = new Vector3();
-                        let minDistance = Infinity;
-                        let closestIndex = -1;
+                        if (currentTool === 'path') {
+                            // 找到距离点击点最近的顶点
+                            let closestVertex = new Vector3();
+                            let minDistance = Infinity;
+                            let closestIndex = -1;
 
-                        for (let i = 0; i < positionAttribute.count; i++) {
-                            const vertex = new Vector3().fromBufferAttribute(positionAttribute, i);
-                            const distance = vertex.distanceTo(intersect.point);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                closestVertex = vertex.clone();
-                                closestIndex = i;
+                            for (let i = 0; i < positionAttribute.count; i++) {
+                                const vertex = new Vector3().fromBufferAttribute(positionAttribute, i);
+                                const distance = vertex.distanceTo(intersect.point);
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    closestVertex = vertex.clone();
+                                    closestIndex = i;
+                                }
                             }
-                        }
 
-                        if (closestIndex !== -1) {
-                            // 标记选中的顶点
-                            const dotGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-                            const dotMaterial = new THREE.MeshBasicMaterial({ color });
-                            const dot = new THREE.Mesh(dotGeometry, dotMaterial);
-                            dot.position.copy(closestVertex);
-                            dot.name = `dot_${closestIndex}`;
-                            scene.add(dot);
-
-                            // 更新选中的点列表
-                            setSelectedPoints(prevPoints => {
-                                const newPoints = [...prevPoints, closestVertex];
-
-                                // 如果选中了两个及以上的点，计算最短路径
-                                if (newPoints.length >= 2) {
-                                    const existingLine = scene.getObjectByName('pathLine');
-                                    if (existingLine) {
-                                        scene.remove(existingLine);
-                                    }
-
-                                    const startPoint = newPoints[newPoints.length - 2];
-                                    const endPoint = newPoints[newPoints.length - 1];
-
-                                    // 找到对应的节点
-                                    const startNode = nodesRef.current.find(node => node.position.equals(startPoint));
-                                    const endNode = nodesRef.current.find(node => node.position.equals(endPoint));
-
-                                    if (startNode && endNode) {
-                                        // 使用A*算法计算路径
-                                        const pathNodes = astar(startNode, endNode);
-
-                                        if (pathNodes) {
-                                            const pathPositions = pathNodes.map(node => node.position);
-                                            const pathGeometry = new THREE.BufferGeometry().setFromPoints(pathPositions);
-                                            const pathMaterial = new THREE.LineBasicMaterial({ color });
-                                            const pathLine = new THREE.Line(pathGeometry, pathMaterial);
-                                            pathLine.name = 'pathLine';
-                                            scene.add(pathLine);
-                                        }
-                                    }
+                            if (closestIndex !== -1) {
+                                // 检查是否已经选中这个点
+                                const isAlreadySelected = selectedPoints.some(p => vectorsAlmostEqual(p, closestVertex));
+                                if (isAlreadySelected) {
+                                    return; // 不重复选取
                                 }
 
-                                return newPoints;
-                            });
+                                // 标记选中的顶点
+                                const dotGeometry = new SphereGeometry(1, 32, 32); // 增大球体半径
+                                const dotMaterial = new MeshBasicMaterial({ color });
+                                const dot = new Mesh(dotGeometry, dotMaterial);
+                                dot.position.copy(closestVertex);
+                                dot.name = `path_dot_${closestIndex}`;
+                                scene.add(dot);
+
+                                // 更新选中的点列表
+                                setSelectedPoints(prevPoints => {
+                                    const newPoints = [...prevPoints, closestVertex];
+
+                                    // 如果选中了两个及以上的点，计算最短路径
+                                    if (newPoints.length >= 2) {
+                                        const existingLine = scene.getObjectByName('pathLine');
+                                        if (existingLine) {
+                                            scene.remove(existingLine);
+                                        }
+
+                                        const startPoint = newPoints[newPoints.length - 2];
+                                        const endPoint = newPoints[newPoints.length - 1];
+
+                                        // 找到对应的节点
+                                        const startNode = nodesRef.current.find(node => vectorsAlmostEqual(node.position, startPoint));
+                                        const endNode = nodesRef.current.find(node => vectorsAlmostEqual(node.position, endPoint));
+
+                                        if (startNode && endNode) {
+                                            // 使用A*算法计算路径
+                                            const pathNodes = astar(startNode, endNode);
+
+                                            if (pathNodes) {
+                                                console.log('Path found:', pathNodes.map(node => node.position));
+                                                const pathPositions = pathNodes.map(node => node.position);
+                                                const pathGeometry = new BufferGeometry().setFromPoints(pathPositions);
+                                                const pathMaterial = new LineBasicMaterial({ color: 'yellow' }); // 使用明显颜色
+                                                const pathLine = new Line(pathGeometry, pathMaterial);
+                                                pathLine.name = 'pathLine';
+                                                scene.add(pathLine);
+                                            } else {
+                                                console.warn('未找到路径');
+                                            }
+                                        } else {
+                                            console.warn('起点或终点节点未找到');
+                                        }
+                                    }
+
+                                    return newPoints;
+                                });
+                            }
+                        } else if (currentTool === 'spray') {
+                            // 喷漆功能
+                            // 标记喷漆点
+                            const sprayDot = new Mesh(
+                                new SphereGeometry(0.5, 16, 16),
+                                new MeshBasicMaterial({ color })
+                            );
+                            sprayDot.position.copy(intersect.point);
+                            sprayDot.name = `spray_dot_${Date.now()}`;
+                            scene.add(sprayDot);
                         }
                     }
                 }
@@ -163,7 +209,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         return () => {
             window.removeEventListener('click', handleClick);
         };
-    }, [tool, camera, scene, color, setSelectedPoints]);
+    }, [tool, camera, scene, color, setSelectedPoints, meshRef, selectedPoints]);
 
     return (
         <>

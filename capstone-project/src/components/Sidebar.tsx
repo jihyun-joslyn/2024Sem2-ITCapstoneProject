@@ -1,7 +1,7 @@
 // src/components/Sidebar.tsx
 
 import { useState, useContext } from 'react';
-import { createSvgIcon, Tab, Tabs, IconButton, Tooltip } from '@mui/material';
+import { createSvgIcon, Tab, Tabs } from '@mui/material';
 import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, ColorLens as ColorLensIcon } from '@mui/icons-material';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
@@ -82,7 +82,11 @@ export default function Sidebar() {
                 onChange={handleChange}
                 id="toolbar"
             >
-                <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={() => { setOpen(!open); }} />
+                <Tab
+                    icon={<FolderIcon sx={{ color: '#9c806c' }} />}
+                    aria-label="Folder"
+                    onClick={() => { setOpen(!open); }}
+                />
                 <Tab icon={<ArrowIcon />} aria-label="Arrow" />
                 <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} aria-label="Pan Tool" />
                 <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} aria-label="Brush" />
@@ -91,7 +95,7 @@ export default function Sidebar() {
                 <Tab icon={<PathIcon />} aria-label="Path Annotation" />
             </Tabs>
             {showColorSelector && (
-                <div id="color-picker">
+                <div id="color-picker" style={{ position: 'absolute', top: '50px', left: '0' }}>
                     <ColorLensIcon />
                     <SketchPicker color={color} onChangeComplete={handleColorChange} />
                 </div>
