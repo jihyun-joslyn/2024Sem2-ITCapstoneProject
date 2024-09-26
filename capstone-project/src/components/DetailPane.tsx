@@ -12,8 +12,8 @@ export type ProblemType = {
 export type DetailPaneProps = {
     isShow: boolean;
     selectedFile: string | null;
-    stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
-    setStlFiles: React.Dispatch<React.SetStateAction<{ fileName: string; fileObject: File; problem: string; class: string }[]>>;
+    stlFiles: { fileName: string; fileObject?: File; problem: string; class: string }[];
+    setStlFiles: React.Dispatch<React.SetStateAction<{ fileName: string; fileObject?: File; problem: string; class: string }[]>>;
     onFileSelect: (fileName: string) => void;
     problems: ProblemType[];
     setProblems: React.Dispatch<React.SetStateAction<ProblemType[]>>;
@@ -27,24 +27,15 @@ export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles
         if (selectedFile) {
             const selectedFileData = stlFiles.find(file => file.fileName === selectedFile);
             if (selectedFileData) {
-                const loadedProblems = [
-                    {
-                        name: "Problem 1",
-                        classes: ["class1", "class2"]
-                    },
-                    {
-                        name: "Problem 2",
-                        classes: ["class3", "class4"]
-                    }
-                ];
+                const loadedProblems = selectedFileData.problem
+                    .split(';')
+                    .map(problemStr => {
+                        const [name, ...classes] = problemStr.split(',');
+                        return { name, classes: classes.map(c => [c]) };
+                    });
 
-                const convertedProblems: ProblemType[] = loadedProblems.map(p => ({
-                    ...p,
-                    classes: p.classes.map(c => [c])
-                }));
-
-                if (!_.isEqual(convertedProblems, problems)) {
-                    setProblems(convertedProblems);
+                if (!_.isEqual(loadedProblems, problems)) {
+                    setProblems(loadedProblems);
                 }
             }
         }
@@ -59,7 +50,7 @@ export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles
     const onAddProblemInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(userInput)) && (e.key === "Enter")) {
             const updatedProblems: ProblemType[] = [...problems, { name: userInput, classes: [] }];
-            setProblems(updatedProblems); 
+            setProblems(updatedProblems);
             setUserInput("");
             setIsAddNewProblem(false);
         }
@@ -94,7 +85,7 @@ export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles
             }
             return file;
         });
-        setStlFiles(updatedFiles); 
+        setStlFiles(updatedFiles);
     };
 
     return (
@@ -117,11 +108,11 @@ export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles
                             <ListItem key={i} className="problem-arr">
                                 <Problem
                                     problemName={p.name}
-                                    labelArr={p.classes}  
+                                    labelArr={p.classes}
                                     problemKey={i}
                                     updateProblem={updateProblem}
                                     deleteProblem={deleteProblem}
-                                    updateLabel={updateLabel}  
+                                    updateLabel={updateLabel}
                                 />
                             </ListItem>
                         ))}

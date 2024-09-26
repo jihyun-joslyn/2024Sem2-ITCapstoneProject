@@ -7,11 +7,11 @@ import Class from './Class';
 
 export type ProblemProps = {
     problemName: string;
-    labelArr: string[][]; 
+    labelArr: string[][];
     problemKey: number;
     updateProblem: (userInput: string, index: number) => void;
     deleteProblem: (index: number) => void;
-    updateLabel: (labels: string[][], arrIndex: number) => void; 
+    updateLabel: (labels: string[][], arrIndex: number) => void;
 };
 
 export default function Problem({ problemName, labelArr, problemKey, updateProblem, deleteProblem, updateLabel }: ProblemProps) {
@@ -32,18 +32,17 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {
             setProblem(problemInput);
             setIsEditProblem(false);
-            updateProblem(problemInput, problemKey); 
+            updateProblem(problemInput, problemKey);
         }
     };
 
-    // 添加新 Class
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            const newLabels = [...labels, [inputNewClass]]; 
+            const newLabels = [...labels, [inputNewClass]];
             setLabels(newLabels);
             setInputNewClass("");
             setIsAddNewClass(false);
-            updateLabel(newLabels, problemKey); 
+            updateLabel(newLabels, problemKey);
         }
     };
 
@@ -51,20 +50,18 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
         const newLabels = [...labels];
         newLabels[arrIndex] = classes;
         setLabels(newLabels);
-        updateLabel(newLabels, problemKey); 
+        updateLabel(newLabels, problemKey);
     };
 
     const deleteClass = (arrIndex: number): void => {
-        const newLabels = labels.filter((_, i) => i !== arrIndex); 
+        const newLabels = labels.filter((_, i) => i !== arrIndex);
         setLabels(newLabels);
-        updateLabel(newLabels, problemKey); 
+        updateLabel(newLabels, problemKey);
     };
 
     return (
         <Accordion sx={{ width: '100%' }}>
-            <AccordionSummary
-                expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}
-            >
+            <AccordionSummary expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}>
                 {!isEditProblem ? (
                     <span>
                         {problem}
@@ -92,11 +89,11 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                 <List>
                     {labels.map((l, j) => (
                         <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
-                            <Class 
-                                labelArr={l} 
-                                labelIndex={j} 
-                                updateLabel={updateLabelArr} 
-                                deleteClass={deleteClass} 
+                            <Class
+                                labelArr={l}
+                                labelIndex={j}
+                                updateLabel={updateLabelArr}
+                                deleteClass={deleteClass}
                             />
                         </ListItem>
                     ))}
