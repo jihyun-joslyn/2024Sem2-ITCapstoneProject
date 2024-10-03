@@ -6,15 +6,15 @@ import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';
 import ModelDisplay from "../components/ModelDisplay";
 import { ModelProvider } from '../components/ModelContext';
+import { ProblemType } from '../datatypes/ProblemType';
+import * as _ from "lodash";
+import { FileAnnotation } from '../datatypes/FileAnnotation';
 
-type ProblemType = {
-  name: string;
-  classes: string[][];
-};
 
 const container = document.getElementById('root');
 const root = createRoot(container);
 
+//bool use to control component width
 var isShowDetail: boolean = false;
 var isShowColorSpray: boolean = false;
 var isShowFile: boolean = false;
@@ -27,13 +27,10 @@ const App = () => {
   const [modelGridWidth, setModelGridWidth] = useState(11);
   const [detailPaneWidth, setDetailPaneWidth] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(1);
-  const [stlFiles, setStlFiles] = useState<{ fileName: string, fileObject: File, problem: string, class: string }[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [problems, setProblems] = useState<ProblemType[]>([]);
-
-  const handleModelLoad = (data: ArrayBuffer) => {
-    setModelData(data);
-  };
+  const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
+  const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
+  const [fileList, setFileList] = useState<string[]>([]);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -45,35 +42,39 @@ const App = () => {
     };
   };
 
-  const updateStlFilesWithProblems = (updatedProblems: ProblemType[], fileName: string) => {
-    const updatedFiles = stlFiles.map((file) => {
-      if (file.fileName === fileName) {
-        return {
-          ...file,
-          problem: updatedProblems.map(p => `${p.name},${p.classes.flat().join(',')}`).join(';')
-        };
-      }
-      return file;
+  const updateFileList = (_stlFiles: FileAnnotation[]) => {
+    setSTLFiles(_stlFiles);
+
+    var _file: string[] = [];
+
+    _stlFiles.forEach(f => {
+      _file.push(f.fileName);
     });
-    setStlFiles(updatedFiles);
-  };
+
+    setFileList(_file);
+  }
+
+  const updateDataLabels = (updatedProblems: ProblemType[]): void => {
+    setCurrentProblems(updatedProblems);
+
+    var _stlFiles: FileAnnotation[] = stlFiles;
+
+    var cur : number = _.findIndex(_stlFiles, function(f) {
+      return _.eq(f.fileName, currentFile);
+    })
+
+    _stlFiles[cur].problems = updatedProblems;
+
+    setSTLFiles(_stlFiles);
+  }
 
   const handleFileSelect = (fileName: string) => {
-    const selectedFileData = stlFiles.find(file => file.fileName === fileName);
-    if (selectedFileData) {
-      setSelectedFile(fileName);
+    var currIndex = _.findIndex(stlFiles, function(f) {
+      return _.eq(f.fileName, fileName);
+    })
 
-      const parsedProblems: ProblemType[] = selectedFileData.problem
-        .split(';')
-        .map(problemStr => {
-          const [name, ...classes] = problemStr.split(',');
-          const classArrays = classes.map(c => [c]);
-          return { name, classes: classArrays };
-        });
-
-      setProblems(parsedProblems);
-      loadSTLFile(selectedFileData.fileObject);
-    }
+    initializeCurrentFile(stlFiles[currIndex]);
+    loadSTLFile(stlFiles[currIndex].fileObject);
   };
 
   const showDetailPane = (isShow: boolean): void => {
@@ -155,25 +156,30 @@ const App = () => {
     }
   };
 
+  const initializeCurrentFile = (_file: FileAnnotation) => {
+    setCurrentProblems(_file.problems);
+    setCurrentFile(_file.fileName);
+    loadSTLFile(_file.fileObject);
+  }
+
   return (
     <ModelProvider>
       <Box sx={{ flexGrow: 0 }}>
         <Header
           showDetailPane={showDetailPane}
-          onModelLoad={handleModelLoad}
           isShowDetailPane={isShowDetailPane}
+          currentFile={currentFile}
+          updateFileList={updateFileList}
           stlFiles={stlFiles}
-          setStlFiles={setStlFiles}
-          selectedFile={selectedFile}
-          setSelectedFile={setSelectedFile} />
+          initializeCurrentFile={initializeCurrentFile} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
           <Sidebar
             showFilePane={showFilePane}
             showColorSpraySelector={showColorSpraySelector}
-            stlFiles={stlFiles}
-            onFileSelect={handleFileSelect} />
+            onFileSelect={handleFileSelect} 
+            fileList={fileList}/>
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
@@ -181,17 +187,9 @@ const App = () => {
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane
             isShow={isShowDetailPane}
-            selectedFile={selectedFile}
-            stlFiles={stlFiles}
-            setStlFiles={setStlFiles}
-            onFileSelect={handleFileSelect}
-            problems={problems}
-            setProblems={(updatedProblems: ProblemType[]) => {
-              setProblems(updatedProblems);
-              if (selectedFile) {
-                updateStlFilesWithProblems(updatedProblems, selectedFile);
-              }
-            }} />
+            currentFile={currentFile}
+            currProblems={currProblems}
+            updateProblems={updateDataLabels} />
         </Grid>
       </Grid>
     </ModelProvider>

@@ -3,12 +3,12 @@ import '../style/index.css';
 
 export type FilePaneProps = {
     isShow: boolean;
-    stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
     onFileSelect: (fileName: string) => void;
     selectedFile: string;
+    fileList: string[]
 };
 
-export default function FilePane({ isShow, stlFiles, onFileSelect, selectedFile }: FilePaneProps) {
+export default function FilePane({ isShow, fileList, onFileSelect, selectedFile }: FilePaneProps) {
     if (!isShow) {
         return null; 
     }
@@ -20,16 +20,16 @@ export default function FilePane({ isShow, stlFiles, onFileSelect, selectedFile 
                         <Typography>File Pane</Typography>
                     </Toolbar>
                     <List>
-                        {stlFiles.map((file, index) => (
+                        {fileList.map((file, index) => (
                             <ListItem 
                                 component="button" 
                                 key={index}
-                                onClick={() => onFileSelect(file.fileName)}
-                                className={selectedFile === file.fileName ? 'selected-file' : ''} 
+                                onClick={() => onFileSelect(file)}
+                                className={selectedFile === file ? 'selected-file' : ''} 
                                 sx={{ paddingLeft: '16px' }}
                             >
                                 <ListItemText 
-                                    primary={file.fileName}
+                                    primary={file}
                                     sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }} 
                                 />
                             </ListItem>

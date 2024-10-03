@@ -1,26 +1,21 @@
 import { useState } from 'react';
 import { AppBar, Toolbar, Button, Menu, MenuItem, Container } from '@mui/material';
 import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
-
+import * as _ from "lodash";
+import { ProblemType } from '../datatypes/ProblemType';
+import { OutputFile } from '../datatypes/OutputFile';
+import { FileAnnotation } from '../datatypes/FileAnnotation';
 
 export type HeaderProps = {
     showDetailPane: (isShow: boolean) => void;
     isShowDetailPane: boolean;
-    onModelLoad: (data: ArrayBuffer) => void;
-    stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];  
-    setStlFiles: React.Dispatch<React.SetStateAction<{ fileName: string; fileObject: File; problem: string; class: string }[]>>;  
-    selectedFile: string | null;  
-    setSelectedFile: React.Dispatch<React.SetStateAction<string | null>>; 
+    currentFile: string | null;
+    updateFileList: (_fileList: FileAnnotation[]) => void;
+    stlFiles: FileAnnotation[];
+    initializeCurrentFile: (_file: FileAnnotation) => void
 };
 
-export default function Header({
-    showDetailPane,
-    isShowDetailPane,
-    onModelLoad,
-    stlFiles,   
-    setStlFiles,   
-    selectedFile,   
-    setSelectedFile   
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile
 }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
@@ -52,54 +47,77 @@ export default function Header({
         input.onchange = async (e) => {
             const target = e.target as HTMLInputElement;
             const files = target.files ? Array.from(target.files) : [];
-    
-            const newFileData = files.map(file => ({
-                fileName: file.name,
-                fileObject: file,
-                problem: '',
-                class: ''
-            }));
-    
-            setStlFiles(prevFiles => [...prevFiles, ...newFileData]);
-    
+
             if (files.length > 0) {
-                setSelectedFile(files[0].name);
-                loadSTLFile(files[0]);  
+                var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
+
+                files.forEach(f => {
+                    if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
+                        return _.eq(x.fileName, f.name);
+                    }) == -1)) {
+                        var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [] };
+
+
+                        _fileList.push(temp1);
+                    }
+                })
+
+                if (stlFiles.length > 0)
+                    initializeCurrentFile(_fileList[0]);
+
+                updateFileList(_fileList);
             }
-    
+
             handleFileClose();
         };
         input.click();
     };
-    
-
-    const handleFileSelect = (fileName: string) => {
-        const selectedFileData = stlFiles.find(file => file.fileName === fileName);
-        if (selectedFileData) {
-            setSelectedFile(fileName);   
-            loadSTLFile(selectedFileData.fileObject);
-        }
-    };
-
-    const loadSTLFile = (file: File) => {
-        const reader = new FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onload = () => {
-            if (reader.result instanceof ArrayBuffer) {
-                onModelLoad(reader.result); 
-            }
-        };
-    };
 
     const handleSave = () => {
-        const jsonData = JSON.stringify(stlFiles, null, 2);
+        var currFile: FileAnnotation = _.find(stlFiles, function (f) {
+            return _.eq(f.fileName, currentFile);
+        });
+
+        var currProblems: string = convertToJSONFileFormat(currFile.problems);
+        var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
+
+        const jsonData = JSON.stringify(currOutput, null, 2);
         const blob = new Blob([jsonData], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'annotated_items.json';
         link.click();
-        handleFileClose(); 
+        handleFileClose();
     };
+
+    const convertToJSONFileFormat = (problems: ProblemType[]): string => {
+        var result: Record<string, any>[] = [];
+
+        problems.forEach(p => {
+            var labelMapping: Record<string, string>[] = [];
+            var colorMapping: Record<string, string>[] = [];
+
+            labelMapping.push({ "-1": "unlabelled" });
+
+            if (!_.isEmpty(p.classes)) {
+                p.classes.forEach((c, j) => {
+                    var index: string = j.toString();
+                    var labelName: string = c[0];
+                    var colorCode: string = c.length > 1 ? c[1] : "";
+
+                    labelMapping.push({ [index]: labelName });
+                    colorMapping.push({ [index]: colorCode });
+                });
+            }
+
+            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }];
+            var _problemName: string = p.name;
+
+            result.push({ [_problemName]: problemDetails });
+        });
+
+        return JSON.parse(JSON.stringify(result));
+    }
 
     return (
         <div>
@@ -151,7 +169,7 @@ export default function Header({
                             <HelpOutlineIcon />
                         </Button>
                         <Button id="detail-icon" onClick={() => {
-                            showDetailPane(!isShowDetailPane);  
+                            showDetailPane(!isShowDetailPane);
                         }}>
                             <MoreVertIcon />
                         </Button>
@@ -159,7 +177,7 @@ export default function Header({
                 </Toolbar>
             </AppBar>
 
-            
+
         </div>
     );
 }

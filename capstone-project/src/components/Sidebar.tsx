@@ -7,9 +7,9 @@ import { SketchPicker, ColorResult } from 'react-color';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
-  stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
   onFileSelect: (fileName: string) => void;
   showColorSpraySelector: (isShow: boolean) => void;
+  fileList: string[]
 };
 
 const ArrowIcon = createSvgIcon(
@@ -36,7 +36,7 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, stlFiles, onFileSelect, showColorSpraySelector }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList }: SidebarProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null); 
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
@@ -87,7 +87,7 @@ export default function Sidebar({ showFilePane, stlFiles, onFileSelect, showColo
       )}
       <FilePane 
         isShow={isShowFilePane} 
-        stlFiles={stlFiles} 
+        fileList={fileList} 
         onFileSelect={handleFileSelect} 
         selectedFile={selectedFile || ''} 
       />
