@@ -62,8 +62,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     }
                 })
 
-                if (stlFiles.length > 0)
-                    initializeCurrentFile(_fileList[0]);
+                initializeCurrentFile(_fileList[0]);
 
                 updateFileList(_fileList);
             }
@@ -85,7 +84,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         const blob = new Blob([jsonData], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'annotated_items.json';
+        link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
         link.click();
         handleFileClose();
     };
