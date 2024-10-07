@@ -8,7 +8,7 @@ interface ColorState {
 interface ModelColorState {
   modelId: string;
   states: { [modelId: string]: { [vertexIndex: number]: ColorState } };// save the color of vertex
-  setState: (modelId: string, vertexIndex: number, color: string) => void; // get the color informationpm n
+  setState: (modelId: string, vertexIndex: number, color: string) => void; // get the color information
   setModelId: (modelId: string) => void;
 }
 
