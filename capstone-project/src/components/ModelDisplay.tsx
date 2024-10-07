@@ -1,151 +1,150 @@
-import React, { useRef, useEffect, useCallback, useContext, useState} from 'react';
-import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
+import React, { useRef, useEffect, useCallback, useContext, useState } from 'react';
+import { Canvas, useThree, extend, ThreeEvent } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { OrbitControls } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, BufferGeometry, WireframeGeometry, LineSegments, LineBasicMaterial } from 'three';
+import {Mesh,MeshStandardMaterial,BufferGeometry,WireframeGeometry,LineSegments,LineBasicMaterial } from 'three';
 import ModelContext from './ModelContext';
 import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
+import useModelStore from '../components/StateStore';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
 extend({ WireframeGeometry });
 
-type ModelDisplay = {
+type ModelDisplayProps = {
   modelData: ArrayBuffer;
 };
 
-const ModelContent: React.FC<ModelDisplay> = ({ modelData }) => {
-    const { tool, color } = useContext(ModelContext);
-    const { scene, camera, raycaster } = useThree();
-    const meshRef = useRef<Mesh>(null); 
-    const wireframeRef = useRef<LineSegments>(null); 
-    const [mousePosition, setMousePosition] = useState<THREE.Vector2>(new THREE.Vector2());
-    const [isMouseDown, setIsMouseDown] = useState(false);
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
+  const { tool, color } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { camera, gl } = useThree();
+  const meshRef = useRef<Mesh>(null);
+  const wireframeRef = useRef<LineSegments>(null);
+  const [isSpray,setIsSpray] = useState(false);
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const {states, setState, modelId,setModelId} = useModelStore();
+  const sprayRadius = 1;
 
-    useEffect(() => {
-        if (!meshRef.current || !wireframeRef.current) return;
+  useEffect(() => {
+    if (!meshRef.current || !wireframeRef.current) return;
 
-         
-        if (meshRef.current.geometry) {
-            meshRef.current.geometry.dispose();
-            meshRef.current.geometry = null;
-        }
-        if (wireframeRef.current.geometry) {
-            wireframeRef.current.geometry.dispose();
-            wireframeRef.current.geometry = null;
-        }
+    const loader = new STLLoader();
+    let geometry: BufferGeometry = loader.parse(modelData);
 
-         
-        const loader = new STLLoader();
-        const geometry: BufferGeometry = loader.parse(modelData);
-        meshRef.current.geometry = geometry;
-
-        const wireframeGeometry = new WireframeGeometry(geometry);
-        wireframeRef.current.geometry = wireframeGeometry;
-
-    }, [modelData]);  
-
-    useEffect(() => {
-        const handleMouseDown = () => {
-            setIsMouseDown(true);
-        };
-        const handleMouseUp = () => {
-            setIsMouseDown(false);
-        };
-        const handleMouseMove = (event: MouseEvent) => {
-            setMousePosition(new THREE.Vector2(
-                (event.clientX / window.innerWidth) * 2 - 1,
-                -(event.clientY / window.innerHeight) * 2 + 1
-            ));
-        };
-        window.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mouseup', handleMouseUp);
-        window.addEventListener('mousemove', handleMouseMove);
-
-        return () => {
-            window.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('mousemove', handleMouseMove);
-        };
-    }, []);
-
-    //Starting KeyPoint Marking function.
-    const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
-    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
-  
-    useEffect(() => {
-      const handlePointerClick = (event: MouseEvent) => {
-        if (!meshRef.current || tool !== 'keypoint') return;
-  
-        // Update raycaster with the mouse position and camera
-        raycaster.setFromCamera(mousePosition, camera);
-        
-        // Raycast to find intersections with the mesh
-        const intersects = raycaster.intersectObject(meshRef.current, true);
-        
-        if (intersects.length > 0) {
-          const intersection = intersects[0];
-          const localPoint = intersection.point.clone(); // The point of intersection
-  
-          // Apply object matrix world to get the correct local position
-          const inverseMatrix = new THREE.Matrix4();
-          inverseMatrix.copy(meshRef.current.matrixWorld).invert(); // Invert the world matrix
-          localPoint.applyMatrix4(inverseMatrix); // Transform point into local coordinates
-  
-          // Create a precise sphere at the local intersection point
-          const preciseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-          preciseSphere.position.copy(localPoint); // Apply precise local point
-          meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
-  
-          // Debugging log to show precise coordinates
-          console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
-        }
-      };
-  
-      if (tool === 'keypoint') {
-        window.addEventListener('click', handlePointerClick);
-      }
-  
-      return () => {
-        window.removeEventListener('click', handlePointerClick);
-      };
-    }, [tool, camera, scene, meshRef, mousePosition, raycaster]);
-  
+    const modelID = modelData.byteLength.toString();
+    if (!geometry.index) {
+      geometry = BufferGeometryUtils.mergeVertices(geometry);// merge the vertex to optimise the performance
+      geometry.computeVertexNormals();
+    }
 
 
+    //use the BVH to accelerate the geometry
+    geometry.computeBoundsTree = computeBoundsTree;
+    geometry.disposeBoundsTree = disposeBoundsTree;
+    meshRef.current.raycast = acceleratedRaycast;
+    geometry.computeBoundsTree();
 
-    useFrame(() => {
-        if (tool === 'spray' && isMouseDown) {
-            raycaster.setFromCamera(mousePosition, camera);
-            const intersects = raycaster.intersectObjects(scene.children, true);
+    // get all vertex and add the color about the vertex
+    const vertexCount = geometry.attributes.position.count;
+    // initialise the color, and default be white
+    const colors = new Float32Array(vertexCount * 3).fill(1);
 
-            if (intersects.length > 0) {
-                const [intersect] = intersects;
-                const sprayDot = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.05, 16, 16),
-                    new THREE.MeshBasicMaterial({ color })
-                );
-                sprayDot.position.copy(intersect.point);
-                scene.add(sprayDot);
-            }
-        }
+    //load the saved states of color
+    const savedData = states[modelId] || {};
+    
+    if(savedData){
+      Object.keys(savedData).forEach( index => {
+        const color = new THREE.Color(savedData[Number(index)].color);
+        colors[Number(index) * 3] = color.r;
+        colors[Number(index)*3+1] = color.g;
+        colors[Number(index) *3+2] = color.b;
     });
+    }
 
-    return (
-        <>
-            <ambientLight intensity={0.5} />
-            <spotLight position={[10, 15, 10]} angle={0.3} />
-            <mesh ref={meshRef} material={new MeshStandardMaterial({ color: 'gray' })} />
-            <OrbitControls enableRotate={tool === 'pan'} enableZoom={true} enablePan={true} rotateSpeed={1.0} />
-            <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
-        </>
-    );
+    setModelId(modelID);
+
+
+    // add the color into geometry, each vertex use three data to record color
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    meshRef.current.geometry = geometry;
+    meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
+
+    //add the mesh effect to model
+    const wireframeGeometry = new WireframeGeometry(geometry);
+    wireframeRef.current.geometry = wireframeGeometry;
+  }, [modelData]);
+
+  const spray = useCallback((position : THREE.Vector2) => {
+    
+    if (!meshRef.current || !meshRef.current.geometry.boundsTree) return;
+    const raycaster = raycasterRef.current;
+    const geometry = meshRef.current.geometry as BufferGeometry;
+    const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
+    const newColor = new THREE.Color(color);
+    raycaster.setFromCamera(position,camera);
+
+    const intersects = raycaster.intersectObject(meshRef.current, true);
+
+    if(intersects.length>0){
+        intersects.forEach((intersect: THREE.Intersection) => {
+          if(intersect.face){
+            const faceIndices = [intersect.face.a,intersect.face.b,intersect.face.c];
+            faceIndices.forEach(index => {
+              colorAttributes.setXYZ(index,newColor.r,newColor.g,newColor.b);
+              setState(modelId,index,color);
+            });
+            colorAttributes.needsUpdate = true;
+          }
+        })
+    }
+  },[color,camera]);
+
+  const handleMouseDown = useCallback((event : ThreeEvent<PointerEvent>) => {
+    if(tool != 'spray') return;
+    event.stopPropagation();
+    setIsSpray(true);
+  },[gl,spray]);
+
+  const handleMouseMove = useCallback((event : ThreeEvent<PointerEvent>) => {
+    //only spray when tool is spray and click the mouse
+    if(!isSpray || tool !== 'spray') return;
+    event.stopPropagation();
+
+    // get the weight and height from canvas
+    const rect = gl.domElement.getBoundingClientRect();
+    //transfer to NDC
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const point = new THREE.Vector2(x,y);
+
+    spray(point);
+  },[isSpray,gl,spray]);
+
+  const handleMouseUp = useCallback((event : ThreeEvent<PointerEvent>) => {
+    setIsSpray(false);
+  },[]);
+
+
+
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <spotLight position={[10, 15, 10]} angle={0.3} />
+      <mesh ref={meshRef} onPointerDown={handleMouseDown} onPointerMove={handleMouseMove} onPointerUp={handleMouseUp} />
+      <OrbitControls  enableRotate={tool === 'pan'}  enableZoom  enablePan  rotateSpeed={1.0}/>
+      <lineSegments  ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })}  />
+    </>
+  );
 };
 
 const ModelDisplay: React.FC<{ modelData: ArrayBuffer }> = ({ modelData }) => {
-    return (
-        <Canvas style={{ background: 'black' }}>
-            <ModelContent modelData={modelData} />
-        </Canvas>
-    );
+  return (
+    <Canvas style={{ background: 'black' }}>
+      <ModelContent modelData={modelData} />
+    </Canvas>
+  );
 };
 
 export default ModelDisplay;
