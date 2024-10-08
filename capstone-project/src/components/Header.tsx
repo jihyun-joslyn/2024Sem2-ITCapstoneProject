@@ -48,7 +48,7 @@ export default function Header({
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = ".stl";
-        input.multiple = true;  // 允许选择多个文件
+        input.multiple = true;
         input.onchange = async (e) => {
             const target = e.target as HTMLInputElement;
             const files = target.files ? Array.from(target.files) : [];

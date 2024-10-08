@@ -1,12 +1,14 @@
 import { Toolbar, Typography, List, ListItem, ListItemText } from '@mui/material';
+import '../style/index.css';
 
 export type FilePaneProps = {
     isShow: boolean;
     stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
     onFileSelect: (fileName: string) => void;
+    selectedFile: string;
 };
 
-export default function FilePane({ isShow, stlFiles, onFileSelect }: FilePaneProps) {
+export default function FilePane({ isShow, stlFiles, onFileSelect, selectedFile }: FilePaneProps) {
     if (!isShow) {
         return null; 
     }
@@ -20,15 +22,17 @@ export default function FilePane({ isShow, stlFiles, onFileSelect }: FilePanePro
                     <List>
                         {stlFiles.map((file, index) => (
                             <ListItem 
-                            component="button" 
-                            key={index}
-                            onClick={() => onFileSelect(file.fileName)}
-                            sx={{ paddingLeft: '16px' }} 
-                          >
-                            <ListItemText primary={file.fileName}
-                            sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }}  />
-                          </ListItem>
-                          
+                                component="button" 
+                                key={index}
+                                onClick={() => onFileSelect(file.fileName)}
+                                className={selectedFile === file.fileName ? 'selected-file' : ''}  // 动态设置 class
+                                sx={{ paddingLeft: '16px' }}
+                            >
+                                <ListItemText 
+                                    primary={file.fileName}
+                                    sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }} 
+                                />
+                            </ListItem>
                         ))}
                     </List>
                 </div>
