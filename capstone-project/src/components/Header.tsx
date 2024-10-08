@@ -281,8 +281,8 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                                 open={fileMenuOpen}
                                 onClose={handleFileClose}
                             >
-                                <MenuItem onClick={handleImport}>Import</MenuItem>
-                                <MenuItem onClick={handleImportDirectory}>Import</MenuItem>
+                                <MenuItem onClick={handleImport}>Import File</MenuItem>
+                                <MenuItem onClick={handleImportDirectory}>Import Directory</MenuItem>
                                 <MenuItem onClick={handleSave}>Save</MenuItem>
                             </Menu>
                         </span>
