@@ -66,7 +66,7 @@ export default function Sidebar({ showFilePane, stlFiles, onFileSelect, showColo
       <Tabs
   orientation="vertical"
   value={value}
-  onChange={(event: React.SyntheticEvent, newValue: number) => setValue(newValue)} // newValue 指定为 number 类型
+  onChange={(event: React.SyntheticEvent, newValue: number) => setValue(newValue)} 
   id="toolbar"
 >
         <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={folderOnClick} />

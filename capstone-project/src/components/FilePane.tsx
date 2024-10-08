@@ -25,7 +25,7 @@ export default function FilePane({ isShow, stlFiles, onFileSelect, selectedFile 
                                 component="button" 
                                 key={index}
                                 onClick={() => onFileSelect(file.fileName)}
-                                className={selectedFile === file.fileName ? 'selected-file' : ''}  // 动态设置 class
+                                className={selectedFile === file.fileName ? 'selected-file' : ''} 
                                 sx={{ paddingLeft: '16px' }}
                             >
                                 <ListItemText 
