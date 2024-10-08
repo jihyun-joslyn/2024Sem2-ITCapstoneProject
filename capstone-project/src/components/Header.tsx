@@ -60,9 +60,6 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     }) == -1)) {
                         var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: false };
 
-
-                        console.log(f.path);
-
                         _fileList.push(temp1);
                     }
                 })
