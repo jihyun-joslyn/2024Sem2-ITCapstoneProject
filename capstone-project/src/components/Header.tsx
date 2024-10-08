@@ -50,23 +50,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             const files = target.files ? Array.from(target.files) : [];
 
             if (files.length > 0) {
-
-                var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
-
-                files.forEach(f => {
-
-                    if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
-                        return _.eq(x.fileName, f.name);
-                    }) == -1)) {
-                        var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: false };
-
-                        _fileList.push(temp1);
-                    }
-                })
-
-                initializeCurrentFile(_fileList[0]);
-
-                updateFileList(_fileList);
+                await processFileList(files);
             }
 
             handleFileClose();
@@ -84,41 +68,48 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             const files = target.files ? Array.from(target.files) : [];
 
             if (files.length > 0) {
-                var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
-
                 _.remove(files, function (f) {
                     return (!(_.endsWith(_.toLower(_.toString(f.name)), ".json")) && !(_.endsWith(_.toLower(_.toString(f.name)), ".stl")))
                 });
 
-                for await (const f of files) {
-                    if ((_.endsWith(_.toLower(_.toString(f.name)), ".stl"))) {
-                        if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
-                            return _.eq(x.fileName, f.name);
-                        }) == -1)) {
-                            var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
-
-                            if (isAnnotated(files, f.name))
-                                temp1.problems = await getJSONContent(_.find(files, function (_f) {
-                                    var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
-
-                                    return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
-                                }))
-
-                            _fileList.push(temp1);
-                        }
-
-                    }
-                }
-
-                initializeCurrentFile(_fileList[0]);
-
-                updateFileList(_fileList)
+                await processFileList(files);
             }
         }
 
         handleFileClose();
 
         input.click();
+    }
+
+    const processFileList = async (files: File[]) => {
+        var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
+
+        new Promise(async (resolve) => {
+            for await (const f of files) {
+                if ((_.endsWith(_.toLower(_.toString(f.name)), ".stl"))) {
+                    if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
+                        return _.eq(x.fileName, f.name);
+                    }) == -1)) {
+                        var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
+
+                        if (isAnnotated(files, f.name))
+                            temp1.problems = await getJSONContent(_.find(files, function (_f) {
+                                var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
+
+                                return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
+                            }))
+
+                        _fileList.push(temp1);
+                    }
+                }
+            }
+
+            initializeCurrentFile(_fileList[0]);
+
+            updateFileList(_fileList);
+
+            resolve(_fileList);
+        })
     }
 
     const isAnnotated = (files: File[], currFileName: string): boolean => {
