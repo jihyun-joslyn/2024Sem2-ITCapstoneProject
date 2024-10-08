@@ -84,8 +84,7 @@ body {
 }
 
 #right-pane .MuiList-root,
-.problem-arr
-{
+.problem-arr {
   padding: 0px !important;
   background-color: #E8D7C6;
 }
@@ -148,6 +147,9 @@ body {
   border: 0px !important;
   width: 100% !important;
   padding-left: 8px !important;
+  min-height: 40px !important; 
+  padding-bottom: 4px !important;
+  padding-top: 4px !important;
 }
 
 .class-detail {
@@ -160,7 +162,10 @@ body {
   margin: 0px !important;
 }
 
-#add-problem-label, #edit-problem-label, #add-new-class-label, #edit-class-label {
+#add-problem-label,
+#edit-problem-label,
+#add-new-class-label,
+#edit-class-label {
   color: rgba(130, 77, 40, 0.6);
 }
 
@@ -168,19 +173,29 @@ body {
   padding-left: 16px !important;
 }
 
-#add-problem::before, #edit-problem::before, #add-new-class::before, #edit-class::before {
+#add-problem::before,
+#edit-problem::before,
+#add-new-class::before,
+#edit-class::before {
   border-bottom-color: rgba(130, 77, 40, 0.42) !important;
 }
 
-#add-problem::after, #edit-problem::after, #add-new-class::after, #edit-class::after {
+#add-problem::after,
+#edit-problem::after,
+#add-new-class::after,
+#edit-class::after {
   border-bottom: #824D28 !important;
 }
 
-#add-problem, #edit-problem, #add-new-class, #edit-class {
+#add-problem,
+#edit-problem,
+#add-new-class,
+#edit-class {
   color: #824D28;
 }
 
-#detail-list .Mui-focusVisible, #detail-list .Mui-focused {
+#detail-list .Mui-focusVisible,
+#detail-list .Mui-focused {
   color: #824D28;
   background-color: #E8D7C6;
 }
@@ -191,28 +206,28 @@ body {
 }
 
 #file-pane .MuiList-root .MuiListItem-root {
-  background-color: #E8D7C6; 
-  border: none; 
+  background-color: #E8D7C6;
+  border: none;
   margin-bottom: 4px;
-  padding: 8px; 
+  padding: 8px;
 }
 
 #file-pane .MuiList-root .MuiListItem-root .MuiListItemText-root {
-  background-color: transparent; 
-  white-space: normal; 
-  word-wrap: break-word; 
-  color: #824D28; 
+  background-color: transparent;
+  white-space: normal;
+  word-wrap: break-word;
+  color: #824D28;
 }
 
 
 #file-pane .MuiList-root {
   background-color: #E8D7C6;
-  color: #824D28; 
+  color: #824D28;
 }
 
 #file-pane {
-  width: 200px; 
-  word-wrap: break-word; 
+  width: 200px;
+  word-wrap: break-word;
 }
 
 .selected-file {
@@ -221,3 +236,8 @@ body {
   border-left: 4px solid #824D28 !important;
 }
 
+.file-pane-icon {
+  min-width: 0px !important;
+  margin-right: 8px !important;
+  color: #824D28 !important;
+}

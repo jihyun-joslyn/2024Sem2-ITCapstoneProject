@@ -78,52 +78,50 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
     };
 
     const handleImportDirectory = async () => {
-        try {
-            const directoryHandle = await (window as any).showDirectoryPicker();
-            const fileNames: string[] = [];
-            var files: File[] = [];
-            var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.webkitdirectory = true;
 
-            for await (const entry of directoryHandle.values()) {
-                if (entry.kind === 'file' && (_.endsWith(_.toString(entry.name), ".json") || _.endsWith(_.toString(entry.name), ".stl") || _.endsWith(_.toString(entry.name), ".STL"))) {
-                    const file = await entry.getFile();
+        input.onchange = async (e) => {
+            const target = e.target as HTMLInputElement;
+            const files = target.files ? Array.from(target.files) : [];
 
-                    files.push(file);
+            if (files.length > 0) {
+                var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
 
-                    fileNames.push(file.name);
-                }
-            }
+                _.remove(files, function (f) {
+                    return (!(_.endsWith(_.toString(f.name), ".json")) && !(_.endsWith(_.toString(f.name), ".stl")) && !(_.endsWith(_.toString(f.name), ".STL")))
+                });
 
-        } catch (err) {
-            console.error('Error reading file:', err);
-        }
+                for await (const f of files) {
+                    if (_.endsWith(_.toString(f.name), ".stl") || _.endsWith(_.toString(f.name), ".STL")) {
+                        if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
+                            return _.eq(x.fileName, f.name);
+                        }) == -1)) {
+                            var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
 
-        for await (const f of files) {
-            if (_.endsWith(_.toString(f.name), ".stl") || _.endsWith(_.toString(f.name), ".STL")) {
-                if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
-                    return _.eq(x.fileName, f.name);
-                }) == -1)) {
-                    var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
+                            if (isAnnotated(files, f.name))
+                                temp1.problems = await getJSONContent(_.find(files, function (_f) {
+                                    var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
 
-                    if (isAnnotated(files, f.name))
-                        temp1.problems = await getJSONContent(_.find(files, function (_f) {
-                            var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
+                                    return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
+                                }))
 
-                            return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
-                        }))
+                            _fileList.push(temp1);
+                        }
 
-                    _fileList.push(temp1);
+                    }
                 }
 
+                initializeCurrentFile(_fileList[0]);
+
+                updateFileList(_fileList)
             }
         }
-
-        initializeCurrentFile(_fileList[0]);
-
-        updateFileList(_fileList);
 
         handleFileClose();
 
+        input.click();
     }
 
     const isAnnotated = (files: File[], currFileName: string): boolean => {

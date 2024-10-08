@@ -1,4 +1,5 @@
-import { Toolbar, Typography, List, ListItem, ListItemText } from '@mui/material';
+import { Toolbar, Typography, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
+import { Done as DoneIcon } from '@mui/icons-material';
 import '../style/index.css';
 import { FileList } from '../datatypes/FileList';
 
@@ -11,7 +12,7 @@ export type FilePaneProps = {
 
 export default function FilePane({ isShow, fileList, onFileSelect, selectedFile }: FilePaneProps) {
     if (!isShow) {
-        return null; 
+        return null;
     }
     return (
         <div>
@@ -22,18 +23,22 @@ export default function FilePane({ isShow, fileList, onFileSelect, selectedFile 
                     </Toolbar>
                     <List>
                         {fileList.map((file, index) => (
-                            <ListItem 
-                                component="button" 
+                            <ListItem
+                                component="button"
                                 key={index}
                                 onClick={() => onFileSelect(file.fileName)}
                                 className={selectedFile === file.fileName ? 'selected-file' : ''} 
                                 sx={{ paddingLeft: '16px' }}
                             >
-                                <ListItemText 
-                                    primary={file.fileName}
-                                    sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }} 
-                                />
+                                {file.isAnnotated && (
+                                    <ListItemIcon className="file-pane-icon">
+                                        <DoneIcon fontSize="small" />
+                                    </ListItemIcon>
+                                )}
+                                <ListItemText primary={file.fileName}
+                                    sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }} />
                             </ListItem>
+
                         ))}
                     </List>
                 </div>
