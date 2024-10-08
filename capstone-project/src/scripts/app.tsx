@@ -79,9 +79,8 @@ const App = () => {
   const showDetailPane = (isShow: boolean): void => {
     setIsShowDetailPane(isShow);
     isShowDetail = isShow;
-
     setComponentsGridWidth();
-  }
+  };
 
   const showFilePane = (isShow: boolean): void => {
     setIsShowFilePane(isShow);
@@ -93,7 +92,7 @@ const App = () => {
     }
 
     setComponentsGridWidth();
-  }
+  };
 
   const showColorSpraySelector = (isShow: boolean): void => {
     setIsShowColorSpraySelector(isShow);
@@ -105,7 +104,7 @@ const App = () => {
     }
 
     setComponentsGridWidth();
-  }
+  };
 
   const setComponentsGridWidth = (): void => {
     switch (isShowDetail) {
@@ -129,7 +128,6 @@ const App = () => {
             setModelGridWidth(8);
           }
         }
-
         break;
       case false:
         setDetailPaneWidth(0);
@@ -151,7 +149,6 @@ const App = () => {
             setModelGridWidth(11);
           }
         }
-
         break;
       default:
         break;
