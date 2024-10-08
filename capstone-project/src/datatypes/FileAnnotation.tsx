@@ -4,4 +4,5 @@ export type FileAnnotation = {
     fileName: string;
     fileObject: File;
     problems: ProblemType[];
+    annotated: Boolean;
 }

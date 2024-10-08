@@ -50,6 +50,8 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
     const deleteProblem = (index: number): void => {
         const updatedProblems: ProblemType[] = currProblems.filter((_, i: number) => i !== index);
         updateProblems(updatedProblems);
+
+        //to-do: add validation (true if have class)
     };
 
     const updateLabel = (labels: string[][], index: number): void => {

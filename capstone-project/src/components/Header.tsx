@@ -45,18 +45,23 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         input.accept = ".stl";
         input.multiple = true;
         input.onchange = async (e) => {
+
             const target = e.target as HTMLInputElement;
             const files = target.files ? Array.from(target.files) : [];
 
             if (files.length > 0) {
+
                 var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
 
                 files.forEach(f => {
+
                     if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
                         return _.eq(x.fileName, f.name);
                     }) == -1)) {
-                        var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [] };
+                        var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: false };
 
+
+                        console.log(f.path);
 
                         _fileList.push(temp1);
                     }
@@ -71,6 +76,143 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         };
         input.click();
     };
+
+    const handleImportDirectory = async () => {
+        try {
+            const directoryHandle = await (window as any).showDirectoryPicker();
+            const fileNames: string[] = [];
+            var files: File[] = [];
+            var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
+
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file' && (_.endsWith(_.toString(entry.name), ".json") || _.endsWith(_.toString(entry.name), ".stl") || _.endsWith(_.toString(entry.name), ".STL"))) {
+                    const file = await entry.getFile();
+
+                    files.push(file);
+
+                    fileNames.push(file.name);
+                }
+            }
+
+        } catch (err) {
+            console.error('Error reading file:', err);
+        }
+
+        for await (const f of files) {
+            if (_.endsWith(_.toString(f.name), ".stl") || _.endsWith(_.toString(f.name), ".STL")) {
+                if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
+                    return _.eq(x.fileName, f.name);
+                }) == -1)) {
+                    var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
+
+                    if (isAnnotated(files, f.name))
+                        temp1.problems = await getJSONContent(_.find(files, function (_f) {
+                            var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
+
+                            return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
+                        }))
+
+                    _fileList.push(temp1);
+                }
+
+            }
+        }
+
+        initializeCurrentFile(_fileList[0]);
+
+        updateFileList(_fileList);
+
+        handleFileClose();
+
+    }
+
+    const isAnnotated = (files: File[], currFileName: string): boolean => {
+        var _name: string = _.trimEnd(_.toLower(currFileName), '.stl');
+
+        return _.findIndex(files, function (f) {
+            return _.startsWith(_.toLower(f.name), _name) && _.endsWith(_.toLower(f.name), '.json');
+        }) == -1 ? false : true;
+    }
+
+    const readFileContent = async (_file: File, content: string): Promise<any> => {
+        var r: any;
+        const reader = new FileReader();
+
+        switch (content) {
+            case "text":
+            default:
+                reader.readAsText(_file);
+                break;
+
+        }
+
+        return new Promise(async (resolve) => {
+            reader.onload = async () => {
+                r = reader.result;
+                resolve(await r);
+            }
+        })
+
+    }
+
+    const getJSONContent = async (_file: File): Promise<ProblemType[]> => {
+        var fileContent: string;
+        var problem: ProblemType[] = [];
+
+        await readFileContent(_file, "text").then((res) => {
+            fileContent = _.toString(res);
+        })
+
+        var jsonObj = JSON.parse(fileContent);
+
+        var _problems: any = jsonObj["problems"];
+
+        for (var i in _problems) {
+            var temp: ProblemType = { name: "", classes: [] };
+
+            for (var j in _problems[i]) {
+                temp.name = j;
+
+                var _className: string[] = [];
+                var _color: string[] = [];
+
+                for (var x in _problems[i][j]) {
+                    for (var y in _problems[i][j][x]) {
+                        var _mapping: any = _problems[i][j][x][y];
+
+                        if (_.eq(_.toString(y), "label_mapping")) {
+                            for (var z in Object.values(_mapping)) {
+                                var tempClassName: string = _.toString(Object.values(_mapping[z])[0]);
+
+                                if (!_.eq((_.toString(Object.keys(_mapping[z])[0])), "-1")) {
+                                    _className.push(tempClassName);
+                                }
+                            }
+                        } else if (_.eq(_.toString(y), "color_mapping")) {
+                            for (var z in Object.values(_mapping)) {
+                                if (!_.eq((_.toString(Object.keys(_mapping[z])[0])), "-1")) {
+                                    _color.push(_.toString(Object.values(_mapping[z])[0]));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                _className.forEach((c, x) => {
+                    var _class: string[] = [];
+
+                    _class.push(c);
+                    _class.push(_color.at(x));
+
+                    temp.classes.push(_class);
+                })
+            }
+
+            problem.push(temp);
+        }
+
+        return problem;
+    }
 
     const handleSave = () => {
         var currFile: FileAnnotation = _.find(stlFiles, function (f) {
@@ -140,6 +282,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                                 onClose={handleFileClose}
                             >
                                 <MenuItem onClick={handleImport}>Import</MenuItem>
+                                <MenuItem onClick={handleImportDirectory}>Import</MenuItem>
                                 <MenuItem onClick={handleSave}>Save</MenuItem>
                             </Menu>
                         </span>
