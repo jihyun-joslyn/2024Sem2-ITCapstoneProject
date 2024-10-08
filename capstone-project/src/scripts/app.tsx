@@ -76,7 +76,6 @@ const App = () => {
     })
 
     initializeCurrentFile(stlFiles[currIndex]);
-    loadSTLFile(stlFiles[currIndex].fileObject);
   };
 
   const showDetailPane = (isShow: boolean): void => {
