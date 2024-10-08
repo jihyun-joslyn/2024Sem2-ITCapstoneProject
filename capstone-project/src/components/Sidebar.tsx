@@ -50,6 +50,30 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     onFileSelect(fileName);
   };
 
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+    switch (newValue) {
+      case 2:
+        setTool('pan');
+        break;
+      case 4:
+        setTool('spray');
+        setColorSelector(true);
+        break;
+      case 5:
+        setTool('keypoint');
+        break;
+      default:
+        setTool('none');
+    }
+  };
+
+  const handleColorChange = (color: ColorResult) => {
+    setColor(color.hex);
+    setSpray(color.hex);
+    setColorSelector(false);
+  }
+
   const folderOnClick = () => {
     showFilePane(!isShowFilePane);
     setIsShowFilePane(!isShowFilePane);
@@ -65,33 +89,26 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   return (
     <div id="side">
       <Tabs
-  orientation="vertical"
-  value={value}
-  onChange={(event: React.SyntheticEvent, newValue: number) => setValue(newValue)} 
-  id="toolbar"
->
+        orientation="vertical"
+        value={value}
+        onChange={handleChange}
+        id="toolbar"
+      >
         <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={folderOnClick} />
         <Tab icon={<ArrowIcon />} />
         <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
-        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }}/>} />
+        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} onClick={() => { /*something here*/ }} />
       </Tabs>
       {showColorSelector && (
         <Tooltip title="Choose color" placement="right">
-          <SketchPicker color={color} onChangeComplete={(color: ColorResult) => {
-            setColor(color.hex);
-            setSpray(color.hex);
-            setColorSelector(false);
-          }} />
+          <>
+            <SketchPicker color={color} onChangeComplete={handleColorChange} />
+          </>
         </Tooltip>
       )}
-      <FilePane 
-        isShow={isShowFilePane} 
-        fileList={fileList} 
-        onFileSelect={handleFileSelect} 
-        selectedFile={selectedFile || ''} 
-      />
+      <FilePane isShow={isShowFilePane} onFileSelect={onFileSelect} fileList={fileList} selectedFile={selectedFile || ''} />
     </div>
   );
 }

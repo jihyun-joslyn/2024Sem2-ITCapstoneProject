@@ -87,11 +87,11 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 var _fileList: FileAnnotation[] = stlFiles.length == 0 ? [] : stlFiles;
 
                 _.remove(files, function (f) {
-                    return (!(_.endsWith(_.toString(f.name), ".json")) && !(_.endsWith(_.toString(f.name), ".stl")) && !(_.endsWith(_.toString(f.name), ".STL")))
+                    return (!(_.endsWith(_.toLower(_.toString(f.name)), ".json")) && !(_.endsWith(_.toLower(_.toString(f.name)), ".stl")))
                 });
 
                 for await (const f of files) {
-                    if (_.endsWith(_.toString(f.name), ".stl") || _.endsWith(_.toString(f.name), ".STL")) {
+                    if ((_.endsWith(_.toLower(_.toString(f.name)), ".stl"))) {
                         if (_fileList.length == 0 || _fileList.length > 0 && (_.findIndex(_fileList, function (x) {
                             return _.eq(x.fileName, f.name);
                         }) == -1)) {
@@ -138,7 +138,6 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             default:
                 reader.readAsText(_file);
                 break;
-
         }
 
         return new Promise(async (resolve) => {
@@ -147,7 +146,6 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 resolve(await r);
             }
         })
-
     }
 
     const getJSONContent = async (_file: File): Promise<ProblemType[]> => {

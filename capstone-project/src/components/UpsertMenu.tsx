@@ -4,14 +4,13 @@ import { useState } from 'react';
 
 
 export type UpsertMenu = {
-    onClickAdd : () => void;
+    onClickAdd: () => void;
     onClickEdit: () => void;
     onClickDelete: () => void;
     isNeedAdd: boolean;
 };
 
 export default function UpsertMenu({ onClickEdit, onClickDelete, isNeedAdd, onClickAdd }: UpsertMenu) {
-
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
