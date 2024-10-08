@@ -9,6 +9,7 @@ import { ModelProvider } from '../components/ModelContext';
 import { ProblemType } from '../datatypes/ProblemType';
 import * as _ from "lodash";
 import { FileAnnotation } from '../datatypes/FileAnnotation';
+import { FileList } from '../datatypes/FileList';
 
 
 const container = document.getElementById('root');
@@ -30,7 +31,7 @@ const App = () => {
   const [currentFile, setCurrentFile] = useState<string | null>(null);
   const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
   const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
-  const [fileList, setFileList] = useState<string[]>([]);
+  const [fileList, setFileList] = useState<FileList[]>([]);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -45,10 +46,11 @@ const App = () => {
   const updateFileList = (_stlFiles: FileAnnotation[]) => {
     setSTLFiles(_stlFiles);
 
-    var _file: string[] = [];
+    var _file: FileList[] = [];
 
     _stlFiles.forEach(f => {
-      _file.push(f.fileName);
+      var temp: FileList = { fileName: f.fileName, isAnnotated: f.annotated };
+      _file.push(temp);
     });
 
     setFileList(_file);
@@ -59,7 +61,7 @@ const App = () => {
 
     var _stlFiles: FileAnnotation[] = stlFiles;
 
-    var cur : number = _.findIndex(_stlFiles, function(f) {
+    var cur: number = _.findIndex(_stlFiles, function (f) {
       return _.eq(f.fileName, currentFile);
     })
 
@@ -69,7 +71,7 @@ const App = () => {
   }
 
   const handleFileSelect = (fileName: string) => {
-    var currIndex = _.findIndex(stlFiles, function(f) {
+    var currIndex = _.findIndex(stlFiles, function (f) {
       return _.eq(f.fileName, fileName);
     })
 
@@ -178,8 +180,8 @@ const App = () => {
           <Sidebar
             showFilePane={showFilePane}
             showColorSpraySelector={showColorSpraySelector}
-            onFileSelect={handleFileSelect} 
-            fileList={fileList}/>
+            onFileSelect={handleFileSelect}
+            fileList={fileList} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}

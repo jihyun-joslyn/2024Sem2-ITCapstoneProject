@@ -4,12 +4,13 @@ import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, Locat
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
+import { FileList } from '../datatypes/FileList';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
   onFileSelect: (fileName: string) => void;
   showColorSpraySelector: (isShow: boolean) => void;
-  fileList: string[]
+  fileList: FileList[]
 };
 
 const ArrowIcon = createSvgIcon(

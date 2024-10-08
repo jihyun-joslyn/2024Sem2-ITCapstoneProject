@@ -1,11 +1,12 @@
 import { Toolbar, Typography, List, ListItem, ListItemText } from '@mui/material';
 import '../style/index.css';
+import { FileList } from '../datatypes/FileList';
 
 export type FilePaneProps = {
     isShow: boolean;
     onFileSelect: (fileName: string) => void;
     selectedFile: string;
-    fileList: string[]
+    fileList: FileList[]
 };
 
 export default function FilePane({ isShow, fileList, onFileSelect, selectedFile }: FilePaneProps) {
@@ -24,12 +25,12 @@ export default function FilePane({ isShow, fileList, onFileSelect, selectedFile 
                             <ListItem 
                                 component="button" 
                                 key={index}
-                                onClick={() => onFileSelect(file)}
-                                className={selectedFile === file ? 'selected-file' : ''} 
+                                onClick={() => onFileSelect(file.fileName)}
+                                className={selectedFile === file.fileName ? 'selected-file' : ''} 
                                 sx={{ paddingLeft: '16px' }}
                             >
                                 <ListItemText 
-                                    primary={file}
+                                    primary={file.fileName}
                                     sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }} 
                                 />
                             </ListItem>
