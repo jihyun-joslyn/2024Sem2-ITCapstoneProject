@@ -54,7 +54,7 @@
     "@mui/x-tree-view": "^7.16.0",
     "@react-three/drei": "^9.112.0",
     "@types/three": "^0.169.0",
-    "@vercel/webpack-asset-relocator-loader": "^1.7.3",
+    "@vercel/webpack-asset-relocator-loader": "1.7.3",
     "capstone-project": "file:",
     "electron-squirrel-startup": "^1.0.1",
     "eslint-plugin-react-hooks": "^4.6.2",

@@ -3,89 +3,62 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { useState, useEffect, KeyboardEvent } from 'react';
 import * as _ from "lodash";
 import Problem from './Problem';
+import { ProblemType } from '../datatypes/ProblemType';
 
-export type ProblemType = {
-    name: string;
-    classes: string[][];
-};
+/* {
+        name: "Problem 1",
+        classes: [["class1", color, coordinates], "class2"]
+    },
+    {
+        name: "Problem 2",
+        classes: ["class3", "class4"]
+} */
 
 export type DetailPaneProps = {
     isShow: boolean;
-    selectedFile: string | null;
-    stlFiles: { fileName: string; fileObject?: File; problem: string; class: string }[];
-    setStlFiles: React.Dispatch<React.SetStateAction<{ fileName: string; fileObject?: File; problem: string; class: string }[]>>;
-    onFileSelect: (fileName: string) => void;
-    problems: ProblemType[];
-    setProblems: React.Dispatch<React.SetStateAction<ProblemType[]>>;
+    currentFile: string | null;
+    currProblems: ProblemType[];
+    updateProblems: (updateProblems: ProblemType[]) => void;
 };
 
-export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles, problems, setProblems }: DetailPaneProps) {
+export default function DetailPane({ isShow, currentFile, currProblems, updateProblems }: DetailPaneProps) {
     const [userInput, setUserInput] = useState<string>("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
-    useEffect(() => {
-        if (selectedFile) {
-            const selectedFileData = stlFiles.find(file => file.fileName === selectedFile);
-            if (selectedFileData) {
-                const loadedProblems = selectedFileData.problem
-                    .split(';')
-                    .map(problemStr => {
-                        const [name, ...classes] = problemStr.split(',');
-                        return { name, classes: classes.map(c => [c]) };
-                    });
-
-                if (!_.isEqual(loadedProblems, problems)) {
-                    setProblems(loadedProblems);
-                }
-            }
-        }
-    }, [selectedFile, stlFiles, problems, setProblems]);
-
-    useEffect(() => {
-        if (selectedFile) {
-            updateStlFile(problems);
-        }
-    }, [problems, selectedFile]);
+    // useEffect(() => {
+    //     if (selectedFile) {
+    //         updateStlFile(problems);
+    //     }
+    // }, [problems, selectedFile]);
 
     const onAddProblemInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(userInput)) && (e.key === "Enter")) {
-            const updatedProblems: ProblemType[] = [...problems, { name: userInput, classes: [] }];
-            setProblems(updatedProblems);
+            const updatedProblems: ProblemType[] = [...currProblems, { name: userInput, classes: [] }];
+            updateProblems(updatedProblems);
             setUserInput("");
             setIsAddNewProblem(false);
         }
     };
 
     const updateProblem = (userInput: string, index: number): void => {
-        const updatedProblems: ProblemType[] = problems.map((p: ProblemType, i: number) =>
+        const updatedProblems: ProblemType[] = currProblems.map((p: ProblemType, i: number) =>
             i === index ? { ...p, name: userInput } : p
         );
-        setProblems(updatedProblems);
+        updateProblems(updatedProblems);
     };
 
     const deleteProblem = (index: number): void => {
-        const updatedProblems: ProblemType[] = problems.filter((_, i: number) => i !== index);
-        setProblems(updatedProblems);
+        const updatedProblems: ProblemType[] = currProblems.filter((_, i: number) => i !== index);
+        updateProblems(updatedProblems);
+
+        //to-do: add validation (true if have class)
     };
 
     const updateLabel = (labels: string[][], index: number): void => {
-        const updatedProblems: ProblemType[] = problems.map((p: ProblemType, i: number) =>
+        const updatedProblems: ProblemType[] = currProblems.map((p: ProblemType, i: number) =>
             i === index ? { ...p, classes: labels } : p
         );
-        setProblems(updatedProblems);
-    };
-
-    const updateStlFile = (updatedProblems: ProblemType[]): void => {
-        const updatedFiles = stlFiles.map((file) => {
-            if (file.fileName === selectedFile) {
-                return {
-                    ...file,
-                    problem: updatedProblems.map(p => `${p.name},${p.classes.flat().join(',')}`).join(';'),
-                };
-            }
-            return file;
-        });
-        setStlFiles(updatedFiles);
+        updateProblems(updatedProblems);
     };
 
     return (
@@ -97,14 +70,14 @@ export default function DetailPane({ isShow, selectedFile, stlFiles, setStlFiles
                         <span className='upsert-button'>
                             <IconButton
                                 aria-label="add-new-problem"
-                                onClick={() => setIsAddNewProblem(true)}
+                                onClick={() => { if (currentFile) setIsAddNewProblem(true); }}
                             >
                                 <AddIcon />
                             </IconButton>
                         </span>
                     </Toolbar>
                     <List sx={{ width: '100%' }} id="detail-list">
-                        {problems.map((p: ProblemType, i: number) => (
+                        {currProblems.map((p: ProblemType, i: number) => (
                             <ListItem key={i} className="problem-arr">
                                 <Problem
                                     problemName={p.name}

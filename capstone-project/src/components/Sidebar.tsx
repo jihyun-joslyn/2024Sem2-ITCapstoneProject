@@ -4,12 +4,14 @@ import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, Locat
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
+import { FileList } from '../datatypes/FileList';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
-  stlFiles: { fileName: string; fileObject: File; problem: string; class: string }[];
   onFileSelect: (fileName: string) => void;
   showColorSpraySelector: (isShow: boolean) => void;
+  fileList: FileList[],
+  currentFile: string;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -36,18 +38,37 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, stlFiles, onFileSelect, showColorSpraySelector }: SidebarProps) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null); 
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
   const { setTool, setSpray } = useContext(ModelContext);
 
-  const handleFileSelect = (fileName: string) => {
-    setSelectedFile(fileName);
-    onFileSelect(fileName);
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+    switch (newValue) {
+      case 2:
+        setTool('pan');
+        break;
+      case 4:
+        setTool('spray');
+        setColorSelector(true);
+        break;
+      case 5:
+        setTool('keypoint');
+        break;
+      default:
+        setTool('none');
+    }
   };
+
+  const handleColorChange = (color: ColorResult) => {
+    setColor(color.hex);
+    setSpray(color.hex);
+    setColorSelector(false);
+    showColorSpraySelector(!showColorSelector);
+  }
 
   const folderOnClick = () => {
     showFilePane(!isShowFilePane);
@@ -64,33 +85,26 @@ export default function Sidebar({ showFilePane, stlFiles, onFileSelect, showColo
   return (
     <div id="side">
       <Tabs
-  orientation="vertical"
-  value={value}
-  onChange={(event: React.SyntheticEvent, newValue: number) => setValue(newValue)} 
-  id="toolbar"
->
+        orientation="vertical"
+        value={value}
+        onChange={handleChange}
+        id="toolbar"
+      >
         <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={folderOnClick} />
         <Tab icon={<ArrowIcon />} />
         <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
-        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }}/>} />
+        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} onClick={() => { /*something here*/ }} />
       </Tabs>
       {showColorSelector && (
         <Tooltip title="Choose color" placement="right">
-          <SketchPicker color={color} onChangeComplete={(color: ColorResult) => {
-            setColor(color.hex);
-            setSpray(color.hex);
-            setColorSelector(false);
-          }} />
+          <>
+            <SketchPicker color={color} onChangeComplete={handleColorChange} />
+          </>
         </Tooltip>
       )}
-      <FilePane 
-        isShow={isShowFilePane} 
-        stlFiles={stlFiles} 
-        onFileSelect={handleFileSelect} 
-        selectedFile={selectedFile || ''} 
-      />
+      <FilePane isShow={isShowFilePane} onFileSelect={onFileSelect} fileList={fileList} currentFile={currentFile} />
     </div>
   );
 }
