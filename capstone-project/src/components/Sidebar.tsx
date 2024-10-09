@@ -10,7 +10,8 @@ export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
   onFileSelect: (fileName: string) => void;
   showColorSpraySelector: (isShow: boolean) => void;
-  fileList: FileList[]
+  fileList: FileList[],
+  currentFile: string;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -37,18 +38,12 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList }: SidebarProps) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null); 
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
   const { setTool, setSpray } = useContext(ModelContext);
-
-  const handleFileSelect = (fileName: string) => {
-    setSelectedFile(fileName);
-    onFileSelect(fileName);
-  };
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -72,6 +67,7 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     setColor(color.hex);
     setSpray(color.hex);
     setColorSelector(false);
+    showColorSpraySelector(!showColorSelector);
   }
 
   const folderOnClick = () => {
@@ -108,7 +104,7 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
           </>
         </Tooltip>
       )}
-      <FilePane isShow={isShowFilePane} onFileSelect={onFileSelect} fileList={fileList} selectedFile={selectedFile || ''} />
+      <FilePane isShow={isShowFilePane} onFileSelect={onFileSelect} fileList={fileList} currentFile={currentFile} />
     </div>
   );
 }

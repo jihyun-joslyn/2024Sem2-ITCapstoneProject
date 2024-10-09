@@ -6,11 +6,11 @@ import { FileList } from '../datatypes/FileList';
 export type FilePaneProps = {
     isShow: boolean;
     onFileSelect: (fileName: string) => void;
-    selectedFile: string;
+    currentFile: string;
     fileList: FileList[]
 };
 
-export default function FilePane({ isShow, fileList, onFileSelect, selectedFile }: FilePaneProps) {
+export default function FilePane({ isShow, fileList, onFileSelect, currentFile }: FilePaneProps) {
     if (!isShow) {
         return null;
     }
@@ -27,7 +27,7 @@ export default function FilePane({ isShow, fileList, onFileSelect, selectedFile 
                                 component="button"
                                 key={index}
                                 onClick={() => onFileSelect(file.fileName)}
-                                className={selectedFile === file.fileName ? 'selected-file' : ''} 
+                                className={currentFile === file.fileName ? 'selected-file' : ''} 
                                 sx={{ paddingLeft: '16px' }}
                             >
                                 {file.isAnnotated && (

@@ -180,7 +180,8 @@ const App = () => {
             showFilePane={showFilePane}
             showColorSpraySelector={showColorSpraySelector}
             onFileSelect={handleFileSelect}
-            fileList={fileList} />
+            fileList={fileList}
+            currentFile={currentFile} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
