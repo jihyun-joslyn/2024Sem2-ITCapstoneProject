@@ -1,6 +1,6 @@
-import { Toolbar, Typography, List, ListItem, TextField, IconButton } from '@mui/material';
+import { Toolbar, Typography, List, ListItem, TextField, IconButton, Alert, Snackbar, AlertTitle } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useState, useEffect, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent } from 'react';
 import * as _ from "lodash";
 import Problem from './Problem';
 import { ProblemType } from '../datatypes/ProblemType';
@@ -24,6 +24,8 @@ export type DetailPaneProps = {
 export default function DetailPane({ isShow, currentFile, currProblems, updateProblems }: DetailPaneProps) {
     const [userInput, setUserInput] = useState<string>("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
+    const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
+    const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
     // useEffect(() => {
     //     if (selectedFile) {
@@ -48,10 +50,12 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
     };
 
     const deleteProblem = (index: number): void => {
-        const updatedProblems: ProblemType[] = currProblems.filter((_, i: number) => i !== index);
-        updateProblems(updatedProblems);
-
-        //to-do: add validation (true if have class)
+        if (_.isEmpty(currProblems.at(index).classes) || currProblems.at(index).classes.length == 0) {
+            const updatedProblems: ProblemType[] = currProblems.filter((_, i: number) => i !== index);
+            updateProblems(updatedProblems);
+        } else {
+            showErrorAlert("Error", "Problem can only be deleted if it has no related classes.");
+        }
     };
 
     const updateLabel = (labels: string[][], index: number): void => {
@@ -60,6 +64,27 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
         );
         updateProblems(updatedProblems);
     };
+
+    const handleCloseErrorDialog = () => {
+        setIsShowErrorAlert(false);
+    }
+
+    const showErrorAlert = (_title: string, _content: string): any => {
+        var _alertContent: { title: string, content: string } = alertContent;
+
+        _alertContent.title = _title;
+        _alertContent.content = _content;
+
+        setAlertContent(_alertContent);
+        setIsShowErrorAlert(true);
+    }
+
+    const addProblemBtnOnClick = () => {
+        if (currentFile)
+            setIsAddNewProblem(true);
+        else
+            showErrorAlert("Error", "Problems can only be added after STL files are imported");
+    }
 
     return (
         <div>
@@ -70,7 +95,7 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                         <span className='upsert-button'>
                             <IconButton
                                 aria-label="add-new-problem"
-                                onClick={() => { if (currentFile) setIsAddNewProblem(true); }}
+                                onClick={addProblemBtnOnClick}
                             >
                                 <AddIcon />
                             </IconButton>
@@ -102,6 +127,20 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                             </ListItem>
                         )}
                     </List>
+                    <Snackbar
+                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        open={isShowErrorDialog}
+                        autoHideDuration={6000}
+                        onClose={handleCloseErrorDialog}>
+                        <Alert
+                            onClose={handleCloseErrorDialog}
+                            severity="error"
+                            sx={{ width: '100%' }}
+                        >
+                            <AlertTitle>{alertContent.title}</AlertTitle>
+                            {alertContent.content}
+                        </Alert>
+                    </Snackbar>
                 </div>
             )}
         </div>
