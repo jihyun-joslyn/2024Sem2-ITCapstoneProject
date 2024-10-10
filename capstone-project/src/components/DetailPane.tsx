@@ -1,7 +1,6 @@
-import { Toolbar, Typography, List, ListItem, TextField, IconButton, useMediaQuery, Alert, Snackbar, AlertTitle } from '@mui/material';
+import { Toolbar, Typography, List, ListItem, TextField, IconButton, Alert, Snackbar, AlertTitle } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useState, KeyboardEvent } from 'react';
-import { useTheme } from '@mui/material/styles';
 import * as _ from "lodash";
 import Problem from './Problem';
 import { ProblemType } from '../datatypes/ProblemType';
