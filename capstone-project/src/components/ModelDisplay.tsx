@@ -1,13 +1,15 @@
-import React, { useRef, useEffect, useCallback, useContext, useState } from 'react';
-import { Canvas, useThree, extend, ThreeEvent } from '@react-three/fiber';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { OrbitControls } from '@react-three/drei';
-import {Mesh,MeshStandardMaterial,BufferGeometry,WireframeGeometry,LineSegments,LineBasicMaterial } from 'three';
-import ModelContext from './ModelContext';
+import { Canvas, ThreeEvent, extend, useThree } from '@react-three/fiber';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { BufferGeometry, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, WireframeGeometry } from 'three';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
-import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import ModelContext from './ModelContext';
+
+
 
 extend({ WireframeGeometry });
 
@@ -16,7 +18,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
-  const { tool, color } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -73,6 +75,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     //add the mesh effect to model
     const wireframeGeometry = new WireframeGeometry(geometry);
     wireframeRef.current.geometry = wireframeGeometry;
+
+    fitModel();
   }, [modelData]);
 
   const spray = useCallback((position : THREE.Vector2) => {
@@ -176,7 +180,83 @@ useEffect(() => {
 }, [tool, camera, gl, meshRef]);
 
 
+const zoomCamera = (factor: number) => {
+  if (controlsRef.current) {
+    const zoomDirection = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+    zoomDirection.multiplyScalar(factor - 1);
+    camera.position.add(zoomDirection);
+    controlsRef.current.update();
+  }
+};
 
+const rotateHorizontal = (angle: number) => {
+  if (controlsRef.current) {
+    const rotationMatrix = new THREE.Matrix4().makeRotationY(angle);
+    const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+    cameraPosition.applyMatrix4(rotationMatrix);
+    camera.position.copy(cameraPosition.add(controlsRef.current.target));
+    camera.lookAt(controlsRef.current.target);
+    controlsRef.current.update();
+  }
+};
+
+const rotateVertical = (angle: number) => {
+  if (controlsRef.current) {
+    const rotationAxis = new THREE.Vector3().crossVectors(
+      camera.position.clone().sub(controlsRef.current.target),
+      camera.up
+    ).normalize();
+    const rotationMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, angle);
+    const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+    cameraPosition.applyMatrix4(rotationMatrix);
+    camera.position.copy(cameraPosition.add(controlsRef.current.target));
+    camera.lookAt(controlsRef.current.target);
+    controlsRef.current.update();
+  }
+};
+
+const fitModel = () => {
+  if (!meshRef.current) return;
+  const box = new THREE.Box3().setFromObject(meshRef.current);
+  const size = box.getSize(new THREE.Vector3()).length();
+  const center = box.getCenter(new THREE.Vector3());
+
+  camera.position.copy(center);
+  camera.position.x += size / 2.0;
+  camera.position.y += size / 5.0;
+  camera.position.z += size / 2.0;
+  camera.lookAt(center);
+
+  if (controlsRef.current) {
+    controlsRef.current.target.copy(center);
+    controlsRef.current.update();
+  }
+};
+
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    const key = event.key.toUpperCase();
+    if (key === hotkeys.zoomIn.toUpperCase()) {
+      zoomCamera(0.9);
+    } else if (key === hotkeys.zoomOut.toUpperCase()) {
+      zoomCamera(1.1);
+    } else if (key === hotkeys.rotateLeft.toUpperCase()) {
+      rotateHorizontal(-Math.PI / 32);
+    } else if (key === hotkeys.rotateRight.toUpperCase()) {
+      rotateHorizontal(Math.PI / 32);
+    } else if (key === hotkeys.rotateUp.toUpperCase()) {
+      rotateVertical(-Math.PI / 32);
+    } else if (key === hotkeys.rotateDown.toUpperCase()) {
+      rotateVertical(Math.PI / 32);
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+  };
+}, [hotkeys]);
 
   return (
     <>

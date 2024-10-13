@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { AppBar, Toolbar, Button, Menu, MenuItem, Container } from '@mui/material';
 import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { AppBar, Button, Container, Menu, MenuItem, Toolbar } from '@mui/material';
 import * as _ from "lodash";
-import { ProblemType } from '../datatypes/ProblemType';
-import { OutputFile } from '../datatypes/OutputFile';
+import { useState } from 'react';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
+import { OutputFile } from '../datatypes/OutputFile';
+import { ProblemType } from '../datatypes/ProblemType';
 
 export type HeaderProps = {
     showDetailPane: (isShow: boolean) => void;
@@ -13,9 +13,10 @@ export type HeaderProps = {
     updateFileList: (_fileList: FileAnnotation[]) => void;
     stlFiles: FileAnnotation[];
     initializeCurrentFile: (_file: FileAnnotation) => void
+    openHotkeyDialog: () => void;//hotkey page
 };
 
-export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog
 }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
@@ -286,7 +287,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                                 open={settingMenuOpen}
                                 onClose={handleSettingClose}
                             >
-                                <MenuItem onClick={handleSettingClose}>Preferences</MenuItem>
+                                <MenuItem onClick={openHotkeyDialog}>Preferences</MenuItem>
                             </Menu>
                         </span>
                     </Container>
