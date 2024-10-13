@@ -1,15 +1,16 @@
+import { Box, Grid2 as Grid } from '@mui/material';
+import * as _ from "lodash";
 import { useState } from 'react';
 import { createRoot } from "react-dom/client";
-import { Grid2 as Grid, Box } from '@mui/material';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';
-import ModelDisplay from "../components/ModelDisplay";
+import Header from '../components/Header';
+import HotkeyDialog from '../components/Hotkey';
 import { ModelProvider } from '../components/ModelContext';
-import { ProblemType } from '../datatypes/ProblemType';
-import * as _ from "lodash";
+import ModelDisplay from "../components/ModelDisplay";
+import Sidebar from '../components/Sidebar';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
+import { ProblemType } from '../datatypes/ProblemType';
 
 
 const container = document.getElementById('root');
@@ -32,6 +33,7 @@ const App = () => {
   const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
   const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
   const [fileList, setFileList] = useState<FileList[]>([]);
+  const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -163,6 +165,10 @@ const App = () => {
     loadSTLFile(_file.fileObject);
   }
 
+  const openHotkeyDialog = () => {
+    setIsHotkeyDialogOpen(true);
+  };
+
   return (
     <ModelProvider>
       <Box sx={{ flexGrow: 0 }}>
@@ -172,7 +178,8 @@ const App = () => {
           currentFile={currentFile}
           updateFileList={updateFileList}
           stlFiles={stlFiles}
-          initializeCurrentFile={initializeCurrentFile} />
+          initializeCurrentFile={initializeCurrentFile}
+          openHotkeyDialog={openHotkeyDialog}/>
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -194,6 +201,10 @@ const App = () => {
             updateProblems={updateDataLabels} />
         </Grid>
       </Grid>
+      <HotkeyDialog
+        open={isHotkeyDialogOpen}
+        onClose={() => setIsHotkeyDialogOpen(false)}
+      />
     </ModelProvider>
   );
 };
