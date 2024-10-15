@@ -1,10 +1,10 @@
-import { useState, useContext } from 'react';
-import { createSvgIcon, Tab, Tabs, Tooltip } from '@mui/material';
-import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, LocationSearching as KeypointIcon } from '@mui/icons-material';
+import { Brush as BrushIcon, Folder as FolderIcon, LocationSearching as KeypointIcon, PanTool as PanToolIcon } from '@mui/icons-material';
+import { Tab, Tabs, Tooltip, createSvgIcon } from '@mui/material';
+import { useContext, useEffect, useState } from 'react';
+import { ColorResult, SketchPicker } from 'react-color';
+import { FileList } from '../datatypes/FileList';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
-import { SketchPicker, ColorResult } from 'react-color';
-import { FileList } from '../datatypes/FileList';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
@@ -43,25 +43,48 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
-  const { setTool, setSpray } = useContext(ModelContext);
+  const { setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-    switch (newValue) {
-      case 2:
-        setTool('pan');
-        break;
-      case 4:
-        setTool('spray');
-        setColorSelector(true);
-        break;
-      case 5:
-        setTool('keypoint');
-        break;
-      default:
-        setTool('none');
+  useEffect(() => {
+    // Update the selected tab based on the current tool
+    switch (currentTool) {
+        case 'pan':
+            setValue(2);
+            break;
+        case 'brush':
+            setValue(3);
+            break;
+        case 'spray':
+            setValue(4);
+            break;
+        case 'keypoint':
+            setValue(5);
+            break;
+        default:
+            setValue(0);
     }
-  };
+}, [currentTool]);
+
+const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  setValue(newValue);
+  switch (newValue) {
+      case 2:
+          setTool('pan');
+          break;
+      case 3:
+          activateBrush();
+          break;
+      case 4:
+          activateSpray();
+          setColorSelector(true);
+          break;
+      case 5:
+          setTool('keypoint');
+          break;
+      default:
+          setTool('none');
+  }
+};
 
   const handleColorChange = (color: ColorResult) => {
     setColor(color.hex);
