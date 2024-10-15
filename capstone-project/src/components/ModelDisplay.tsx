@@ -28,6 +28,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
 
+      // Remove previous keypoint spheres
+      while (meshRef.current.children.length > 0) {
+        meshRef.current.remove(meshRef.current.children[0]);
+      }
+
     const loader = new STLLoader();
     let geometry: BufferGeometry = loader.parse(modelData);
 
@@ -179,7 +184,31 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
-        // Debugging log to show precise coordinates
+        // Retrieve the existing data from Zustand (model-colors-storage)
+        const storedData = JSON.parse(localStorage.getItem('model-colors-storage') || '{}');
+
+        // Access model-specific data
+        const modelData = storedData[modelId] || { states: {}, keypoints: [] };
+
+        // Update keypoints array
+        const updatedKeypoints = [...(modelData.keypoints || []), { position: localPoint, color: 'purple' }];
+
+        // Update model data with new keypoints, preserving states (spray data)
+        const updatedModelData = {
+          ...modelData,
+          keypoints: updatedKeypoints,
+        };
+
+        // Update the overall storage object
+        const updatedStorage = {
+          ...storedData,
+          [modelId]: updatedModelData,
+        };
+
+        // Save updated data back to local storage under 'model-colors-storage'
+        localStorage.setItem('model-colors-storage', JSON.stringify(updatedStorage));
+
+       // Debugging log to show precise coordinates
         console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
       }
     };
