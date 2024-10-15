@@ -1,11 +1,11 @@
 import { Box, Grid2 as Grid } from '@mui/material';
 import * as _ from "lodash";
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { createRoot } from "react-dom/client";
 import DetailPane from '../components/DetailPane';
 import Header from '../components/Header';
 import HotkeyDialog from '../components/Hotkey';
-import { ModelProvider } from '../components/ModelContext';
+import ModelContext, { Hotkeys, ModelProvider } from '../components/ModelContext';
 import ModelDisplay from "../components/ModelDisplay";
 import Sidebar from '../components/Sidebar';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
@@ -21,7 +21,7 @@ var isShowDetail: boolean = false;
 var isShowColorSpray: boolean = false;
 var isShowFile: boolean = false;
 
-const App = () => {
+const AppContent = () => {
   const [isShowDetailPane, setIsShowDetailPane] = useState(false);
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [isShowColorSpraySelector, setIsShowColorSpraySelector] = useState(false);
@@ -33,6 +33,7 @@ const App = () => {
   const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
   const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
   const [fileList, setFileList] = useState<FileList[]>([]);
+  const { setHotkeys } = useContext(ModelContext);
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
 
   const loadSTLFile = (file: File) => {
@@ -169,8 +170,12 @@ const App = () => {
     setIsHotkeyDialogOpen(true);
   };
 
+  const handleHotkeySave = (newHotkeys: Hotkeys) => {
+    setHotkeys(newHotkeys);
+  };
+
   return (
-    <ModelProvider>
+    <>
       <Box sx={{ flexGrow: 0 }}>
         <Header
           showDetailPane={showDetailPane}
@@ -204,7 +209,16 @@ const App = () => {
       <HotkeyDialog
         open={isHotkeyDialogOpen}
         onClose={() => setIsHotkeyDialogOpen(false)}
+        onSave={handleHotkeySave}
       />
+    </>
+  );
+};
+
+const App = () => {
+  return (
+    <ModelProvider>
+      <AppContent />
     </ModelProvider>
   );
 };

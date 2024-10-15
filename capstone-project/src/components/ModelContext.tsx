@@ -10,6 +10,10 @@ interface ModelType {
     controlsRef: React.RefObject<any>;
     setSize: (size: number) => void;
     size: number;
+    currentTool: string;
+    setCurrentTool: (tool: string) => void;
+    activateBrush: () => void;
+    activateSpray: () => void;
 }
 
 export type Hotkeys = {
@@ -48,9 +52,21 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     });
     const [size, setSize] = useState<number>(1);
     const controlsRef = useRef<any>(null);
+    
+    const [currentTool, setCurrentTool] = useState<string>('none');
+
+    const activateBrush = () => {
+        setCurrentTool('brush');
+        setTool('brush');
+    };
+
+    const activateSpray = () => {
+        setCurrentTool('spray');
+        setTool('spray');
+    };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, hotkeys, setHotkeys, controlsRef, setSize, size}}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
             {children}
         </ModelContext.Provider>
     );

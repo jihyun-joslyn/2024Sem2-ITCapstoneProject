@@ -5,6 +5,7 @@ import ModelContext from './ModelContext';
 export type HotkeyDialogProps = {
   open: boolean;
   onClose: () => void;
+  onSave: (newHotkeys: Hotkeys) => void;
 };
 
 export type Hotkeys = {
@@ -20,8 +21,8 @@ export type Hotkeys = {
   spray: string;
 };
 
-export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose }) => {
-  const { hotkeys, setHotkeys } = useContext(ModelContext);
+export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSave }) => {
+  const { hotkeys, setHotkeys, activateBrush, activateSpray } = useContext(ModelContext);
   const [tempHotkeys, setTempHotkeys] = useState<Hotkeys>(hotkeys);
   const [activeInput, setActiveInput] = useState<keyof Hotkeys | null>(null);
   const [modifierKey, setModifierKey] = useState<string | null>(null);
@@ -113,6 +114,7 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose }) => 
 
   const handleSave = () => {
     setHotkeys(tempHotkeys);
+    onSave(tempHotkeys);
     onClose();
   };
 
@@ -152,6 +154,22 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose }) => 
       return part.charAt(0).toUpperCase() + part.slice(1);
     }).join('+');
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+        const key = event.key.toUpperCase();
+        if (key === hotkeys.brush.toUpperCase()) {
+            activateBrush();
+        } else if (key === hotkeys.spray.toUpperCase()) {
+            activateSpray();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+    };
+}, [hotkeys, activateBrush, activateSpray]);
 
   return (
     <>

@@ -191,12 +191,12 @@ const zoomCamera = (factor: number) => {
 
 const rotateHorizontal = (angle: number) => {
   if (controlsRef.current) {
-    const rotationMatrix = new THREE.Matrix4().makeRotationY(angle);
-    const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
-    cameraPosition.applyMatrix4(rotationMatrix);
-    camera.position.copy(cameraPosition.add(controlsRef.current.target));
-    camera.lookAt(controlsRef.current.target);
-    controlsRef.current.update();
+      const rotationMatrix = new THREE.Matrix4().makeRotationY(angle);
+      const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+      cameraPosition.applyMatrix4(rotationMatrix);
+      camera.position.copy(cameraPosition.add(controlsRef.current.target));
+      camera.lookAt(controlsRef.current.target);
+      controlsRef.current.update();
   }
 };
 
@@ -263,7 +263,7 @@ useEffect(() => {
       <ambientLight intensity={0.5} />
       <spotLight position={[10, 15, 10]} angle={0.3} />
       <mesh ref={meshRef} onPointerDown={handleMouseDown} onPointerMove={handleMouseMove} onPointerUp={handleMouseUp} />
-      <OrbitControls  enableRotate={tool === 'pan'}  enableZoom  enablePan  rotateSpeed={1.0}/>
+      <OrbitControls ref={controlsRef} enableRotate={tool === 'pan'} enableZoom enablePan rotateSpeed={1.0}/>
       <lineSegments  ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })}  />
     </>
   );
