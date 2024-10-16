@@ -48,15 +48,16 @@ const useModelStore = create<ModelColorState>()(
         updateProblems: (index:number, problem:ProblemsType) => set(state => {
           const {modelId,currentClassIndex} = get();
           const newProblems = [...state.problems];
+          if(index >=0 && index < newProblems.length){
+            console.log(currentClassIndex);
             const currentStates = state.states[modelId] || {};
             newProblems[index] = {
               modelId : modelId,
               name : problem.name,
               classes: problem.classes.map((cls,clsIndex) => 
                 clsIndex === currentClassIndex ? {
-                  className:cls.className,
-                  annotation: currentStates,
-                  annotationType: cls.annotationType
+                  ...cls,
+                  annotation: currentStates
                 } : cls
             )
             };
@@ -65,6 +66,7 @@ const useModelStore = create<ModelColorState>()(
               problems: newProblems,
               states: remainingStates
             };
+          }
           return {problems:newProblems};
         }),
         deleteProblem: (index) => set(state => ({

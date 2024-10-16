@@ -22,7 +22,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(labelArr);
-    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
+    const {modelId,problems,updateProblem: storeUpdateProblem, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
 
 
     useEffect(() => {
@@ -30,30 +30,6 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
         setProblemInput(problemName);
         setLabels(labelArr);
     }, [problemName, labelArr]);
-
-    useEffect(() => {
-        const storedProblems = problems.find(p => p.modelId === modelId);
-        if(storedProblems){
-            setProblem(storedProblems.name);
-            setLabels(storedProblems.classes.map(cla => [cla.className]));
-        }
-    },[modelId,problems]);
-
-
-    useEffect(() => {
-        if(!isEditProblem){
-            const problemData = {
-                modelId : modelId,
-                name : problemName,
-                classes: labels.map(label => ({
-                    className: label[0],
-                    annotation: {},
-                    annotationType: 'default'
-                }))
-            };
-            updateProblems(problemKey,problemData);
-        }
-    },[isEditProblem,problem,labels,problemKey,updateProblems]);
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {

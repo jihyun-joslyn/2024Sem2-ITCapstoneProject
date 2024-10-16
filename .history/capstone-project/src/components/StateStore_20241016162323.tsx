@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { ProblemsType } from '../datatypes/ProblemsType';
+import { ProblemType } from '../datatypes/ProblemType';
 
 interface ColorState {
   color: string;
@@ -11,9 +11,9 @@ interface ModelColorState {
   states: { [modelId: string]: { [vertexIndex: number]: ColorState } };// save the color of vertex
   setState: (modelId: string, vertexIndex: number, color: string) => void; // get the color information
   setModelId: (modelId: string) => void;
-  problems: ProblemsType[];
-  addProblem:(problem : ProblemsType) => void;
-  updateProblems:(index : number, problme:ProblemsType) => void;
+  problems: ProblemType[];
+  addProblem:(problem : ProblemType) => void;
+  updateProblem:(index : number, problme:ProblemType) => void;
   deleteProblem:(index:number) => void;
   currentClassIndex : number;
   setCurrentClassIndex : (index : number) => void;
@@ -45,27 +45,26 @@ const useModelStore = create<ModelColorState>()(
         addProblem :(problem) => set(state => ({
           problems:[...state.problems,problem]
         })),
-        updateProblems: (index:number, problem:ProblemsType) => set(state => {
-          const {modelId,currentClassIndex} = get();
+        updateProblem: (index, problem) => set(state => {
           const newProblems = [...state.problems];
-            const currentStates = state.states[modelId] || {};
-            newProblems[index] = {
-              modelId : modelId,
-              name : problem.name,
-              classes: problem.classes.map((cls,clsIndex) => 
-                clsIndex === currentClassIndex ? {
-                  className:cls.className,
-                  annotation: currentStates,
-                  annotationType: cls.annotationType
-                } : cls
-            )
-            };
-            const {[modelId] : _,...remainingStates} = state.states;
-            return {
-              problems: newProblems,
-              states: remainingStates
-            };
-          return {problems:newProblems};
+          const currentClasss = newProblems[index].classes[get().currentClassIndex];
+          newProblems[index]={
+            ...newProblems[index],
+            classes : newProblems[index].classes.map((cls,clsIndex) => {
+              if(clsIndex === get().currentClassIndex){
+                return{
+                  ...cls,
+                  annotation : get().states[get().modelId] || {}
+                };
+              }
+              return cls;
+            })
+          };
+          const newState = Object.fromEntries(Object.entries(state.states).filter(([key, _]) => key != get().modelId));
+          return {
+            problems: newProblems,
+            states:newState
+          };
         }),
         deleteProblem: (index) => set(state => ({
           problems: state.problems.filter((_, i) => i !== index)

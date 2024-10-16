@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { ProblemsType } from '../datatypes/ProblemsType';
+import { ProblemType } from '../datatypes/ProblemType';
 
 interface ColorState {
   color: string;
@@ -11,9 +11,9 @@ interface ModelColorState {
   states: { [modelId: string]: { [vertexIndex: number]: ColorState } };// save the color of vertex
   setState: (modelId: string, vertexIndex: number, color: string) => void; // get the color information
   setModelId: (modelId: string) => void;
-  problems: ProblemsType[];
-  addProblem:(problem : ProblemsType) => void;
-  updateProblems:(index : number, problme:ProblemsType) => void;
+  problems: ProblemType[];
+  addProblem:(problem : ProblemType) => void;
+  updateProblem:(index : number, problme:ProblemType) => void;
   deleteProblem:(index:number) => void;
   currentClassIndex : number;
   setCurrentClassIndex : (index : number) => void;
@@ -45,18 +45,17 @@ const useModelStore = create<ModelColorState>()(
         addProblem :(problem) => set(state => ({
           problems:[...state.problems,problem]
         })),
-        updateProblems: (index:number, problem:ProblemsType) => set(state => {
+        updateProblem: (index, problem) => set(state => {
           const {modelId,currentClassIndex} = get();
           const newProblems = [...state.problems];
+          if(index >=0 && index < newProblems.length){
             const currentStates = state.states[modelId] || {};
             newProblems[index] = {
-              modelId : modelId,
-              name : problem.name,
-              classes: problem.classes.map((cls,clsIndex) => 
+              ...newProblems[index],
+              classes: newProblems[index].classes.map((cls,clsIndex) =>
                 clsIndex === currentClassIndex ? {
-                  className:cls.className,
-                  annotation: currentStates,
-                  annotationType: cls.annotationType
+                  ...cls,
+                  annotation: currentStates
                 } : cls
             )
             };
@@ -65,6 +64,7 @@ const useModelStore = create<ModelColorState>()(
               problems: newProblems,
               states: remainingStates
             };
+          }
           return {problems:newProblems};
         }),
         deleteProblem: (index) => set(state => ({

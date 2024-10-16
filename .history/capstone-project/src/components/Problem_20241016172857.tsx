@@ -22,38 +22,39 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(labelArr);
-    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
+    const {modelId,problems,updateProblem: storeUpdateProblem, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
 
-
-    useEffect(() => {
-        setProblem(problemName);
-        setProblemInput(problemName);
-        setLabels(labelArr);
-    }, [problemName, labelArr]);
 
     useEffect(() => {
         const storedProblems = problems.find(p => p.modelId === modelId);
-        if(storedProblems){
-            setProblem(storedProblems.name);
-            setLabels(storedProblems.classes.map(cla => [cla.className]));
+        if (storedProblems) {
+          setProblem(storedProblems.name);
+          setProblemInput(storedProblems.name)
+          setLabels(storedProblems.classes.map(cls => [cls.className]));
+        } else {
+          addProblem({
+            modelId,
+            name: problemName,
+            classes: labelArr.map(label => ({
+              className: label[0],
+              annotation: {},
+              annotationType: 'spray'
+            }))
+          });
         }
-    },[modelId,problems]);
-
+      }, [modelId, problemName, labelArr, problemKey, addProblem]);
+    
 
     useEffect(() => {
-        if(!isEditProblem){
-            const problemData = {
-                modelId : modelId,
-                name : problemName,
-                classes: labels.map(label => ({
-                    className: label[0],
-                    annotation: {},
-                    annotationType: 'default'
-                }))
-            };
-            updateProblems(problemKey,problemData);
+        if (!isEditProblem) {
+          const problemData = {
+            modelId,
+            name: problem,
+            classes: labels.map(label => ({ className: label[0], annotation: {}, annotationType: 'spray' }))
+          };
+          storeUpdateProblem(problemKey, problemData);
         }
-    },[isEditProblem,problem,labels,problemKey,updateProblems]);
+      }, [isEditProblem, problem, labels, modelId, problemKey, storeUpdateProblem]);
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {

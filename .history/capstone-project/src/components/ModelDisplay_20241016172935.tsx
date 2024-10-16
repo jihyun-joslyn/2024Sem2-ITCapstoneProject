@@ -23,11 +23,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const [isSpray,setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
   const {states, setState,modelId,setModelId} = useModelStore();
-//   const { currentClass } = useModelStore(state => {
-//     const currentProblem = state.problems.find(p => p.modelId === state.modelId);
-//     const currentClass = currentProblem ? currentProblem.classes[state.currentClassIndex] : undefined;
-//     return { currentClass };
-// });
+  const { currentClass } = useModelStore(state => {
+    const currentProblem = state.problems.find(p => p.modelId === state.modelId);
+    const currentClass = currentProblem ? currentProblem.classes[state.currentClassIndex] : undefined;
+    return { currentClass };
+});
 
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
@@ -52,8 +52,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const vertexCount = geometry.attributes.position.count;
     // initialise the color, and default be white
     const colors = new Float32Array(vertexCount * 3).fill(1);
-    
-    setModelId(modelID);
+
     // if(currentClass && currentClass.annotation){
     //   Object.entries(currentClass.annotation).forEach( ([vertex,{color}]) => {
     //     const vertexIndex = parseInt(vertex, 10);
@@ -66,6 +65,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     //   }
     // });
     // }
+
+    setModelId(modelID);
 
 
     // add the color into geometry, each vertex use three data to record color

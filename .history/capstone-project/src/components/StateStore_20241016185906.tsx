@@ -48,6 +48,8 @@ const useModelStore = create<ModelColorState>()(
         updateProblems: (index:number, problem:ProblemsType) => set(state => {
           const {modelId,currentClassIndex} = get();
           const newProblems = [...state.problems];
+          if(index >=0 && index < newProblems.length){
+            console.log(currentClassIndex);
             const currentStates = state.states[modelId] || {};
             newProblems[index] = {
               modelId : modelId,
@@ -65,6 +67,7 @@ const useModelStore = create<ModelColorState>()(
               problems: newProblems,
               states: remainingStates
             };
+          }
           return {problems:newProblems};
         }),
         deleteProblem: (index) => set(state => ({

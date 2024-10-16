@@ -15,13 +15,17 @@ export default function Class({ labelArr, labelIndex, updateLabel, deleteClass }
     const [labels, setLabels] = useState(labelArr);
     const [className, setClassName] = useState(labelArr[0]);
     const [isEditClass, setIsEditClass] = useState(false);
-    const {setCurrentClassIndex} = useModelStore();
+    const {states, modelId} = useModelStore();
 
     useEffect(() => {
         setLabels(labelArr);
         setClassName(labelArr[0]);
-        setCurrentClassIndex(labelIndex);
-    }, [labelArr,labelIndex]);
+        const stateInfo = states[modelId] || {};
+        const colorInfo = Object.entries(stateInfo).map(([vertex, ColorState]) => `Vertex ${vertex}: ${ColorState.color}`);
+        if(colorInfo.length > 0){
+            setLabels([className,...labelArr.slice(1)]);
+        }
+    }, [labelArr,states]);
 
     const editClass = (e: KeyboardEvent<HTMLDivElement>): void => {
         const _labels: string[] = [...labels];

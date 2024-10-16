@@ -5,6 +5,7 @@ import UpsertMenu from './UpsertMenu';
 import useModelStore from './StateStore';
 
 export type ClassProps = {
+    modelData: { [modelId : string] : {[vertex : number] : [color : string]} },
     labelArr: string[],
     labelIndex: number,
     updateLabel: (labels: string[], arrIndex: number) => void;
@@ -15,13 +16,12 @@ export default function Class({ labelArr, labelIndex, updateLabel, deleteClass }
     const [labels, setLabels] = useState(labelArr);
     const [className, setClassName] = useState(labelArr[0]);
     const [isEditClass, setIsEditClass] = useState(false);
-    const {setCurrentClassIndex} = useModelStore();
+    const {modelId} = useModelStore();
 
     useEffect(() => {
         setLabels(labelArr);
         setClassName(labelArr[0]);
-        setCurrentClassIndex(labelIndex);
-    }, [labelArr,labelIndex]);
+    }, [labelArr]);
 
     const editClass = (e: KeyboardEvent<HTMLDivElement>): void => {
         const _labels: string[] = [...labels];

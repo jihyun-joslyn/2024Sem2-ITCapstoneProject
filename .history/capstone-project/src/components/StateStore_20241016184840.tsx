@@ -13,7 +13,7 @@ interface ModelColorState {
   setModelId: (modelId: string) => void;
   problems: ProblemsType[];
   addProblem:(problem : ProblemsType) => void;
-  updateProblems:(index : number, problme:ProblemsType) => void;
+  updateProblem:(index : number, problme:ProblemsType) => void;
   deleteProblem:(index:number) => void;
   currentClassIndex : number;
   setCurrentClassIndex : (index : number) => void;
@@ -45,18 +45,18 @@ const useModelStore = create<ModelColorState>()(
         addProblem :(problem) => set(state => ({
           problems:[...state.problems,problem]
         })),
-        updateProblems: (index:number, problem:ProblemsType) => set(state => {
+        updateProblem: (index:number, problem:ProblemsType) => set(state => {
           const {modelId,currentClassIndex} = get();
           const newProblems = [...state.problems];
+          if(index >=0 && index < newProblems.length){
             const currentStates = state.states[modelId] || {};
             newProblems[index] = {
               modelId : modelId,
               name : problem.name,
               classes: problem.classes.map((cls,clsIndex) => 
                 clsIndex === currentClassIndex ? {
-                  className:cls.className,
-                  annotation: currentStates,
-                  annotationType: cls.annotationType
+                  ...cls,
+                  annotation: currentStates
                 } : cls
             )
             };
@@ -65,6 +65,7 @@ const useModelStore = create<ModelColorState>()(
               problems: newProblems,
               states: remainingStates
             };
+          }
           return {problems:newProblems};
         }),
         deleteProblem: (index) => set(state => ({

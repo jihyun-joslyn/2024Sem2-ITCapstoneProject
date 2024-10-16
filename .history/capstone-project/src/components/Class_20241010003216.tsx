@@ -2,7 +2,6 @@ import { TextField } from '@mui/material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
-import useModelStore from './StateStore';
 
 export type ClassProps = {
     labelArr: string[],
@@ -15,13 +14,11 @@ export default function Class({ labelArr, labelIndex, updateLabel, deleteClass }
     const [labels, setLabels] = useState(labelArr);
     const [className, setClassName] = useState(labelArr[0]);
     const [isEditClass, setIsEditClass] = useState(false);
-    const {setCurrentClassIndex} = useModelStore();
 
     useEffect(() => {
         setLabels(labelArr);
         setClassName(labelArr[0]);
-        setCurrentClassIndex(labelIndex);
-    }, [labelArr,labelIndex]);
+    }, [labelArr]);
 
     const editClass = (e: KeyboardEvent<HTMLDivElement>): void => {
         const _labels: string[] = [...labels];

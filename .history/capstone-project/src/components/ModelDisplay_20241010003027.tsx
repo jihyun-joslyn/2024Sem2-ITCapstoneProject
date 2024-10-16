@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import { Raycaster } from 'three';
 
 extend({ WireframeGeometry });
 
@@ -22,12 +23,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const wireframeRef = useRef<LineSegments>(null);
   const [isSpray,setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
-  const {states, setState,modelId,setModelId} = useModelStore();
-//   const { currentClass } = useModelStore(state => {
-//     const currentProblem = state.problems.find(p => p.modelId === state.modelId);
-//     const currentClass = currentProblem ? currentProblem.classes[state.currentClassIndex] : undefined;
-//     return { currentClass };
-// });
+  const {states, setState, modelId,setModelId} = useModelStore();
+  const sprayRadius = 1;
 
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
@@ -52,20 +49,20 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const vertexCount = geometry.attributes.position.count;
     // initialise the color, and default be white
     const colors = new Float32Array(vertexCount * 3).fill(1);
+
+    //load the saved states of color
+    const savedData = states[modelId] || {};
     
+    if(savedData){
+      Object.keys(savedData).forEach( index => {
+        const color = new THREE.Color(savedData[Number(index)].color);
+        colors[Number(index) * 3] = color.r;
+        colors[Number(index)*3+1] = color.g;
+        colors[Number(index) *3+2] = color.b;
+    });
+    }
+
     setModelId(modelID);
-    // if(currentClass && currentClass.annotation){
-    //   Object.entries(currentClass.annotation).forEach( ([vertex,{color}]) => {
-    //     const vertexIndex = parseInt(vertex, 10);
-    //     const vertexColor = new THREE.Color(color);
-    //     console.log(currentClass.annotation);
-    //     if (!isNaN(vertexIndex)) {
-    //       colors[vertexIndex * 3] = vertexColor.r;
-    //       colors[vertexIndex * 3 + 1] = vertexColor.g;
-    //       colors[vertexIndex * 3 + 2] = vertexColor.b;
-    //   }
-    // });
-    // }
 
 
     // add the color into geometry, each vertex use three data to record color
@@ -129,56 +126,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const handleMouseUp = useCallback((event : ThreeEvent<PointerEvent>) => {
     setIsSpray(false);
   },[]);
-
-
-  //Starting KeyPoint Marking function.
-const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
-const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
-
-useEffect(() => {
-  const handlePointerClick = (event: MouseEvent) => {
-    if (!meshRef.current || tool !== 'keypoint') return;
-
-    const rect = gl.domElement.getBoundingClientRect();
-    const mousePosition = new THREE.Vector2(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -((event.clientY - rect.top) / rect.height) * 2 + 1
-    );
-
-    // Update raycaster with the mouse position and camera
-    raycasterRef.current.setFromCamera(mousePosition, camera);
-
-    // Raycast to find intersections with the mesh
-    const intersects = raycasterRef.current.intersectObject(meshRef.current, true);
-
-    if (intersects.length > 0) {
-      const intersection = intersects[0];
-      const localPoint = intersection.point.clone(); // The point of intersection
-
-      // Apply object matrix world to get the correct local position
-      const inverseMatrix = new THREE.Matrix4();
-      inverseMatrix.copy(meshRef.current.matrixWorld).invert(); // Invert the world matrix
-      localPoint.applyMatrix4(inverseMatrix); // Transform point into local coordinates
-
-      // Create a precise sphere at the local intersection point
-      const preciseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      preciseSphere.position.copy(localPoint); // Apply precise local point
-      meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
-
-      // Debugging log to show precise coordinates
-      console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
-    }
-  };
-
-  if (tool === 'keypoint') {
-    window.addEventListener('click', handlePointerClick);
-  }
-
-  return () => {
-    window.removeEventListener('click', handlePointerClick);
-  };
-}, [tool, camera, gl, meshRef]);
-
 
 
 

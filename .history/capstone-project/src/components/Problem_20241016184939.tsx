@@ -51,6 +51,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                     annotationType: 'default'
                 }))
             };
+            console.log(problemKey,problemData);
             updateProblems(problemKey,problemData);
         }
     },[isEditProblem,problem,labels,problemKey,updateProblems]);

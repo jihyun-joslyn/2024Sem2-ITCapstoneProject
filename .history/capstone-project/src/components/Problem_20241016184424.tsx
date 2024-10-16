@@ -22,7 +22,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(labelArr);
-    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
+    const {modelId,problems,updateProblem: storeUpdateProblem, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
 
 
     useEffect(() => {
@@ -51,9 +51,10 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                     annotationType: 'default'
                 }))
             };
-            updateProblems(problemKey,problemData);
+            console.log(problemKey,problemData);
+            storeUpdateProblem(problemKey,problemData);
         }
-    },[isEditProblem,problem,labels,problemKey,updateProblems]);
+    },[isEditProblem,problem,labels,problemKey,storeUpdateProblem]);
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {

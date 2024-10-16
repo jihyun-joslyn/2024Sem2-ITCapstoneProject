@@ -52,7 +52,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const vertexCount = geometry.attributes.position.count;
     // initialise the color, and default be white
     const colors = new Float32Array(vertexCount * 3).fill(1);
-    
+    console.log(modelID);
     setModelId(modelID);
     // if(currentClass && currentClass.annotation){
     //   Object.entries(currentClass.annotation).forEach( ([vertex,{color}]) => {
