@@ -40,8 +40,8 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
             setProblem(storedProblems.name);
             setProblemInput(problemName);
             setLabels(storedProblems.classes.map(cla => [cla.className]));
-            setIsEditProblem(false);
             updateProblem(problemInput, problemKey);
+            setIsEditProblem(false);
         }
     },[modelData]);
 
@@ -55,7 +55,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
                 classes: labels.map(label => ({
                     className: label[0],
                     annotation: {},
-                    annotationType: 'spray'
+                    annotationType: 'default'
                 }))
             };
             updateProblems(problemKey,problemData);

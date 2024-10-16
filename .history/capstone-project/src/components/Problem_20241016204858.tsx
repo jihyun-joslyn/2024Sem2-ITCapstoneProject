@@ -40,8 +40,8 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
             setProblem(storedProblems.name);
             setProblemInput(problemName);
             setLabels(storedProblems.classes.map(cla => [cla.className]));
-            setIsEditProblem(false);
             updateProblem(problemInput, problemKey);
+            setIsEditProblem(false);
         }
     },[modelData]);
 
