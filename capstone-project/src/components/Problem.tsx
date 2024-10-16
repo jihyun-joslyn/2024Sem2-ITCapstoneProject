@@ -9,11 +9,11 @@ import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 
 export type ProblemProps = {
     problemName: string;
-    classes: ProblemType;
+    classes: ClassDetail[];
     problemKey: number;
     updateProblem: (userInput: string, index: number) => void;
     deleteProblem: (index: number) => void;
-    updateLabel: (labels: ProblemType, arrIndex: number) => void;
+    updateLabel: (labels: ClassDetail[], arrIndex: number) => void;
 };
 
 export default function Problem({ problemName, classes, problemKey, updateProblem, deleteProblem, updateLabel }: ProblemProps) {
@@ -40,11 +40,11 @@ export default function Problem({ problemName, classes, problemKey, updateProble
 
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            var _labels : ProblemType = labels;
+            var _labels : ClassDetail[] = labels;
             var newClass: ClassDetail = {name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: ""};
 
-            _labels.classes.push(newClass);
-            
+            _labels.push(newClass);
+
             setLabels(_labels);
             setInputNewClass("");
             setIsAddNewClass(false);
@@ -53,18 +53,18 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     };
 
     const updateClassArr = (_class: ClassDetail, arrIndex: number): void => {
-        var _labels: ProblemType = labels;
+        var _labels: ClassDetail[] = labels;
         
-        _labels.classes[arrIndex] = _class;
+        _labels[arrIndex] = _class;
        
         setLabels(_labels);
         updateLabel(_labels, problemKey);
     };
 
     const deleteClass = (arrIndex: number): void => {
-        var _labels: ProblemType = labels;
+        var _labels: ClassDetail[] = labels;
 
-        _labels.classes = _.dropWhile(_labels.classes, function(c, i) {
+        _labels = _.dropWhile(_labels, function(c, i) {
             return i != arrIndex;
         });
 
@@ -100,7 +100,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             </AccordionSummary>
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                 <List>
-                    {labels.classes.map((l, j) => (
+                    {labels.map((l, j) => (
                         <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
                             <Class
                                 classDetails={l}

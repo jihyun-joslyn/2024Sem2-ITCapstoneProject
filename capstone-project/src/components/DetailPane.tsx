@@ -59,10 +59,10 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
         }
     };
 
-    const updateLabel = (problem: ProblemType, index: number): void => {
+    const updateLabel = (classes: ClassDetail[], index: number): void => {
         var _problems: ProblemType[] = currProblems;
 
-        _problems[index] = problem;
+        _problems[index].classes = classes;
         updateProblems(_problems);
     };
 
@@ -107,7 +107,7 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                             <ListItem key={i} className="problem-arr">
                                 <Problem
                                     problemName={p.name}
-                                    classes={p}
+                                    classes={p.classes}
                                     problemKey={i}
                                     updateProblem={updateProblem}
                                     deleteProblem={deleteProblem}
