@@ -23,7 +23,7 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(labelArr);
-    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem,setCurrentProblemIndex} = useModelStore();
+    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
     const {modelData} = useContext(ModelContext);
     useEffect(() => {
         setProblem(problemName);
@@ -34,21 +34,20 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     
 
     useEffect(() => {
-        setIsEditProblem(true);
+        console.log("tets");
         const storedProblems = problems.find(p => p.modelId === modelId);
         if(storedProblems){
             setProblem(storedProblems.name);
             setProblemInput(problemName);
             setLabels(storedProblems.classes.map(cla => [cla.className]));
+            console.log(problemInput,problemKey);
             updateProblem(problemInput, problemKey);
-            setIsEditProblem(false);
         }
     },[modelData]);
 
 
     useEffect(() => {
         if(!isEditProblem){
-            setCurrentProblemIndex(problemKey);
             const problemData = {
                 modelId : modelId,
                 name : problemName,

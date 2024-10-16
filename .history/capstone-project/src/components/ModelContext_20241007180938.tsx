@@ -5,8 +5,6 @@ interface ModelType {
     color : string;
     setTool : (tool : string) => void;
     setSpray : (color : string) => void;
-    modelData: ArrayBuffer | null;
-    setModelData: (data: ArrayBuffer) => void;
 }
 
 interface ModelProvider {
@@ -18,10 +16,9 @@ const ModelContext = createContext<ModelType | undefined>(undefined);
 export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children }) => {
     const [tool,setTool] = useState<string>('none');
     const [color, setSpray] = useState<string>('#ffffff');
-    const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray,modelData,setModelData }}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray }}>
             {children}
         </ModelContext.Provider>
     );

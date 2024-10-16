@@ -34,12 +34,14 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     
 
     useEffect(() => {
+        console.log("tets");
         setIsEditProblem(true);
         const storedProblems = problems.find(p => p.modelId === modelId);
         if(storedProblems){
             setProblem(storedProblems.name);
             setProblemInput(problemName);
             setLabels(storedProblems.classes.map(cla => [cla.className]));
+            console.log(problemInput,problemKey);
             updateProblem(problemInput, problemKey);
             setIsEditProblem(false);
         }

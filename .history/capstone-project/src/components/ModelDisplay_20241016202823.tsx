@@ -22,8 +22,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const wireframeRef = useRef<LineSegments>(null);
   const [isSpray,setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
-  const {states, setState,modelId,setModelId,problems,currentClassIndex} = useModelStore();
-
+  const {states, setState,modelId,setModelId,problems} = useModelStore();
 
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
@@ -51,23 +50,18 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const colors = new Float32Array(vertexCount * 3).fill(1);
 
     setModelId(modelID);
-
-    
-
-    const { problems, currentClassIndex } = useModelStore.getState();  // 从 stateStore 获取当前的问题和类索引
-    const currentProblem = problems.find(p => p.modelId === modelID);
-    if (currentProblem) {
-    const currentClass = currentProblem.classes[currentClassIndex];
-    if (currentClass && currentClass.annotation) {
-      Object.entries(currentClass.annotation).forEach(([vertex, { color }]) => {
+    if(currentClass && currentClass.annotation){
+      Object.entries(currentClass.annotation).forEach( ([vertex,{color}]) => {
         const vertexIndex = parseInt(vertex, 10);
         const vertexColor = new THREE.Color(color);
-        colors[vertexIndex * 3] = vertexColor.r;
-        colors[vertexIndex * 3 + 1] = vertexColor.g;
-        colors[vertexIndex * 3 + 2] = vertexColor.b;
-      });
+        console.log(currentClass.annotation);
+        if (!isNaN(vertexIndex)) {
+          colors[vertexIndex * 3] = vertexColor.r;
+          colors[vertexIndex * 3 + 1] = vertexColor.g;
+          colors[vertexIndex * 3 + 2] = vertexColor.b;
+      }
+    });
     }
-  }
 
 
     // add the color into geometry, each vertex use three data to record color

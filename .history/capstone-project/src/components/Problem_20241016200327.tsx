@@ -1,11 +1,10 @@
 import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, TextField } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
-import { useState, KeyboardEvent, useEffect, useContext } from 'react';
+import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
 import Class from './Class';
 import useModelStore from '../components/StateStore';
-import ModelContext from "../components/ModelContext";
 
 export type ProblemProps = {
     problemName: string;
@@ -23,32 +22,29 @@ export default function Problem({ problemName, labelArr, problemKey, updateProbl
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(labelArr);
-    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem,setCurrentProblemIndex} = useModelStore();
-    const {modelData} = useContext(ModelContext);
+    const {modelId,problems,updateProblems, deleteProblem: storeDeleteProblem,addProblem} = useModelStore();
+    const [forceUpdate,setForceUpdate] = useState(true);
+
+
     useEffect(() => {
         setProblem(problemName);
         setProblemInput(problemName);
         setLabels(labelArr);
     }, [problemName, labelArr]);
 
-    
-
     useEffect(() => {
-        setIsEditProblem(true);
         const storedProblems = problems.find(p => p.modelId === modelId);
         if(storedProblems){
             setProblem(storedProblems.name);
             setProblemInput(problemName);
             setLabels(storedProblems.classes.map(cla => [cla.className]));
-            updateProblem(problemInput, problemKey);
-            setIsEditProblem(false);
         }
-    },[modelData]);
+        setForceUpdate(false);
+    },[forceUpdate]);
 
 
     useEffect(() => {
         if(!isEditProblem){
-            setCurrentProblemIndex(problemKey);
             const problemData = {
                 modelId : modelId,
                 name : problemName,
