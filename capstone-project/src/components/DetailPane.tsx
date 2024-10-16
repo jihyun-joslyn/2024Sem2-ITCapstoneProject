@@ -4,6 +4,7 @@ import { useState, KeyboardEvent } from 'react';
 import * as _ from "lodash";
 import Problem from './Problem';
 import { ProblemType } from '../datatypes/ProblemType';
+import { ClassDetail } from '../datatypes/ClassDetail';
 
 /* {
         name: "Problem 1",
@@ -58,11 +59,11 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
         }
     };
 
-    const updateLabel = (labels: string[][], index: number): void => {
-        const updatedProblems: ProblemType[] = currProblems.map((p: ProblemType, i: number) =>
-            i === index ? { ...p, classes: labels } : p
-        );
-        updateProblems(updatedProblems);
+    const updateLabel = (problem: ProblemType, index: number): void => {
+        var _problems: ProblemType[] = currProblems;
+
+        _problems[index] = problem;
+        updateProblems(_problems);
     };
 
     const handleCloseErrorDialog = () => {
@@ -106,7 +107,7 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                             <ListItem key={i} className="problem-arr">
                                 <Problem
                                     problemName={p.name}
-                                    labelArr={p.classes}
+                                    classes={p}
                                     problemKey={i}
                                     updateProblem={updateProblem}
                                     deleteProblem={deleteProblem}
