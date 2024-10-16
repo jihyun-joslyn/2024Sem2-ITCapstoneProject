@@ -184,33 +184,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
-        // Retrieve the existing data from Zustand (model-colors-storage)
-        const storedData = JSON.parse(localStorage.getItem('model-colors-storage') || '{}');
+      // Use Zustand store to update the keypoints for the current modelId
+      useModelStore.getState().setKeypoint(modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
 
-        // Access model-specific data
-        const modelData = storedData[modelId] || { states: {}, keypoints: [] };
-
-        // Update keypoints array
-        const updatedKeypoints = [...(modelData.keypoints || []), { position: localPoint, color: 'purple' }];
-
-        // Update model data with new keypoints, preserving states (spray data)
-        const updatedModelData = {
-          ...modelData,
-          keypoints: updatedKeypoints,
-        };
-
-        // Update the overall storage object
-        const updatedStorage = {
-          ...storedData,
-          [modelId]: updatedModelData,
-        };
-
-        // Save updated data back to local storage under 'model-colors-storage'
-        localStorage.setItem('model-colors-storage', JSON.stringify(updatedStorage));
-
-       // Debugging log to show precise coordinates
-        console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
-      }
+    
+      // Debugging log to show precise coordinates
+      console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
+    }
+  
     };
 
     if (tool === 'keypoint') {
