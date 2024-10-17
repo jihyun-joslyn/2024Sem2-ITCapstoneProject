@@ -27,7 +27,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
 export function useModelContext() {
     const context = useContext(ModelContext);
     if (context == undefined){
-        throw new Error ('error');
+        throw new Error ('Error on Model Context');
     }
     return context;
 }
