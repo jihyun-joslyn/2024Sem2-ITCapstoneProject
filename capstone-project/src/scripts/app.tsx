@@ -35,6 +35,8 @@ const App = () => {
   const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
+  const FileListStoargeKey: string = "stlFileData";
+
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
     reader.readAsArrayBuffer(file);
@@ -63,15 +65,28 @@ const App = () => {
 
     var _stlFiles: FileAnnotation[] = stlFiles;
 
-    var cur: number = _.findIndex(_stlFiles, function (f) {
+    _stlFiles = updateListWithCurrentProblems(updatedProblems, _stlFiles);
+
+    setSTLFiles(_stlFiles);
+    updateLocalStoargeFileList(updatedProblems);
+  }
+
+  const updateLocalStoargeFileList = (updatedProblems: ProblemType[]) => {
+    var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+
+    _fileList = updateListWithCurrentProblems(updatedProblems, _fileList);
+
+    localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
+  }
+
+  const updateListWithCurrentProblems = (updateProblems: ProblemType[], _files: FileAnnotation[]): FileAnnotation[] => {
+    var cur: number = _.findIndex(_files, function (f) {
       return _.eq(f.fileName, currentFile);
     })
 
-    _stlFiles[cur].problems = updatedProblems;
+    _files[cur].problems = updateProblems;
 
-    setSTLFiles(_stlFiles);
-
-    // console.log(_stlFiles)
+    return _files;
   }
 
   const handleFileSelect = (fileName: string) => {
@@ -203,7 +218,7 @@ const App = () => {
             currentFile={currentFile} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels}/>}
+          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane

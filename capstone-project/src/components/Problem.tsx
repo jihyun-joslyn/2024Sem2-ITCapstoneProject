@@ -1,4 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, TextField } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, ListItemButton, TextField } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
@@ -102,14 +102,17 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                 <List>
                     {labels.map((l, j) => (
-                        <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} onClick={() => { setClassToBeAnnotated(problemKey, j); }}>
+                        <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}
+                        selected={l.isAnnotating}
+                        onClick={() => { setClassToBeAnnotated(problemKey, j); }}
+                      >
                             <Class
                                 classDetails={l}
                                 labelIndex={j}
                                 updateLabel={updateClassArr}
                                 deleteClass={deleteClass}
                             />
-                        </ListItem>
+                        </ListItemButton>
                     ))}
                     {isAddNewClass && (
                         <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
