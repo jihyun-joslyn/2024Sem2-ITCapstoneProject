@@ -8,15 +8,20 @@ import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import * as _ from "lodash";
+import { ProblemType } from '../datatypes/ProblemType';
+import { AnnotationType } from '../datatypes/ClassDetail';
 
 extend({ WireframeGeometry });
 
 type ModelDisplayProps = {
   modelData: ArrayBuffer;
+  currProblem: ProblemType[]
+  updateProblems: (updateProblems: ProblemType[]) => void;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
-  const { tool, color } = useContext(ModelContext); // Get the tool and color state from sidebar
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems }) => {
+  const { tool, color } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -85,6 +90,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
       });
     }
 
+    if (_.findIndex(currProblem, function (p) {
+      return _.findIndex(p.classes, function (c) {
+        return c.coordinates.length > 0 && c.annotationType == AnnotationType.SPRAY;
+      }) != -1;
+    }) != -1) {
+      currProblem.forEach(p => {
+        p.classes.forEach(c => {
+          const color = new THREE.Color(c.color);
+          c.coordinates.forEach(_c => {
+            colors[Number(_c) * 3] = color.r;
+            colors[Number(_c) * 3 + 1] = color.g;
+            colors[Number(_c) * 3 + 2] = color.b;
+          })
+
+        })
+      })
+    }
+
     setModelId(modelID);
 
     // Only set colors in geometry if there are spray annotations
@@ -117,21 +140,22 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
           faceIndices.forEach(index => {
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
             setState(modelId, index, color);
+            linkAnnotationToClass(index, color);
           });
           colorAttributes.needsUpdate = true;
         }
-      });
+      })
     }
   }, [color, camera]);
 
   const handleMouseDown = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (tool !== 'spray') return;
+    if (tool != 'spray') return;
     event.stopPropagation();
     setIsSpray(true);
   }, [gl, spray]);
 
   const handleMouseMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    // Only spray when tool is spray and click the mouse
+    //only spray when tool is spray and click the mouse
     if (!isSpray || tool !== 'spray') return;
     event.stopPropagation();
 
@@ -148,9 +172,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
 
   const handleMouseUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     setIsSpray(false);
+    // setClassToNotAnnotating();
   }, []);
 
-  // Starting KeyPoint Marking function.
+
+  //Starting KeyPoint Marking function.
   const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
 
@@ -190,6 +216,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     
       // Debugging log to show precise coordinates
       console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
+      linkAnnotationToClass(localPoint, "");
     }
   
     };
@@ -203,6 +230,66 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     };
   }, [tool, camera, gl, meshRef]);
 
+  const linkAnnotationToClass = (coordinates: any, color: string) => {
+    if (_.findIndex(currProblem, function (p) {
+      return _.findIndex(p.classes, function (c) {
+        return c.isAnnotating == true;
+      }) != -1;
+    }) == -1) return;
+
+    var _currProblem = currProblem;
+    _currProblem.forEach(p => {
+      p.classes.forEach(c => {
+        if (c.isAnnotating) {
+          switch (tool) {
+            case "spray":
+              if (c.annotationType != AnnotationType.SPRAY) {
+                c.coordinates = [];
+                c.color = "";
+              }
+
+              if (!_.includes(c.coordinates, coordinates))
+                c.coordinates.push(coordinates);
+
+              c.color = color;
+              c.annotationType = AnnotationType.SPRAY;
+              break;
+            case "keypoint":
+              if (c.annotationType != AnnotationType.KEYPOINT) {
+                c.coordinates = [];
+                c.color = "";
+              }
+
+              c.coordinates.push(coordinates.x);
+              c.coordinates.push(coordinates.y);
+              c.coordinates.push(coordinates.z);
+
+              c.annotationType = AnnotationType.KEYPOINT;
+              c.isAnnotating = false;
+              break;
+            default:
+              break;
+          }
+        }
+      })
+    })
+
+    // console.log(_currProblem);
+    updateProblems(_currProblem);
+  }
+
+  const setClassToNotAnnotating = () => {
+    var _currProblem = currProblem;
+
+    _currProblem.forEach(p => {
+      p.classes.forEach(c => {
+        c.isAnnotating = c.isAnnotating ? false : c.isAnnotating;
+      })
+    });
+
+    updateProblems(_currProblem);
+  }
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -214,10 +301,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer }> = ({ modelData }) => {
+const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; }> = ({ modelData, currProblem, updateProblems }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} />
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} />
     </Canvas>
   );
 };

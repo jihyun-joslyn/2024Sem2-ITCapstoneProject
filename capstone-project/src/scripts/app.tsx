@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from "react-dom/client";
-import { Grid2 as Grid, Box } from '@mui/material';
+import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import DetailPane from '../components/DetailPane';
@@ -32,6 +32,8 @@ const App = () => {
   const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
   const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
   const [fileList, setFileList] = useState<FileList[]>([]);
+  const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
+  const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -68,6 +70,8 @@ const App = () => {
     _stlFiles[cur].problems = updatedProblems;
 
     setSTLFiles(_stlFiles);
+
+    // console.log(_stlFiles)
   }
 
   const handleFileSelect = (fileName: string) => {
@@ -163,6 +167,21 @@ const App = () => {
     loadSTLFile(_file.fileObject);
   }
 
+  const handleCloseErrorDialog = () => {
+    setIsShowErrorAlert(false);
+  }
+
+  const showErrorAlert = (_title: string, _content: string): any => {
+    var _alertContent: { title: string, content: string } = alertContent;
+
+    _alertContent.title = _title;
+    _alertContent.content = _content;
+
+    setAlertContent(_alertContent);
+    setIsShowErrorAlert(true);
+  }
+
+
   return (
     <ModelProvider>
       <Box sx={{ flexGrow: 0 }}>
@@ -184,16 +203,32 @@ const App = () => {
             currentFile={currentFile} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} />}
+          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels}/>}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane
             isShow={isShowDetailPane}
             currentFile={currentFile}
             currProblems={currProblems}
-            updateProblems={updateDataLabels} />
+            updateProblems={updateDataLabels}
+            showErrorAlert={showErrorAlert}
+          />
         </Grid>
       </Grid>
+      <Snackbar
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        open={isShowErrorDialog}
+        autoHideDuration={6000}
+        onClose={handleCloseErrorDialog}>
+        <Alert
+          onClose={handleCloseErrorDialog}
+          severity="error"
+          sx={{ width: '100%' }}
+        >
+          <AlertTitle>{alertContent.title}</AlertTitle>
+          {alertContent.content}
+        </Alert>
+      </Snackbar>
     </ModelProvider>
   );
 };

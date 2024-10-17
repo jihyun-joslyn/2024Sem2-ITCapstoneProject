@@ -48,7 +48,7 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
                     />
                 ) : (
                     <span>
-                        {className}
+                        {className}  {classDetails.isAnnotating && (<span>Annotating</span>)}
                         <span className='upsert-button'>
                             <UpsertMenu
                                 onClickEdit={() => setIsEditClass(true)}
