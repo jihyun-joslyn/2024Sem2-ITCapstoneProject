@@ -40,15 +40,13 @@ export default function Problem({ problemName, classes, problemKey, updateProble
 
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            var _labels : ClassDetail[] = labels;
-            var newClass: ClassDetail = {name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: ""};
+        const newClass: ClassDetail = {name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: ""};
+        const updatedLabels = [...labels, newClass]; 
 
-            _labels.push(newClass);
-
-            setLabels(_labels);
-            setInputNewClass("");
-            setIsAddNewClass(false);
-            updateLabel(_labels, problemKey);
+        setLabels(updatedLabels);
+        setInputNewClass("");
+        setIsAddNewClass(false);
+        updateLabel(updatedLabels, problemKey);
         }
     };
 

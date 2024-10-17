@@ -12,6 +12,7 @@ export type SidebarProps = {
   showColorSpraySelector: (isShow: boolean) => void;
   fileList: FileList[],
   currentFile: string;
+  isAnnotationAllowed: () => boolean; 
 };
 
 const ArrowIcon = createSvgIcon(
@@ -38,7 +39,7 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile,  isAnnotationAllowed }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
@@ -46,6 +47,10 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const { setTool, setSpray } = useContext(ModelContext);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    if ((newValue === 4 || newValue === 5) && !isAnnotationAllowed()) {
+      alert('Please create at least one Class before using the annotation tools.');
+      return; 
+    }
     setValue(newValue);
     switch (newValue) {
       case 2:

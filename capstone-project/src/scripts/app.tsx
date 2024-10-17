@@ -108,6 +108,11 @@ const App = () => {
     setComponentsGridWidth();
   };
 
+  const isAnnotationAllowed = (): boolean => {
+    if (currProblems.length === 0) return false; 
+    return currProblems.some(problem => problem.classes.length > 0); 
+  };
+
   const setComponentsGridWidth = (): void => {
     switch (isShowDetail) {
       case true:
@@ -181,7 +186,8 @@ const App = () => {
             showColorSpraySelector={showColorSpraySelector}
             onFileSelect={handleFileSelect}
             fileList={fileList}
-            currentFile={currentFile} />
+            currentFile={currentFile} 
+            isAnnotationAllowed={isAnnotationAllowed}/>
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} />}
