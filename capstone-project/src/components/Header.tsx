@@ -25,6 +25,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
     const fileMenuOpen = Boolean(fileAnchorEl);
     const settingMenuOpen = Boolean(settingAnchorEl);
+    const FileListStoargeKey: string = "stlFileData";
 
     const handleFileClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setFileAnchorEl(event.currentTarget);
@@ -95,25 +96,77 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     }) == -1)) {
                         var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
 
-                        if (isAnnotated(files, f.name))
-                            temp1.problems = await getJSONContent(_.find(files, function (_f) {
-                                var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
+                        if (checkIfFileExistsInLocalStorage(f.name)) { 
+                            temp1.problems = getFileDataFromLocalStorage(f.name);
+                        }
+                        else {
+                            if (isAnnotated(files, f.name))
+                                temp1.problems = await getJSONContent(_.find(files, function (_f) {
+                                    var _name: string = _.trimEnd(_.toLower(f.name), '.stl');
 
-                                return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
-                            }))
-
+                                    return _.startsWith(_.toLower(_f.name), _name) && _.endsWith(_.toLower(_f.name), '.json');
+                                }))
+                        }
                         _fileList.push(temp1);
                     }
                 }
             }
 
+            if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
+                localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
+            else 
+                addFileToLocalStorage(_fileList);
+
             initializeCurrentFile(_fileList[0]);
 
             updateFileList(_fileList);
 
-            console.log(_fileList)
             resolve(_fileList);
         })
+    }
+
+    const addFileToLocalStorage = (_files: FileAnnotation[]) => {
+        if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
+            return;
+
+        var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+
+        _files.forEach(f => {
+            if (_.findIndex(_fileList, function(_f) {
+                return _.eq(_f.fileName, f.fileName)
+            }) == -1) {
+                _fileList.push(f);
+            }
+        });
+
+        localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
+    }
+
+    const checkIfLocalStorageIsEmpty = (storageKey: string): boolean => {
+        if (_.isUndefined(localStorage.getItem(storageKey)) || _.isNull(localStorage.getItem(storageKey)))
+            return true;
+        else
+            return false;
+    }
+
+    const checkIfFileExistsInLocalStorage = (fileName: string): boolean => {
+        if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
+            return false;
+
+        var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+
+        return _.findIndex(_fileList, function (f) {
+            return _.eq(f.fileName, fileName);
+        }) != -1;
+    }
+
+    const getFileDataFromLocalStorage = (fileName: string): ProblemType[] => {
+        var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+        var _file : FileAnnotation = _.find(_fileList, function (f) {
+            return _.eq(f.fileName, fileName);
+        });
+
+        return _file.problems;
     }
 
     const isAnnotated = (files: File[], currFileName: string): boolean => {
@@ -164,6 +217,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 var _className: string[] = [];
                 var _color: string[] = [];
                 var spray: any[][] = [];
+                var keypoint: any[] = [];
 
                 for (var x in _problems[i][j]) {
                     for (var y in _problems[i][j][x]) {
@@ -185,7 +239,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                             }
                         } else if (_.eq(_.toString(y), "face_labels")) {
                             for (var z in Object.values(_mapping)) {
-                                var sprayVertex: any[] = _.eq((_.toString(Object.keys(_mapping[z])[0])), "-1") ? [] : _.toString(Object.values(_mapping[z])[0]).split(", ");
+                                var sprayVertex: any[] = _.eq((_.toString(Object.values(_mapping[z])[0])), "-1") ? [] : _.toString(Object.values(_mapping[z])[0]).split(", ");
 
                                 if (!_.isEmpty(sprayVertex))
                                     sprayVertex.forEach(v => {
@@ -193,6 +247,17 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                                     })
 
                                 spray.push(sprayVertex);
+                            }
+                        } else if (_.eq(_.toString(y), "point_labels")) {
+                            for (var z in Object.values(_mapping)) {
+                                var point: any[] = _.eq((_.toString(Object.values(_mapping[z])[0])), "-1") ? [] : _.toString(Object.values(_mapping[z])[0]).split(", ");
+
+                                if (!_.isEmpty(point))
+                                    point.forEach(v => {
+                                        v = parseFloat(v.toString());
+                                    })
+
+                                keypoint.push(point);
                             }
                         }
                     }
@@ -205,9 +270,13 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                         _class.coordinates = spray.at(x);
 
                         _class.annotationType = AnnotationType.SPRAY
+                    } else if (keypoint.at(x).length > 0) {
+                        _class.coordinates = keypoint.at(x);
+
+                        _class.annotationType = AnnotationType.KEYPOINT;
                     }
 
-                        temp.classes.push(_class);
+                    temp.classes.push(_class);
                 })
             }
 
@@ -215,6 +284,16 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         }
 
         return problem;
+    }
+
+    const removeFileFromLocalStorage = (fileName: string) => {
+        var _stlFiles: FileAnnotation[] = stlFiles;
+
+        _.remove(_stlFiles, function(f) {
+            return _.eq(f.fileName, fileName);
+        })
+
+        localStorage.setItem(FileListStoargeKey, JSON.stringify(_stlFiles));
     }
 
     const handleSave = () => {

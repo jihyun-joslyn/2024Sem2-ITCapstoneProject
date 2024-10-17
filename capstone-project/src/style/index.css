@@ -230,7 +230,7 @@ body {
   word-wrap: break-word;
 }
 
-.selected-file {
+.selected-file, #detail-list .MuiListItem-root .MuiList-root .Mui-selected {
   background-color: #DDC5B0!important;
   font-weight: bold !important;
   border-left: 4px solid #824D28 !important;

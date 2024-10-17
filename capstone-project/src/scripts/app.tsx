@@ -39,6 +39,8 @@ const AppContent = () => {
   const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
+  const FileListStoargeKey: string = "stlFileData";
+
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
     reader.readAsArrayBuffer(file);
@@ -70,15 +72,28 @@ const AppContent = () => {
 
     var _stlFiles: FileAnnotation[] = stlFiles;
 
-    var cur: number = _.findIndex(_stlFiles, function (f) {
+    _stlFiles = updateListWithCurrentProblems(updatedProblems, _stlFiles);
+
+    setSTLFiles(_stlFiles);
+    updateLocalStoargeFileList(updatedProblems);
+  }
+
+  const updateLocalStoargeFileList = (updatedProblems: ProblemType[]) => {
+    var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+
+    _fileList = updateListWithCurrentProblems(updatedProblems, _fileList);
+
+    localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
+  }
+
+  const updateListWithCurrentProblems = (updateProblems: ProblemType[], _files: FileAnnotation[]): FileAnnotation[] => {
+    var cur: number = _.findIndex(_files, function (f) {
       return _.eq(f.fileName, currentFile);
     })
 
-    _stlFiles[cur].problems = updatedProblems;
+    _files[cur].problems = updateProblems;
 
-    setSTLFiles(_stlFiles);
-
-    // console.log(_stlFiles)
+    return _files;
   }
 
   const handleFileSelect = (fileName: string) => {

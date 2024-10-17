@@ -36,7 +36,7 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
 
     return (
         <div className='class-list-item'>
-            <div style={{ paddingLeft: '0px' }}>
+            <div style={{ paddingLeft: '0px' }} >
                 {isEditClass ? (
                     <TextField
                         id="edit-class"
@@ -48,7 +48,7 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
                     />
                 ) : (
                     <span>
-                        {className}  {classDetails.isAnnotating && (<span>Annotating</span>)}
+                        {className}
                         <span className='upsert-button'>
                             <UpsertMenu
                                 onClickEdit={() => setIsEditClass(true)}

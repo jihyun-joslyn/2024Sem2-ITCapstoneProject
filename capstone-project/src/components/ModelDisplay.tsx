@@ -83,7 +83,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
 
     // Check if there are any spray annotations
-    const hasSprayAnnotations = Object.keys(savedData).some(
+    var hasSprayAnnotations = Object.keys(savedData).some(
       (index) => savedData[Number(index)]?.color // Check if color exists in any savedData entry
     );
 
@@ -114,18 +114,38 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     if (_.findIndex(currProblem, function (p) {
       return _.findIndex(p.classes, function (c) {
-        return c.coordinates.length > 0 && c.annotationType == AnnotationType.SPRAY;
-      }) != -1;
+        return c.coordinates.length > 0
+      }) != -1
     }) != -1) {
       currProblem.forEach(p => {
         p.classes.forEach(c => {
-          const color = new THREE.Color(c.color);
-          c.coordinates.forEach(_c => {
-            colors[Number(_c) * 3] = color.r;
-            colors[Number(_c) * 3 + 1] = color.g;
-            colors[Number(_c) * 3 + 2] = color.b;
-          })
+          if (c.coordinates.length > 0) {
+            switch (c.annotationType) {
+              case AnnotationType.SPRAY:
+                const color = new THREE.Color(c.color || '#ffffff');
 
+                c.coordinates.forEach(_c => {
+                  colors[Number(_c) * 3] = color.r;
+                  colors[Number(_c) * 3 + 1] = color.g;
+                  colors[Number(_c) * 3 + 2] = color.b;
+                });
+                hasSprayAnnotations = true;
+                break;
+              case AnnotationType.KEYPOINT:
+                const keypointSphere = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.05, 16, 16),
+                  new THREE.MeshBasicMaterial({ color: c.color })
+                );
+
+                for (var i = 0; i < c.coordinates.length; i += 3) {
+                  keypointSphere.position.set(c.coordinates[i], c.coordinates[i + 1], c.coordinates[i + 2]);
+                  meshRef.current.add(keypointSphere);
+                }
+                break;
+              default:
+                break;
+            }
+          }
         })
       })
     }
@@ -243,8 +263,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
-        // Use Zustand store to update the keypoints for the current modelId
-        useModelStore.getState().setKeypoint(modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
+          // Use Zustand store to update the keypoints for the current modelId
+          useModelStore.getState().setKeypoint(modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
 
 
         // Debugging log to show precise coordinates
@@ -517,7 +537,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       })
     })
 
-    // console.log(_currProblem);
     updateProblems(_currProblem);
   }
 
