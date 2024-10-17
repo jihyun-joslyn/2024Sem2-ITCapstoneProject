@@ -1,10 +1,11 @@
 import { useState, useContext } from 'react';
 import { createSvgIcon, Tab, Tabs, Tooltip } from '@mui/material';
-import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, LocationSearching as KeypointIcon, TouchApp as SelectIcon } from '@mui/icons-material';
+import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, LocationSearching as KeypointIcon } from '@mui/icons-material';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
 import { FileList } from '../datatypes/FileList';
+import LocationOnIcon from '@mui/icons-material/LocationOn'; // 使用Material-UI的图标
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
@@ -48,28 +49,18 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
     switch (newValue) {
-      case 0:
-        // 打开文件面板
-        showFilePane(!isShowFilePane);
-        setIsShowFilePane(!isShowFilePane);
-        setColorSelector(false);
-        break;
-      case 1:
-        // 设置为“选择”工具
-        setTool('select');
-        break;
       case 2:
-        // 设置为“平移”工具
         setTool('pan');
         break;
-      case 3:
-        // 设置为“喷涂”工具
+      case 4:
         setTool('spray');
         setColorSelector(true);
         break;
-      case 4:
-        // 设置为“关键点”工具
+      case 5:
         setTool('keypoint');
+        break;
+      case 6:
+        setTool('vertexSelect'); // 新增：顶点选择工具
         break;
       default:
         setTool('none');
@@ -83,6 +74,18 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     showColorSpraySelector(!showColorSelector);
   };
 
+  const folderOnClick = () => {
+    showFilePane(!isShowFilePane);
+    setIsShowFilePane(!isShowFilePane);
+    setColorSelector(false);
+  };
+
+  const sprayOnClick = () => {
+    showColorSpraySelector(!showColorSelector);
+    setColorSelector(!showColorSelector);
+    setIsShowFilePane(false);
+  };
+
   return (
     <div id="side">
       <Tabs
@@ -91,12 +94,13 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
         onChange={handleChange}
         id="toolbar"
       >
-        <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" />
-        <Tab icon={<SelectIcon sx={{ color: '#9c806c' }} />} aria-label="Select" />
-        <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} aria-label="Pan" />
-        <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} aria-label="Brush" />
-        <Tab icon={<SprayIcon />} aria-label="Spray" />
-        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} aria-label="Keypoint" />
+        <Tab icon={<FolderIcon sx={{ color: '#9c806c' }} />} aria-label="Folder" onClick={folderOnClick} />
+        <Tab icon={<ArrowIcon />} />
+        <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
+        <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
+        <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
+        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} />
+        <Tab icon={<LocationOnIcon sx={{ color: '#9c806c' }} />} /> {/* 新增：顶点选择工具图标 */}
       </Tabs>
       {showColorSelector && (
         <Tooltip title="Choose color" placement="right">
