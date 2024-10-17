@@ -1,7 +1,7 @@
-import { Box, Grid2 as Grid } from '@mui/material';
 import * as _ from "lodash";
 import { useContext, useState } from 'react';
 import { createRoot } from "react-dom/client";
+import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
 import DetailPane from '../components/DetailPane';
 import Header from '../components/Header';
 import HotkeyDialog from '../components/Hotkey';
@@ -36,6 +36,8 @@ const AppContent = () => {
   const [fileList, setFileList] = useState<FileList[]>([]);
   const { setHotkeys } = useContext(ModelContext);
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
+  const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
+  const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -75,6 +77,8 @@ const AppContent = () => {
     _stlFiles[cur].problems = updatedProblems;
 
     setSTLFiles(_stlFiles);
+
+    // console.log(_stlFiles)
   }
 
   const handleFileSelect = (fileName: string) => {
@@ -178,6 +182,21 @@ const AppContent = () => {
     setHotkeys(newHotkeys);
   };
 
+  const handleCloseErrorDialog = () => {
+    setIsShowErrorAlert(false);
+  }
+
+  const showErrorAlert = (_title: string, _content: string): any => {
+    var _alertContent: { title: string, content: string } = alertContent;
+
+    _alertContent.title = _title;
+    _alertContent.content = _content;
+
+    setAlertContent(_alertContent);
+    setIsShowErrorAlert(true);
+  }
+
+
   return (
     <>
       <Box sx={{ flexGrow: 0 }}>
@@ -188,7 +207,7 @@ const AppContent = () => {
           updateFileList={updateFileList}
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
-          openHotkeyDialog={openHotkeyDialog}/>
+          openHotkeyDialog={openHotkeyDialog} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -200,16 +219,32 @@ const AppContent = () => {
             currentFile={currentFile} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} />}
+          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane
             isShow={isShowDetailPane}
             currentFile={currentFile}
             currProblems={currProblems}
-            updateProblems={updateDataLabels} />
+            updateProblems={updateDataLabels}
+            showErrorAlert={showErrorAlert}
+          />
         </Grid>
       </Grid>
+      <Snackbar
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        open={isShowErrorDialog}
+        autoHideDuration={6000}
+        onClose={handleCloseErrorDialog}>
+        <Alert
+          onClose={handleCloseErrorDialog}
+          severity="error"
+          sx={{ width: '100%' }}
+        >
+          <AlertTitle>{alertContent.title}</AlertTitle>
+          {alertContent.content}
+        </Alert>
+      </Snackbar>
       <HotkeyDialog
         open={isHotkeyDialogOpen}
         onClose={() => setIsHotkeyDialogOpen(false)}

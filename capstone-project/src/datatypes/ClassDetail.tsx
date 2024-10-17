@@ -3,6 +3,7 @@ export type ClassDetail = {
     annotationType: AnnotationType;
     coordinates: any[];
     color: string;
+    isAnnotating: boolean;
 }
 
 export enum AnnotationType{

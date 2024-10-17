@@ -8,17 +8,22 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import ModelContext from './ModelContext';
-
+import * as _ from "lodash";
+import { ProblemType } from '../datatypes/ProblemType';
+import { AnnotationType } from '../datatypes/ClassDetail';
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
+
 
 extend({ WireframeGeometry });
 
 type ModelDisplayProps = {
   modelData: ArrayBuffer;
+  currProblem: ProblemType[]
+  updateProblems: (updateProblems: ProblemType[]) => void;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems }) => {
   const { tool, color, hotkeys, controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
@@ -107,6 +112,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
       });
     }
 
+    if (_.findIndex(currProblem, function (p) {
+      return _.findIndex(p.classes, function (c) {
+        return c.coordinates.length > 0 && c.annotationType == AnnotationType.SPRAY;
+      }) != -1;
+    }) != -1) {
+      currProblem.forEach(p => {
+        p.classes.forEach(c => {
+          const color = new THREE.Color(c.color);
+          c.coordinates.forEach(_c => {
+            colors[Number(_c) * 3] = color.r;
+            colors[Number(_c) * 3 + 1] = color.g;
+            colors[Number(_c) * 3 + 2] = color.b;
+          })
+
+        })
+      })
+    }
+
     setModelId(modelID);
 
 
@@ -145,6 +168,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
           faceIndices.forEach(index => {
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
             modelStore.addPaintChange(modelStore.modelId, index, color);
+            linkAnnotationToClass(index, color);
           });
           colorAttributes.needsUpdate = true;
         }
@@ -180,8 +204,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     if (tool === 'spray') {
       modelStore.endPaintAction(modelStore.modelId);
     }
+    // setClassToNotAnnotating();
   }, [tool, modelStore]);
 
+
+  //Starting KeyPoint Marking function.
   const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
 
@@ -227,7 +254,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         modelStore.startPaintAction(modelStore.modelId, 'point');
         modelStore.addPaintChange(modelStore.modelId, -1, 'purple'); // Use -1 as a special index for keypoints
         modelStore.endPaintAction(modelStore.modelId);
-      }
+        linkAnnotationToClass(localPoint, "");
+    }
     };
 
     if (tool === 'keypoint') {
@@ -445,6 +473,66 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   //   }
   // };
 
+  const linkAnnotationToClass = (coordinates: any, color: string) => {
+    if (_.findIndex(currProblem, function (p) {
+      return _.findIndex(p.classes, function (c) {
+        return c.isAnnotating == true;
+      }) != -1;
+    }) == -1) return;
+
+    var _currProblem = currProblem;
+    _currProblem.forEach(p => {
+      p.classes.forEach(c => {
+        if (c.isAnnotating) {
+          switch (tool) {
+            case "spray":
+              if (c.annotationType != AnnotationType.SPRAY) {
+                c.coordinates = [];
+                c.color = "";
+              }
+
+              if (!_.includes(c.coordinates, coordinates))
+                c.coordinates.push(coordinates);
+
+              c.color = color;
+              c.annotationType = AnnotationType.SPRAY;
+              break;
+            case "keypoint":
+              if (c.annotationType != AnnotationType.KEYPOINT) {
+                c.coordinates = [];
+                c.color = "";
+              }
+
+              c.coordinates.push(coordinates.x);
+              c.coordinates.push(coordinates.y);
+              c.coordinates.push(coordinates.z);
+
+              c.annotationType = AnnotationType.KEYPOINT;
+              c.isAnnotating = false;
+              break;
+            default:
+              break;
+          }
+        }
+      })
+    })
+
+    // console.log(_currProblem);
+    updateProblems(_currProblem);
+  }
+
+  const setClassToNotAnnotating = () => {
+    var _currProblem = currProblem;
+
+    _currProblem.forEach(p => {
+      p.classes.forEach(c => {
+        c.isAnnotating = c.isAnnotating ? false : c.isAnnotating;
+      })
+    });
+
+    updateProblems(_currProblem);
+  }
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -456,10 +544,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer }> = ({ modelData }) => {
+const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; }> = ({ modelData, currProblem, updateProblems }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} />
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} />
     </Canvas>
   );
 };

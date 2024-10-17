@@ -14,9 +14,10 @@ export type ProblemProps = {
     updateProblem: (userInput: string, index: number) => void;
     deleteProblem: (index: number) => void;
     updateLabel: (labels: ClassDetail[], arrIndex: number) => void;
+    setClassToBeAnnotated: (problemIndex: number, classIndex: number) => void
 };
 
-export default function Problem({ problemName, classes, problemKey, updateProblem, deleteProblem, updateLabel }: ProblemProps) {
+export default function Problem({ problemName, classes, problemKey, updateProblem, deleteProblem, updateLabel, setClassToBeAnnotated }: ProblemProps) {
     const [problem, setProblem] = useState(problemName);
     const [isEditProblem, setIsEditProblem] = useState(false);
     const [problemInput, setProblemInput] = useState(problemName);
@@ -40,8 +41,8 @@ export default function Problem({ problemName, classes, problemKey, updateProble
 
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            var _labels : ClassDetail[] = labels;
-            var newClass: ClassDetail = {name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: ""};
+            var _labels: ClassDetail[] = labels;
+            var newClass: ClassDetail = { name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: "", isAnnotating: false };
 
             _labels.push(newClass);
 
@@ -54,9 +55,9 @@ export default function Problem({ problemName, classes, problemKey, updateProble
 
     const updateClassArr = (_class: ClassDetail, arrIndex: number): void => {
         var _labels: ClassDetail[] = labels;
-        
+
         _labels[arrIndex] = _class;
-       
+
         setLabels(_labels);
         updateLabel(_labels, problemKey);
     };
@@ -64,7 +65,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const deleteClass = (arrIndex: number): void => {
         var _labels: ClassDetail[] = labels;
 
-        _labels = _.dropWhile(_labels, function(c, i) {
+        _labels = _.dropWhile(_labels, function (c, i) {
             return i != arrIndex;
         });
 
@@ -101,7 +102,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                 <List>
                     {labels.map((l, j) => (
-                        <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}>
+                        <ListItem sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} onClick={() => { setClassToBeAnnotated(problemKey, j); }}>
                             <Class
                                 classDetails={l}
                                 labelIndex={j}
@@ -124,6 +125,6 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                     )}
                 </List>
             </AccordionDetails>
-        </Accordion>
+        </Accordion >
     );
 }

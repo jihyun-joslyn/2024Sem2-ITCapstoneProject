@@ -1,4 +1,4 @@
-import { Toolbar, Typography, List, ListItem, TextField, IconButton, Alert, Snackbar, AlertTitle } from '@mui/material';
+import { Toolbar, Typography, List, ListItem, TextField, IconButton } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useState, KeyboardEvent } from 'react';
 import * as _ from "lodash";
@@ -6,27 +6,17 @@ import Problem from './Problem';
 import { ProblemType } from '../datatypes/ProblemType';
 import { ClassDetail } from '../datatypes/ClassDetail';
 
-/* {
-        name: "Problem 1",
-        classes: [["class1", color, coordinates], "class2"]
-    },
-    {
-        name: "Problem 2",
-        classes: ["class3", "class4"]
-} */
-
 export type DetailPaneProps = {
     isShow: boolean;
     currentFile: string | null;
     currProblems: ProblemType[];
     updateProblems: (updateProblems: ProblemType[]) => void;
+    showErrorAlert: (_title: string, _content: string) => any
 };
 
-export default function DetailPane({ isShow, currentFile, currProblems, updateProblems }: DetailPaneProps) {
+export default function DetailPane({ isShow, currentFile, currProblems, updateProblems, showErrorAlert }: DetailPaneProps) {
     const [userInput, setUserInput] = useState<string>("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
-    const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
-    const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
 
     // useEffect(() => {
     //     if (selectedFile) {
@@ -66,25 +56,36 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
         updateProblems(_problems);
     };
 
-    const handleCloseErrorDialog = () => {
-        setIsShowErrorAlert(false);
-    }
-
-    const showErrorAlert = (_title: string, _content: string): any => {
-        var _alertContent: { title: string, content: string } = alertContent;
-
-        _alertContent.title = _title;
-        _alertContent.content = _content;
-
-        setAlertContent(_alertContent);
-        setIsShowErrorAlert(true);
-    }
-
     const addProblemBtnOnClick = () => {
         if (currentFile)
             setIsAddNewProblem(true);
         else
             showErrorAlert("Error", "Problems can only be added after STL files are imported");
+    }
+
+    const setClassToBeAnnotated = (problemIndex: number, classIndex: number): void => {
+        var _problems: ProblemType[] = currProblems;
+
+        if (_problems[problemIndex].classes[classIndex].isAnnotating)
+            _problems[problemIndex].classes[classIndex].isAnnotating = false;
+        else {
+            var isHasOtherAnnotating: boolean = false;
+
+            isHasOtherAnnotating = _.findIndex(_problems, function (p) {
+                return _.findIndex(p.classes, function (c) {
+                    return c.isAnnotating == true;
+                }) != -1;
+            }) != -1 ? true : false;
+
+            if (isHasOtherAnnotating)
+                showErrorAlert("Error", "Only one class can be annotated at a time.");
+            else
+                _problems[problemIndex].classes[classIndex].isAnnotating = true;
+        }
+
+        console.log(_problems);
+
+        updateProblems(_problems);
     }
 
     return (
@@ -112,6 +113,7 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                                     updateProblem={updateProblem}
                                     deleteProblem={deleteProblem}
                                     updateLabel={updateLabel}
+                                    setClassToBeAnnotated={setClassToBeAnnotated}
                                 />
                             </ListItem>
                         ))}
@@ -128,20 +130,7 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                             </ListItem>
                         )}
                     </List>
-                    <Snackbar
-                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                        open={isShowErrorDialog}
-                        autoHideDuration={6000}
-                        onClose={handleCloseErrorDialog}>
-                        <Alert
-                            onClose={handleCloseErrorDialog}
-                            severity="error"
-                            sx={{ width: '100%' }}
-                        >
-                            <AlertTitle>{alertContent.title}</AlertTitle>
-                            {alertContent.content}
-                        </Alert>
-                    </Snackbar>
+
                 </div>
             )}
         </div>

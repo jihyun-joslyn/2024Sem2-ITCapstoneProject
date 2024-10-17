@@ -111,6 +111,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
             updateFileList(_fileList);
 
+            console.log(_fileList)
             resolve(_fileList);
         })
     }
@@ -162,6 +163,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
                 var _className: string[] = [];
                 var _color: string[] = [];
+                var spray: any[][] = [];
 
                 for (var x in _problems[i][j]) {
                     for (var y in _problems[i][j][x]) {
@@ -181,14 +183,31 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                                     _color.push(_.toString(Object.values(_mapping[z])[0]));
                                 }
                             }
+                        } else if (_.eq(_.toString(y), "face_labels")) {
+                            for (var z in Object.values(_mapping)) {
+                                var sprayVertex: any[] = _.eq((_.toString(Object.keys(_mapping[z])[0])), "-1") ? [] : _.toString(Object.values(_mapping[z])[0]).split(", ");
+
+                                if (!_.isEmpty(sprayVertex))
+                                    sprayVertex.forEach(v => {
+                                        v = parseInt(v.toString());
+                                    })
+
+                                spray.push(sprayVertex);
+                            }
                         }
                     }
                 }
 
                 _className.forEach((c, x) => {
-                    var _class: ClassDetail = { name: c, annotationType: AnnotationType.NONE, coordinates: [], color: _color.at(x) };
+                    var _class: ClassDetail = { name: c, annotationType: AnnotationType.NONE, coordinates: [], color: _color.at(x), isAnnotating: false };
 
-                    temp.classes.push(_class);
+                    if (spray.at(x).length > 0) {
+                        _class.coordinates = spray.at(x);
+
+                        _class.annotationType = AnnotationType.SPRAY
+                    }
+
+                        temp.classes.push(_class);
                 })
             }
 
@@ -221,6 +240,8 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         problems.forEach(p => {
             var labelMapping: Record<string, string>[] = [];
             var colorMapping: Record<string, string>[] = [];
+            var pointLabels: Record<string, string>[] = [];
+            var faceLabels: Record<string, string>[] = [];
 
             labelMapping.push({ "-1": "unlabelled" });
 
@@ -232,10 +253,33 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
                     labelMapping.push({ [index]: labelName });
                     colorMapping.push({ [index]: colorCode });
+
+                    switch (c.annotationType) {
+                        case AnnotationType.KEYPOINT:
+                            faceLabels.push({ [index]: "-1" });
+
+                            for (let i = 0; i < c.coordinates.length; i += 3) {
+                                var temp: any[] = [(c.coordinates)[i], (c.coordinates)[i + 1], (c.coordinates)[i + 2]];
+
+                                pointLabels.push({ [index]: _.join(temp, ", ") });
+                            }
+                            break;
+                        case AnnotationType.SPRAY:
+                            pointLabels.push({ [index]: "-1" })
+
+                            faceLabels.push({ [index]: _.join(c.coordinates, ", ") });
+                            break;
+                        case AnnotationType.PATH:
+                        case AnnotationType.NONE:
+                        default:
+                            pointLabels.push({ [index]: "-1" });
+                            faceLabels.push({ [index]: "-1" });
+                            break;
+                    }
                 });
             }
 
-            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }];
+            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }, { "face_labels": faceLabels }, { "point_labels": pointLabels }];
             var _problemName: string = p.name;
 
             result.push({ [_problemName]: problemDetails });
