@@ -1,5 +1,3 @@
-// ModelDisplay.tsx
-
 import React, { useRef, useEffect, useCallback, useContext, useState } from 'react';
 import { Canvas, useThree, extend, ThreeEvent } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
@@ -22,6 +20,7 @@ import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import { Graph } from './Graph'; // 导入 Graph 类
 
 extend({ WireframeGeometry });
 
@@ -42,6 +41,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   // 新增：用于存储选定的顶点
   const [selectedVertices, setSelectedVertices] = useState<Vector3[]>([]);
   const vertexSpheresRef = useRef<Object3D[]>([]);
+
+  // 新增：用于存储网格的图结构
+  const [graph, setGraph] = useState<Graph | null>(null);
 
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
@@ -89,6 +91,23 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     // 添加线框效果
     const wireframeGeometry = new WireframeGeometry(geometry);
     wireframeRef.current.geometry = wireframeGeometry;
+
+    // 构建图结构
+    const newGraph = new Graph();
+    newGraph.buildFromGeometry(geometry);
+    setGraph(newGraph);
+
+    // 调试：输出构建的图结构
+    console.log('Graph has been built:', newGraph);
+    console.log('Total nodes in graph:', newGraph.nodes.size);
+
+    // 输出前5个节点的邻接列表
+    newGraph.nodes.forEach((node, index) => {
+      if (index < 5) {
+        console.log(`Node ${node.index} neighbors:`, node.neighbors);
+      }
+    });
+
   }, [modelData]);
 
   // 喷涂功能的实现
@@ -200,7 +219,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
         setSelectedVertices((prevVertices) => [...prevVertices, selectedVertex]);
 
         // 可视化选定的顶点
-        const sphereGeometry = new SphereGeometry(0.04, 16, 16);
+        const sphereGeometry = new SphereGeometry(0.2, 16, 16);
         const sphereMaterial = new MeshBasicMaterial({ color: 'red' });
         const sphere = new Mesh(sphereGeometry, sphereMaterial);
         sphere.position.copy(selectedVertex);
