@@ -8,6 +8,7 @@ import HotkeyDialog from '../components/Hotkey';
 import ModelContext, { Hotkeys, ModelProvider } from '../components/ModelContext';
 import ModelDisplay from "../components/ModelDisplay";
 import Sidebar from '../components/Sidebar';
+import useModelStore from '../components/StateStore';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
 import { ProblemType } from '../datatypes/ProblemType';
@@ -42,6 +43,9 @@ const AppContent = () => {
     reader.onload = () => {
       if (reader.result instanceof ArrayBuffer) {
         setModelData(reader.result);
+        const modelId = reader.result.byteLength.toString();
+        useModelStore.getState().setModelId(modelId);
+        useModelStore.getState().sessionStates[modelId] = { actions: [], currentActionIndex: -1 };
       }
     };
   };

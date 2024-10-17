@@ -1,5 +1,5 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, styled } from '@mui/material';
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import ModelContext from './ModelContext';
 
 export type HotkeyDialogProps = {
@@ -22,64 +22,75 @@ export type Hotkeys = {
 };
 
 export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSave }) => {
-  const { hotkeys, setHotkeys, activateBrush, activateSpray } = useContext(ModelContext);
+  const { hotkeys, setHotkeys } = useContext(ModelContext);
   const [tempHotkeys, setTempHotkeys] = useState<Hotkeys>(hotkeys);
   const [activeInput, setActiveInput] = useState<keyof Hotkeys | null>(null);
-  const [modifierKey, setModifierKey] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [currentHotkey, setCurrentHotkey] = useState<string[]>([]);
+  const isRecordingRef = useRef(false);
+
+  const startRecording = useCallback((key: keyof Hotkeys) => {
+    setActiveInput(key);
+    setCurrentHotkey([]);
+    isRecordingRef.current = true;
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (activeInput && currentHotkey.length > 0) {
+      const newHotkey = currentHotkey.join('+');
+      checkAndSetHotkey(activeInput, newHotkey);
+    }
+    setActiveInput(null);
+    setCurrentHotkey([]);
+    isRecordingRef.current = false;
+  }, [activeInput, currentHotkey]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (activeInput) {
-      event.preventDefault();
-      const key = event.key.toLowerCase();
-      
-      if (['shift', 'control', 'alt'].includes(key)) {
-        setModifierKey(key);
-      } else if (modifierKey) {
-        const newHotkey = formatHotkey(`${modifierKey}+${key}`);
-        checkAndSetHotkey(activeInput, newHotkey);
+    if (!isRecordingRef.current) return;
+    event.preventDefault();
+
+    const key = event.key.toUpperCase();
+    if (!currentHotkey.includes(key)) {
+      if (['CONTROL', 'ALT', 'SHIFT'].includes(key)) {
+        setCurrentHotkey(prev => [key, ...prev]);
       } else {
-        const newHotkey = formatHotkey(key);
-        checkAndSetHotkey(activeInput, newHotkey);
+        setCurrentHotkey(prev => [...prev, key]);
       }
     }
-  }, [activeInput, modifierKey]);
+  }, [currentHotkey]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
-    if (['shift', 'control', 'alt'].includes(event.key.toLowerCase())) {
-      setModifierKey(null);
-      if (activeInput && !tempHotkeys[activeInput].includes('+')) {
-        const newHotkey = formatHotkey(event.key.toLowerCase());
-        checkAndSetHotkey(activeInput, newHotkey);
-      }
+    if (!isRecordingRef.current) return;
+    const key = event.key.toUpperCase();
+    if (['CONTROL', 'ALT', 'SHIFT'].includes(key) && currentHotkey[0] === key) {
+      stopRecording();
     }
-  }, [activeInput, tempHotkeys]);
+  }, [currentHotkey, stopRecording]);
 
   const handleMouseEvent = useCallback((event: MouseEvent) => {
-    if (activeInput) {
-      event.preventDefault();
-      let mouseKey = '';
-      switch (event.button) {
-        case 0: mouseKey = 'LeftClick'; break;
-        case 2: mouseKey = 'RightClick'; break;
-        default: return;
-      }
-      
-      const newHotkey = modifierKey ? formatHotkey(`${modifierKey}+${mouseKey}`) : mouseKey;
-      checkAndSetHotkey(activeInput, newHotkey);
+    if (!isRecordingRef.current) return;
+    event.preventDefault();
+
+    let mouseKey = '';
+    switch (event.button) {
+      case 0: mouseKey = 'LeftClick'; break;
+      case 2: mouseKey = 'RightClick'; break;
+      default: return;
     }
-  }, [activeInput, modifierKey]);
+    
+    setCurrentHotkey(prev => [...prev, mouseKey]);
+    stopRecording();
+  }, [stopRecording]);
 
   const handleWheelEvent = useCallback((event: WheelEvent) => {
-    if (activeInput) {
-      event.preventDefault();
-      const wheelDirection = event.deltaY < 0 ? 'WheelUp' : 'WheelDown';
-      
-      const newHotkey = modifierKey ? formatHotkey(`${modifierKey}+${wheelDirection}`) : wheelDirection;
-      checkAndSetHotkey(activeInput, newHotkey);
-    }
-  }, [activeInput, modifierKey]);
+    if (!isRecordingRef.current) return;
+    event.preventDefault();
+
+    const wheelDirection = event.deltaY < 0 ? 'WheelUp' : 'WheelDown';
+    setCurrentHotkey(prev => [...prev, wheelDirection]);
+    stopRecording();
+  }, [stopRecording]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -103,13 +114,7 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSav
       setShowConflictDialog(true);
     } else {
       setTempHotkeys(prev => ({ ...prev, [key]: value }));
-      setActiveInput(null);
-      setModifierKey(null);
     }
-  };
-
-  const handleInputClick = (key: keyof Hotkeys) => {
-    setActiveInput(key);
   };
 
   const handleSave = () => {
@@ -134,42 +139,11 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSav
 
   const handleConflictDialogClose = () => {
     setShowConflictDialog(false);
-    setActiveInput(null);
-    setModifierKey(null);
   };
 
   const formatKeyName = (key: string) => {
     return key.split(/(?=[A-Z])/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
-
-  const formatHotkey = (hotkey: string): string => {
-    const parts = hotkey.split('+');
-    return parts.map(part => {
-      if (['shift', 'control', 'alt'].includes(part.toLowerCase())) {
-        return part.charAt(0).toUpperCase() + part.slice(1);
-      }
-      if (part.length === 1 && /[a-z]/i.test(part)) {
-        return part.toUpperCase();
-      }
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    }).join('+');
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-        const key = event.key.toUpperCase();
-        if (key === hotkeys.brush.toUpperCase()) {
-            activateBrush();
-        } else if (key === hotkeys.spray.toUpperCase()) {
-            activateSpray();
-        }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-    };
-}, [hotkeys, activateBrush, activateSpray]);
 
   return (
     <>
@@ -180,8 +154,8 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSav
             <KeyRow key={key}>
               <KeyLabel>{formatKeyName(key)}</KeyLabel>
               <StyledTextField
-                value={tempHotkeys[key]}
-                onClick={() => handleInputClick(key)}
+                value={activeInput === key ? currentHotkey.join('+') : tempHotkeys[key]}
+                onClick={() => startRecording(key)}
                 inputProps={{ readOnly: true }}
               />
             </KeyRow>

@@ -10,6 +10,7 @@ import useModelStore from '../components/StateStore';
 import ModelContext from './ModelContext';
 
 
+type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
 
 extend({ WireframeGeometry });
 
@@ -22,9 +23,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
-  const [isSpray,setIsSpray] = useState(false);
+  const [isSpray, setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
-  const {states, setState, modelId,setModelId} = useModelStore();
+  const modelStore = useModelStore();
   const sprayRadius = 1;
 
   useEffect(() => {
@@ -39,7 +40,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
       geometry.computeVertexNormals();
     }
 
-
     //use the BVH to accelerate the geometry
     geometry.computeBoundsTree = computeBoundsTree;
     geometry.disposeBoundsTree = disposeBoundsTree;
@@ -52,19 +52,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const colors = new Float32Array(vertexCount * 3).fill(1);
 
     //load the saved states of color
-    const savedData = states[modelId] || {};
+    const { colors: savedColors } = modelStore.getCurrentState(modelID);
     
-    if(savedData){
-      Object.keys(savedData).forEach( index => {
-        const color = new THREE.Color(savedData[Number(index)].color);
-        colors[Number(index) * 3] = color.r;
-        colors[Number(index)*3+1] = color.g;
-        colors[Number(index) *3+2] = color.b;
-    });
+    if (savedColors) {
+      Object.entries(savedColors).forEach(([index, colorState]) => {
+        const color = new THREE.Color(colorState.color);
+        const i = Number(index);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+      });
     }
 
-    setModelId(modelID);
-
+    modelStore.setModelId(modelID);
 
     // add the color into geometry, each vertex use three data to record color
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -96,23 +96,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
             const faceIndices = [intersect.face.a,intersect.face.b,intersect.face.c];
             faceIndices.forEach(index => {
               colorAttributes.setXYZ(index,newColor.r,newColor.g,newColor.b);
-              setState(modelId,index,color);
+              modelStore.addPaintChange(modelStore.modelId, index, color);
             });
             colorAttributes.needsUpdate = true;
           }
         })
     }
-  },[color,camera]);
+  },[color,camera, modelStore]);
 
-  const handleMouseDown = useCallback((event : ThreeEvent<PointerEvent>) => {
-    if(tool != 'spray') return;
+  const handleMouseDown = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (tool != 'spray') return;
     event.stopPropagation();
     setIsSpray(true);
-  },[gl,spray]);
+    modelStore.startPaintAction(modelStore.modelId, 'spray');
+  }, [tool, modelStore]);
 
-  const handleMouseMove = useCallback((event : ThreeEvent<PointerEvent>) => {
+  const handleMouseMove = useCallback((event: ThreeEvent<PointerEvent>) => {
     //only spray when tool is spray and click the mouse
-    if(!isSpray || tool !== 'spray') return;
+    if (!isSpray || tool !== 'spray') return;
     event.stopPropagation();
 
     // get the weight and height from canvas
@@ -121,15 +122,17 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const point = new THREE.Vector2(x,y);
+    const point = new THREE.Vector2(x, y);
 
     spray(point);
-  },[isSpray,gl,spray]);
+  }, [isSpray, gl, spray, tool]);
 
-  const handleMouseUp = useCallback((event : ThreeEvent<PointerEvent>) => {
+  const handleMouseUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     setIsSpray(false);
-  },[]);
-
+    if (tool === 'spray') {
+      modelStore.endPaintAction(modelStore.modelId);
+    }
+  }, [tool, modelStore]);
 
   //Starting KeyPoint Marking function.
 const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
@@ -167,6 +170,11 @@ useEffect(() => {
 
       // Debugging log to show precise coordinates
       console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
+
+      modelStore.setKeypoint(modelStore.modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
+      modelStore.startPaintAction(modelStore.modelId, 'point');
+      modelStore.addPaintChange(modelStore.modelId, -1, 'purple'); // Use -1 as a special index for keypoints
+      modelStore.endPaintAction(modelStore.modelId);
     }
   };
 
@@ -177,7 +185,46 @@ useEffect(() => {
   return () => {
     window.removeEventListener('click', handlePointerClick);
   };
-}, [tool, camera, gl, meshRef]);
+}, [tool, camera, gl, meshRef, modelStore]);
+
+
+const isKeyboardEvent = (event: HotkeyEvent): event is KeyboardEvent => {
+  return 'key' in event;
+};
+
+const isMouseEvent = (event: HotkeyEvent): event is MouseEvent => {
+  return 'button' in event;
+};
+
+const isWheelEvent = (event: HotkeyEvent): event is WheelEvent => {
+  return 'deltaY' in event;
+};
+
+const checkHotkey = useCallback((event: HotkeyEvent, hotkeyString: string) => {
+  const hotKeyParts = hotkeyString.toUpperCase().split('+');
+  
+  const isCtrlPressed = event.ctrlKey;
+  const isShiftPressed = event.shiftKey;
+  const isAltPressed = event.altKey;
+
+  const modifiers = [
+    isCtrlPressed && 'CONTROL',
+    isShiftPressed && 'SHIFT',
+    isAltPressed && 'ALT'
+  ].filter(Boolean);
+
+  let key = '';
+  if (isKeyboardEvent(event)) {
+    key = event.key.toUpperCase();
+  } else if (isMouseEvent(event)) {
+    key = event.button === 0 ? 'LEFTCLICK' : event.button === 2 ? 'RIGHTCLICK' : '';
+  } else if (isWheelEvent(event)) {
+    key = (event as WheelEvent).deltaY < 0 ? 'WHEELUP' : 'WHEELDOWN';
+  }
+
+  const pressedKeys = [...modifiers, key];
+  return hotKeyParts.every(part => pressedKeys.includes(part)) && pressedKeys.length === hotKeyParts.length;
+}, []);
 
 
 const zoomCamera = (factor: number) => {
@@ -235,28 +282,116 @@ const fitModel = () => {
 
 useEffect(() => {
   const handleKeyDown = (event: KeyboardEvent) => {
-    const key = event.key.toUpperCase();
-    if (key === hotkeys.zoomIn.toUpperCase()) {
+    if (checkHotkey(event, hotkeys.zoomIn)) {
       zoomCamera(0.9);
-    } else if (key === hotkeys.zoomOut.toUpperCase()) {
+    } else if (checkHotkey(event, hotkeys.zoomOut)) {
       zoomCamera(1.1);
-    } else if (key === hotkeys.rotateLeft.toUpperCase()) {
+    } else if (checkHotkey(event, hotkeys.rotateLeft)) {
       rotateHorizontal(-Math.PI / 32);
-    } else if (key === hotkeys.rotateRight.toUpperCase()) {
+    } else if (checkHotkey(event, hotkeys.rotateRight)) {
       rotateHorizontal(Math.PI / 32);
-    } else if (key === hotkeys.rotateUp.toUpperCase()) {
+    } else if (checkHotkey(event, hotkeys.rotateUp)) {
       rotateVertical(-Math.PI / 32);
-    } else if (key === hotkeys.rotateDown.toUpperCase()) {
+    } else if (checkHotkey(event, hotkeys.rotateDown)) {
       rotateVertical(Math.PI / 32);
+    } else if (checkHotkey(event, hotkeys.prevStep)) {
+      modelStore.undo(modelStore.modelId);
+      updateMeshColors();
+      //logSessionActions(modelStore.modelId);
+      console.log("Undo triggered");
+    } else if (checkHotkey(event, hotkeys.nextStep)) {
+      modelStore.redo(modelStore.modelId);
+      updateMeshColors();
+      //logSessionActions(modelStore.modelId);
+      console.log("Redo triggered");
     }
   };
 
+  const handleMouseDown = (event: MouseEvent) => {
+    if (checkHotkey(event, hotkeys.zoomIn)) {
+      zoomCamera(0.9);
+    } else if (checkHotkey(event, hotkeys.zoomOut)) {
+      zoomCamera(1.1);
+    } else if (checkHotkey(event, hotkeys.rotateLeft)) {
+      rotateHorizontal(-Math.PI / 32);
+    } else if (checkHotkey(event, hotkeys.rotateRight)) {
+      rotateHorizontal(Math.PI / 32);
+    } else if (checkHotkey(event, hotkeys.rotateUp)) {
+      rotateVertical(-Math.PI / 32);
+    } else if (checkHotkey(event, hotkeys.rotateDown)) {
+      rotateVertical(Math.PI / 32);
+    } else if (checkHotkey(event, hotkeys.prevStep)) {
+      modelStore.undo(modelStore.modelId);
+      updateMeshColors();
+      //logSessionActions(modelStore.modelId);
+      console.log("Undo triggered");
+    } else if (checkHotkey(event, hotkeys.nextStep)) {
+      modelStore.redo(modelStore.modelId);
+      updateMeshColors();
+      //logSessionActions(modelStore.modelId);
+      console.log("Redo triggered");
+    }
+  };
+
+  const handleWheel = (event: WheelEvent) => {
+    if (checkHotkey(event, hotkeys.zoomIn)) {
+      zoomCamera(0.9);
+      event.preventDefault();
+    } else if (checkHotkey(event, hotkeys.zoomOut)) {
+      zoomCamera(1.1);
+      event.preventDefault();
+    }
+  };
+  
   window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('mousedown', handleMouseDown);
+  window.addEventListener('wheel', handleWheel);
 
   return () => {
     window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('mousedown', handleMouseDown);
+    window.removeEventListener('wheel', handleWheel);
   };
-}, [hotkeys]);
+}, [hotkeys, checkHotkey, zoomCamera, rotateHorizontal, rotateVertical, modelStore]);
+
+const updateMeshColors = useCallback(() => {
+  if (!meshRef.current) return;
+  const geometry = meshRef.current.geometry as BufferGeometry;
+  const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
+  const { colors, keypoints } = modelStore.getCurrentState(modelStore.modelId);
+
+  // Update vertex colors
+  for (let i = 0; i < colorAttributes.count; i++) {
+    const color = colors[i] ? new THREE.Color(colors[i].color) : new THREE.Color(0xffffff);
+    colorAttributes.setXYZ(i, color.r, color.g, color.b);
+  }
+
+  // Update keypoints
+  meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
+  keypoints.forEach(keypoint => {
+    const sphere = new THREE.Mesh(sphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
+    sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
+    meshRef.current?.add(sphere);
+  });
+
+  colorAttributes.needsUpdate = true;
+}, [modelStore]);
+
+// debugging function to log session actions
+// const logSessionActions = (modelId: string) => {
+//   const sessionState = modelStore.sessionStates[modelId];
+//   if (sessionState) {
+//     console.log("Current Session State:");
+//     console.log(`Total Actions: ${sessionState.actions.length}`);
+//     console.log(`Current Action Index: ${sessionState.currentActionIndex}`);
+//     console.log("Actions:");
+//     sessionState.actions.forEach((action, index) => {
+//       console.log(`${index}: ${action.type} - ${JSON.stringify(action.changes)}`);
+//     });
+//   } else {
+//     console.log("No session state found for this model.");
+//   }
+// };
 
   return (
     <>
