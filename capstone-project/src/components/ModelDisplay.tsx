@@ -50,11 +50,17 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
 
     // Get all vertices and initialize colors (default to white)
     const vertexCount = geometry.attributes.position.count;
-    const colors = new Float32Array(vertexCount * 3).fill(1);
-
+    // Check if the geometry has color attribute, if not, create one
+    if (!geometry.attributes.color) {
+      const colors = new Float32Array(vertexCount * 3).fill(1); // Initialize with white color
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    }
+  
+    const colors = geometry.attributes.color.array; // Get the color array
+  
     // Load the saved states of color
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
-
+  
     // Check if there are any spray annotations
     const hasSprayAnnotations = Object.keys(savedData).some(
       (index) => savedData[Number(index)]?.color // Check if color exists in any savedData entry
