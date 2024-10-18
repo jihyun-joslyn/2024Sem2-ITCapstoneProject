@@ -16,13 +16,14 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
-  const { tool, color } = useContext(ModelContext); // Get the tool and color state from sidebar
+  const { tool, color, sphereSize } = useContext(ModelContext); // Get the tool and color state from sidebar, also the size of the keypoint sphere
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
   const [isSpray, setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
   const { states, keypoints, setState, modelId, setModelId } = useModelStore();
+  
   const sprayRadius = 1;
 
   useEffect(() => {
@@ -151,7 +152,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   }, []);
 
   // Starting KeyPoint Marking function.
-  const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
+  const sphereGeometry = new THREE.SphereGeometry(sphereSize, 16, 16); // Use sphereSize from context
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: 'purple' });
 
   useEffect(() => {
@@ -201,7 +202,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     return () => {
       window.removeEventListener('click', handlePointerClick);
     };
-  }, [tool, camera, gl, meshRef]);
+  }, [gl, camera, tool, sphereSize]); // Add sphereSize to dependencies
 
   return (
     <>

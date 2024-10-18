@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react';
-import { createSvgIcon, Tab, Tabs, Tooltip } from '@mui/material';
+import { createSvgIcon, FormControlLabel, Radio, RadioGroup, Tab, Tabs, Tooltip } from '@mui/material';
 import { Folder as FolderIcon, PanTool as PanToolIcon, Brush as BrushIcon, LocationSearching as KeypointIcon } from '@mui/icons-material';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
@@ -43,7 +43,9 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
-  const { setTool, setSpray } = useContext(ModelContext);
+  const { setTool, setSpray, setSphereSize, sphereSize } = useContext(ModelContext); // Access sphere size
+  const [showSphereSize, setShowSphereSize] = useState(false); // State for showing sphere size
+
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -57,9 +59,11 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
         break;
       case 5:
         setTool('keypoint');
+        setShowSphereSize(true); // Show sphere size when Keypoint is selected
         break;
       default:
         setTool('none');
+        setShowSphereSize (false); // Hide sphere size for other tools
     }
   };
 
@@ -69,6 +73,11 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     setColorSelector(false);
     showColorSpraySelector(!showColorSelector);
   }
+
+  const handleSphereSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSphereSize(parseFloat(event.target.value)); // Update sphere size from radio input
+    setShowSphereSize(false); // Hide sphere size selection after selection
+  };
 
   const folderOnClick = () => {
     showFilePane(!isShowFilePane);
@@ -103,6 +112,18 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
             <SketchPicker color={color} onChangeComplete={handleColorChange} />
           </>
         </Tooltip>
+      )}
+      {value === 5 && (
+        <RadioGroup
+          aria-label="sphere-size"
+          name="sphere-size"
+          value={sphereSize.toString()}
+          onChange={handleSphereSizeChange} // Trigger size change
+        >
+          <FormControlLabel value="0.02" control={<Radio />} label="Small" />
+          <FormControlLabel value="0.05" control={<Radio />} label="Default" />
+          <FormControlLabel value="0.08" control={<Radio />} label="Large" />
+        </RadioGroup>
       )}
       <FilePane isShow={isShowFilePane} onFileSelect={onFileSelect} fileList={fileList} currentFile={currentFile} />
     </div>
