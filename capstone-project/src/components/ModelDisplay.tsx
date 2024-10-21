@@ -114,20 +114,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     if (hasSprayAnnotations) {
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     }
-    //load the saved states of color
-    const { colors: savedColors } = modelStore.getCurrentState(modelID);
-
-    if (savedColors) {
-      Object.entries(savedColors).forEach(([index, colorState]) => {
-        const color = new THREE.Color(colorState.color);
-        const i = Number(index);
-        colors[i * 3] = color.r;
-        colors[i * 3 + 1] = color.g;
-        colors[i * 3 + 2] = color.b;
-      });
-    }
-
-    modelStore.setModelId(modelID);
 
     // add the color into geometry, each vertex use three data to record color
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
