@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { createRoot } from "react-dom/client";
-import { Grid2 as Grid, Box } from '@mui/material';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
-import DetailPane from '../components/DetailPane';
-import ModelDisplay from "../components/ModelDisplay";
-import { ModelProvider } from '../components/ModelContext';
-import { ProblemType } from '../datatypes/ProblemType';
+import { Box, Grid2 as Grid } from '@mui/material';
 import * as _ from "lodash";
+import { useContext, useState } from 'react';
+import { createRoot } from "react-dom/client";
+import DetailPane from '../components/DetailPane';
+import Header from '../components/Header';
+import HotkeyDialog from '../components/Hotkey';
+import ModelContext, { Hotkeys, ModelProvider } from '../components/ModelContext';
+import ModelDisplay from "../components/ModelDisplay";
+import Sidebar from '../components/Sidebar';
+import useModelStore from '../components/StateStore';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
+import { ProblemType } from '../datatypes/ProblemType';
 
 
 const container = document.getElementById('root');
@@ -20,7 +22,7 @@ var isShowDetail: boolean = false;
 var isShowColorSpray: boolean = false;
 var isShowFile: boolean = false;
 
-const App = () => {
+const AppContent = () => {
   const [isShowDetailPane, setIsShowDetailPane] = useState(false);
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [isShowColorSpraySelector, setIsShowColorSpraySelector] = useState(false);
@@ -32,6 +34,8 @@ const App = () => {
   const [currProblems, setCurrentProblems] = useState<ProblemType[]>([]);
   const [stlFiles, setSTLFiles] = useState<FileAnnotation[]>([]);
   const [fileList, setFileList] = useState<FileList[]>([]);
+  const { setHotkeys } = useContext(ModelContext);
+  const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -39,6 +43,9 @@ const App = () => {
     reader.onload = () => {
       if (reader.result instanceof ArrayBuffer) {
         setModelData(reader.result);
+        const modelId = reader.result.byteLength.toString();
+        useModelStore.getState().setModelId(modelId);
+        useModelStore.getState().sessionStates[modelId] = { actions: [], currentActionIndex: -1 };
       }
     };
   };
@@ -163,8 +170,16 @@ const App = () => {
     loadSTLFile(_file.fileObject);
   }
 
+  const openHotkeyDialog = () => {
+    setIsHotkeyDialogOpen(true);
+  };
+
+  const handleHotkeySave = (newHotkeys: Hotkeys) => {
+    setHotkeys(newHotkeys);
+  };
+
   return (
-    <ModelProvider>
+    <>
       <Box sx={{ flexGrow: 0 }}>
         <Header
           showDetailPane={showDetailPane}
@@ -172,7 +187,8 @@ const App = () => {
           currentFile={currentFile}
           updateFileList={updateFileList}
           stlFiles={stlFiles}
-          initializeCurrentFile={initializeCurrentFile} />
+          initializeCurrentFile={initializeCurrentFile}
+          openHotkeyDialog={openHotkeyDialog}/>
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -194,6 +210,19 @@ const App = () => {
             updateProblems={updateDataLabels} />
         </Grid>
       </Grid>
+      <HotkeyDialog
+        open={isHotkeyDialogOpen}
+        onClose={() => setIsHotkeyDialogOpen(false)}
+        onSave={handleHotkeySave}
+      />
+    </>
+  );
+};
+
+const App = () => {
+  return (
+    <ModelProvider>
+      <AppContent />
     </ModelProvider>
   );
 };
