@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { OutputFile } from '../datatypes/OutputFile';
 import { ProblemType } from '../datatypes/ProblemType';
+import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
+
 
 export type HeaderProps = {
     showDetailPane: (isShow: boolean) => void;
@@ -184,10 +186,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 }
 
                 _className.forEach((c, x) => {
-                    var _class: string[] = [];
-
-                    _class.push(c);
-                    _class.push(_color.at(x));
+                    var _class: ClassDetail = { name: c, annotationType: AnnotationType.NONE, coordinates: [], color: _color.at(x) };
 
                     temp.classes.push(_class);
                 })
@@ -228,8 +227,8 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             if (!_.isEmpty(p.classes)) {
                 p.classes.forEach((c, j) => {
                     var index: string = j.toString();
-                    var labelName: string = c[0];
-                    var colorCode: string = c.length > 1 ? c[1] : "";
+                    var labelName: string = c.name;
+                    var colorCode: string = _.isEmpty(c.color) ? "" : c.color;
 
                     labelMapping.push({ [index]: labelName });
                     colorMapping.push({ [index]: colorCode });

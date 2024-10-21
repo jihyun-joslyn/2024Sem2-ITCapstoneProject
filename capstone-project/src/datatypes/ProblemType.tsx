@@ -1,4 +1,6 @@
+import { ClassDetail } from "./ClassDetail";
+
 export type ProblemType = {
     name: string;
-    classes: string[][];
+    classes: ClassDetail[];
 }

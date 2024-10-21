@@ -2,69 +2,64 @@ import { TextField } from '@mui/material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
+import { ClassDetail } from '../datatypes/ClassDetail';
 
 export type ClassProps = {
-    labelArr: string[],
+    classDetails: ClassDetail,
     labelIndex: number,
-    updateLabel: (labels: string[], arrIndex: number) => void;
+    updateLabel: (labels: ClassDetail, arrIndex: number) => void;
     deleteClass: (arrIndex: number) => void;
 };
 
-export default function Class({ labelArr, labelIndex, updateLabel, deleteClass }: ClassProps) {
-    const [labels, setLabels] = useState(labelArr);
-    const [className, setClassName] = useState(labelArr[0]);
+export default function Class({ classDetails, labelIndex, updateLabel, deleteClass }: ClassProps) {
+    const [details, setDetails] = useState(classDetails);
+    const [className, setClassName] = useState(classDetails.name);
     const [isEditClass, setIsEditClass] = useState(false);
 
     useEffect(() => {
-        setLabels(labelArr);
-        setClassName(labelArr[0]);
-    }, [labelArr]);
+        setDetails(classDetails);
+        setClassName(classDetails.name);
+    }, [classDetails]);
 
     const editClass = (e: KeyboardEvent<HTMLDivElement>): void => {
-        const _labels: string[] = [...labels];
         if (!_.isEmpty(_.trim(className)) && e.key === "Enter") {
-            _labels[0] = className;
+            var _details: ClassDetail = details;
 
-            setLabels(_labels);
+            _details.name = className;
+
+            setDetails(_details);
             setIsEditClass(false);
 
-            updateLabel(_labels, labelIndex);
+            updateLabel(_details, labelIndex);
         }
     };
 
     return (
         <div className='class-list-item'>
-            {labels.map((_l, i) => {
-                if (i === 0) {
-                    return (
-                        <div key={i} style={{ paddingLeft: '0px' }}>
-                            {isEditClass ? (
-                                <TextField
-                                    id="edit-class"
-                                    label="Edit Class"
-                                    variant="standard"
-                                    value={className}
-                                    onChange={e => setClassName(e.target.value)}
-                                    onKeyDown={e => editClass(e)}
-                                />
-                            ) : (
-                                <span>
-                                    {_l}
-                                    <span className='upsert-button'>
-                                        <UpsertMenu
-                                            onClickEdit={() => setIsEditClass(true)}
-                                            onClickDelete={() => deleteClass(labelIndex)}
-                                            onClickAdd={() => {}}
-                                            isNeedAdd={false}
-                                        />
-                                    </span>
-                                </span>
-                            )}
-                        </div>
-                    );
-                }
-                return null;
-            })}
+            <div style={{ paddingLeft: '0px' }}>
+                {isEditClass ? (
+                    <TextField
+                        id="edit-class"
+                        label="Edit Class"
+                        variant="standard"
+                        value={className}
+                        onChange={e => setClassName(e.target.value)}
+                        onKeyDown={e => editClass(e)}
+                    />
+                ) : (
+                    <span>
+                        {className}
+                        <span className='upsert-button'>
+                            <UpsertMenu
+                                onClickEdit={() => setIsEditClass(true)}
+                                onClickDelete={() => deleteClass(labelIndex)}
+                                onClickAdd={() => { }}
+                                isNeedAdd={false}
+                            />
+                        </span>
+                    </span>
+                )}
+            </div>
         </div>
     );
 }

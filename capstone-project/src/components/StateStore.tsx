@@ -10,6 +10,7 @@ interface KeypointState {
   color: string; // Color of the keypoint
 }
 
+
 // New interfaces for session-based actions
 interface PaintAction {
   type: 'spray' | 'point';
@@ -42,6 +43,7 @@ interface ModelColorState {
   getCurrentState: (modelId: string) => { colors: { [vertexIndex: number]: ColorState }, keypoints: KeypointState[] };
 }
 
+
 const useModelStore = create<ModelColorState>()(
   devtools(
     persist(
@@ -51,6 +53,8 @@ const useModelStore = create<ModelColorState>()(
         keypoints: {},
         sessionStates: {},
 
+
+        // Set spray color for a vertex
         setState: (modelId, vertexIndex, color) =>
           set((state) => ({
             ...state,
@@ -63,6 +67,8 @@ const useModelStore = create<ModelColorState>()(
             },
           })),
 
+
+        // Set keypoint with position and color
         setKeypoint: (modelId, position, color) =>
           set((state) => ({
             ...state,
@@ -70,11 +76,12 @@ const useModelStore = create<ModelColorState>()(
               ...state.keypoints,
               [modelId]: [
                 ...(state.keypoints[modelId] || []),
-                { position, color },
+                { position, color }, // Add new keypoint with its position and color
               ],
             },
           })),
 
+        // Set current model ID
         setModelId: (id) =>
           set((state) => ({
             ...state,
