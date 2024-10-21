@@ -1,10 +1,11 @@
 import { Brush as BrushIcon, Folder as FolderIcon, LocationSearching as KeypointIcon, PanTool as PanToolIcon } from '@mui/icons-material';
 import { Tab, Tabs, Tooltip, createSvgIcon } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
-import { ColorResult, SketchPicker } from 'react-color';
-import { FileList } from '../datatypes/FileList';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
+import { SketchPicker, ColorResult } from 'react-color';
+import { FileList } from '../datatypes/FileList';
+import _ from 'lodash';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
@@ -12,6 +13,8 @@ export type SidebarProps = {
   showColorSpraySelector: (isShow: boolean) => void;
   fileList: FileList[],
   currentFile: string;
+  checkIfNowCanAnnotate: () => boolean;
+  showErrorAlert: (_title: string, _content: string) => any
 };
 
 const ArrowIcon = createSvgIcon(
@@ -38,7 +41,7 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, checkIfNowCanAnnotate, showErrorAlert }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
@@ -65,9 +68,17 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     }
 }, [currentTool]);
 
-const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-  setValue(newValue);
-  switch (newValue) {
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    if (newValue == 4 || newValue == 5) {
+      if (!checkIfNowCanAnnotate()) {
+        showErrorAlert("Error", "Please select a class before annotating");
+        newValue = 0;
+      }
+    }
+
+    setValue(newValue);
+
+    switch (newValue) {
       case 2:
           setTool('pan');
           break;

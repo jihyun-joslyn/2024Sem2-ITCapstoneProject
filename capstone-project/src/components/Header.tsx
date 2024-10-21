@@ -98,6 +98,13 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
                         if (checkIfFileExistsInLocalStorage(f.name)) { 
                             temp1.problems = getFileDataFromLocalStorage(f.name);
+
+                            //reset current class
+                            temp1.problems.forEach(p => {
+                                p.classes.forEach(c => {
+                                    c.isAnnotating = false;
+                                })
+                            })
                         }
                         else {
                             if (isAnnotated(files, f.name))
@@ -310,6 +317,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         link.href = URL.createObjectURL(blob);
         link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
         link.click();
+        removeFileFromLocalStorage(currentFile);
         handleFileClose();
     };
 

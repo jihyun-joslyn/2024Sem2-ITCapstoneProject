@@ -211,6 +211,14 @@ const AppContent = () => {
     setIsShowErrorAlert(true);
   }
 
+  const checkIfNowCanAnnotate = () : boolean => {
+    return _.findIndex(currProblems, function (p) {
+      return _.findIndex(p.classes, function (c) {
+          return c.isAnnotating == true;
+      }) != -1;
+  }) != -1 ? true : false;
+  }
+
 
   return (
     <>
@@ -231,7 +239,9 @@ const AppContent = () => {
             showColorSpraySelector={showColorSpraySelector}
             onFileSelect={handleFileSelect}
             fileList={fileList}
-            currentFile={currentFile} />
+            currentFile={currentFile} 
+            checkIfNowCanAnnotate={checkIfNowCanAnnotate}
+            showErrorAlert={showErrorAlert} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
