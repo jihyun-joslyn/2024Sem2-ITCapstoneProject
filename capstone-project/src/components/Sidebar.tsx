@@ -12,6 +12,7 @@ export type SidebarProps = {
   showColorSpraySelector: (isShow: boolean) => void;
   fileList: FileList[],
   currentFile: string;
+  isAnnotationAllowed: () => boolean;
 };
 
 const ArrowIcon = createSvgIcon(
@@ -38,7 +39,7 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, isAnnotationAllowed }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
@@ -46,52 +47,56 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const { setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);
 
   useEffect(() => {
-    // Update the selected tab based on the current tool
     switch (currentTool) {
-        case 'pan':
-            setValue(2);
-            break;
-        case 'brush':
-            setValue(3);
-            break;
-        case 'spray':
-            setValue(4);
-            break;
-        case 'keypoint':
-            setValue(5);
-            break;
-        default:
-            setValue(0);
-    }
-}, [currentTool]);
-
-const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-  setValue(newValue);
-  switch (newValue) {
-      case 2:
-          setTool('pan');
-          break;
-      case 3:
-          activateBrush();
-          break;
-      case 4:
-          activateSpray();
-          setColorSelector(true);
-          break;
-      case 5:
-          setTool('keypoint');
-          break;
+      case 'pan':
+        setValue(2);
+        break;
+      case 'brush':
+        setValue(3);
+        break;
+      case 'spray':
+        setValue(4);
+        break;
+      case 'keypoint':
+        setValue(5);
+        break;
       default:
-          setTool('none');
-  }
-};
+        setValue(0);
+    }
+  }, [currentTool]);
+
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    if ((newValue === 4 || newValue === 5) && !isAnnotationAllowed()) {
+      alert('Please create at least one Class before using the annotation tools.');
+      return;
+    }
+
+    setValue(newValue);
+    switch (newValue) {
+      case 2:
+        setTool('pan');
+        break;
+      case 3:
+        activateBrush();
+        break;
+      case 4:
+        activateSpray();
+        setColorSelector(true);
+        break;
+      case 5:
+        setTool('keypoint');
+        break;
+      default:
+        setTool('none');
+    }
+  };
 
   const handleColorChange = (color: ColorResult) => {
     setColor(color.hex);
     setSpray(color.hex);
     setColorSelector(false);
     showColorSpraySelector(!showColorSelector);
-  }
+  };
 
   const folderOnClick = () => {
     showFilePane(!isShowFilePane);
@@ -118,7 +123,7 @@ const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
-        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} onClick={() => { /*something here*/ }} />
+        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} onClick={() => { }} />
       </Tabs>
       {showColorSelector && (
         <Tooltip title="Choose color" placement="right">

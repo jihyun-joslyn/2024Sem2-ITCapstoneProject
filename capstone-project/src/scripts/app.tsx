@@ -1,6 +1,6 @@
 import { Box, Grid2 as Grid } from '@mui/material';
 import * as _ from "lodash";
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef } from 'react';
 import { createRoot } from "react-dom/client";
 import DetailPane from '../components/DetailPane';
 import Header from '../components/Header';
@@ -12,6 +12,7 @@ import useModelStore from '../components/StateStore';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
 import { ProblemType } from '../datatypes/ProblemType';
+import { Mesh, BufferGeometry, Material, Object3DEventMap } from 'three'; 
 
 
 const container = document.getElementById('root');
@@ -36,6 +37,7 @@ const AppContent = () => {
   const [fileList, setFileList] = useState<FileList[]>([]);
   const { setHotkeys } = useContext(ModelContext);
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
+  const meshRef = useRef<Mesh<BufferGeometry, Material | Material[], Object3DEventMap>>(null);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -115,6 +117,11 @@ const AppContent = () => {
     setComponentsGridWidth();
   };
 
+  const isAnnotationAllowed = (): boolean => {
+    if (currProblems.length === 0) return false; 
+    return currProblems.some(problem => problem.classes.length > 0); 
+  };
+
   const setComponentsGridWidth = (): void => {
     switch (isShowDetail) {
       case true:
@@ -188,7 +195,8 @@ const AppContent = () => {
           updateFileList={updateFileList}
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
-          openHotkeyDialog={openHotkeyDialog}/>
+          openHotkeyDialog={openHotkeyDialog}
+          meshRef={meshRef} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -197,10 +205,11 @@ const AppContent = () => {
             showColorSpraySelector={showColorSpraySelector}
             onFileSelect={handleFileSelect}
             fileList={fileList}
-            currentFile={currentFile} />
+            currentFile={currentFile}
+            isAnnotationAllowed={isAnnotationAllowed} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} />}
+        {modelData && <ModelDisplay meshRef={meshRef} modelData={modelData} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane

@@ -40,36 +40,39 @@ export default function Problem({ problemName, classes, problemKey, updateProble
 
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
-            var _labels : ClassDetail[] = labels;
-            var newClass: ClassDetail = {name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: ""};
+            // 创建新的 ClassDetail
+            const newClass: ClassDetail = {
+                name: inputNewClass,
+                annotationType: AnnotationType.NONE,
+                coordinates: [], // 确保提供默认值
+                color: ""  // 提供默认颜色值
+            };
 
-            _labels.push(newClass);
+            // 使用扩展运算符将新类添加到标签数组中
+            const updatedLabels = [...labels, newClass];
 
-            setLabels(_labels);
+            setLabels(updatedLabels);
             setInputNewClass("");
             setIsAddNewClass(false);
-            updateLabel(_labels, problemKey);
+            updateLabel(updatedLabels, problemKey);
         }
     };
 
     const updateClassArr = (_class: ClassDetail, arrIndex: number): void => {
-        var _labels: ClassDetail[] = labels;
-        
-        _labels[arrIndex] = _class;
-       
-        setLabels(_labels);
-        updateLabel(_labels, problemKey);
+        // 使用不可变更新方式替换数组中的指定元素
+        const updatedLabels = [...labels];
+        updatedLabels[arrIndex] = _class;
+
+        setLabels(updatedLabels);
+        updateLabel(updatedLabels, problemKey);
     };
 
     const deleteClass = (arrIndex: number): void => {
-        var _labels: ClassDetail[] = labels;
+        // 通过过滤掉指定索引的元素来更新数组
+        const updatedLabels = labels.filter((_, i) => i !== arrIndex);
 
-        _labels = _.dropWhile(_labels, function(c, i) {
-            return i != arrIndex;
-        });
-
-        setLabels(_labels);
-        updateLabel(_labels, problemKey);
+        setLabels(updatedLabels);
+        updateLabel(updatedLabels, problemKey);
     };
 
     return (
