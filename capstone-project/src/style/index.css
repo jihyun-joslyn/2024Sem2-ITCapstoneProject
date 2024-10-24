@@ -42,7 +42,7 @@ body {
 
 #toolbar,
 #file-pane {
-  height: 100vh !important;
+  height: calc(100vh - 36px) !important
 }
 
 #toolbar .MuiTabs-scroller .MuiTabs-flexContainer button svg {
@@ -230,8 +230,9 @@ body {
   word-wrap: break-word;
 }
 
-.selected-file, #detail-list .MuiListItem-root .MuiList-root .Mui-selected {
-  background-color: #DDC5B0!important;
+.selected-file,
+#detail-list .selected-class {
+  background-color: #DDC5B0 !important;
   font-weight: bold !important;
   border-left: 4px solid #824D28 !important;
 }
@@ -240,4 +241,10 @@ body {
   min-width: 0px !important;
   margin-right: 8px !important;
   color: #824D28 !important;
+}
+
+.class-list-item button {
+  color: #824D28 !important;
+  text-transform: none !important;
+  font-size: 1rem;
 }

@@ -1,4 +1,4 @@
-import { TextField } from '@mui/material';
+import { Button, TextField } from '@mui/material';
 import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
@@ -9,9 +9,10 @@ export type ClassProps = {
     labelIndex: number,
     updateLabel: (labels: ClassDetail, arrIndex: number) => void;
     deleteClass: (arrIndex: number) => void;
+    setClassToBeAnnotated: (classIndex: number) => void;
 };
 
-export default function Class({ classDetails, labelIndex, updateLabel, deleteClass }: ClassProps) {
+export default function Class({ classDetails, labelIndex, updateLabel, deleteClass, setClassToBeAnnotated }: ClassProps) {
     const [details, setDetails] = useState(classDetails);
     const [className, setClassName] = useState(classDetails.name);
     const [isEditClass, setIsEditClass] = useState(false);
@@ -48,7 +49,7 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
                     />
                 ) : (
                     <span>
-                        {className}
+                        <Button variant="text" onClick={e => { setClassToBeAnnotated(labelIndex); }}>{className}</Button>
                         <span className='upsert-button'>
                             <UpsertMenu
                                 onClickEdit={() => setIsEditClass(true)}

@@ -6,6 +6,7 @@ import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
 import { FileList } from '../datatypes/FileList';
 import _ from 'lodash';
+import { AnnotationType } from '../datatypes/ClassDetail';
 
 export type SidebarProps = {
   showFilePane: (isShow: boolean) => void;
@@ -14,7 +15,9 @@ export type SidebarProps = {
   fileList: FileList[],
   currentFile: string;
   checkIfNowCanAnnotate: () => boolean;
-  showErrorAlert: (_title: string, _content: string) => any
+  showErrorAlert: (_title: string, _content: string) => any;
+  getCurrentAnnotationTool: () => AnnotationType
+
 };
 
 const ArrowIcon = createSvgIcon(
@@ -41,7 +44,7 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, checkIfNowCanAnnotate, showErrorAlert }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, checkIfNowCanAnnotate, showErrorAlert, getCurrentAnnotationTool }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
@@ -73,6 +76,26 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
       if (!checkIfNowCanAnnotate()) {
         showErrorAlert("Error", "Please select a class before annotating");
         newValue = 0;
+      } else {
+        var currentTool : AnnotationType = getCurrentAnnotationTool();
+
+        switch(currentTool) {
+          case AnnotationType.KEYPOINT: 
+            if (newValue != 5) {
+              showErrorAlert("Error", "A class can only use one annotation tool.");
+            }
+            newValue = 5;
+            break;
+          case AnnotationType.SPRAY:
+            if (newValue != 4)
+              showErrorAlert("Error", "A class can only use one annotation tool.");
+
+            newValue = 4;
+            sprayOnClick();
+            break;
+          default: 
+            break;
+        }
       }
     }
 

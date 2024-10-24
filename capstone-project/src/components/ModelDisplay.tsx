@@ -11,6 +11,7 @@ import ModelContext from './ModelContext';
 import * as _ from "lodash";
 import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType } from '../datatypes/ClassDetail';
+import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
 
@@ -19,11 +20,13 @@ extend({ WireframeGeometry });
 
 type ModelDisplayProps = {
   modelData: ArrayBuffer;
-  currProblem: ProblemType[]
+  currProblem: ProblemType[];
   updateProblems: (updateProblems: ProblemType[]) => void;
+  currentFile: string | null;
+  updateModelIDFileMapping : (mapping: ModelIDFileNameMap[]) => void;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems }) => {
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
   const { tool, color, hotkeys, controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
@@ -33,8 +36,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const modelStore = useModelStore();
   const { states, keypoints, setState, modelId, setModelId } = useModelStore();
   const sprayRadius = 1;
+  const [problems, setProblems] = useState(currProblem);
 
   useEffect(() => {
+    setProblems(currProblem);
+
     if (!meshRef.current || !wireframeRef.current) return;
 
     // Remove previous keypoint spheres
@@ -78,6 +84,26 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
 
     modelStore.setModelId(modelID);
+
+    //mapping for modelId and fileName;
+    {
+      const modelIDFileNameMappingKey: string = "ModelIDFileNameMapping";
+      var mappingArr: ModelIDFileNameMap[] = [];
+      var mapping: ModelIDFileNameMap = { modelID: modelID, fileName: currentFile };
+
+
+      if ((!_.isUndefined(localStorage.getItem(modelIDFileNameMappingKey)) && !_.isNull(localStorage.getItem(modelIDFileNameMappingKey)))) 
+        mappingArr = JSON.parse(localStorage.getItem(modelIDFileNameMappingKey));
+
+      if (_.findIndex(mappingArr, function(m) {
+        return _.eq(m.fileName, currentFile)
+      }) == -1)
+        mappingArr.push(mapping);
+
+      localStorage.setItem(modelIDFileNameMappingKey, JSON.stringify(mappingArr));
+      updateModelIDFileMapping(mappingArr);
+    }
+
 
     // Load the saved states of color
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
@@ -169,7 +195,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     wireframeRef.current.geometry = wireframeGeometry;
 
     fitModel();
-  }, [modelData]);
+  }, [modelData, problems]);
 
   const spray = useCallback((position: THREE.Vector2) => {
     if (!meshRef.current || !meshRef.current.geometry.boundsTree) return;
@@ -263,8 +289,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
-          // Use Zustand store to update the keypoints for the current modelId
-          useModelStore.getState().setKeypoint(modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
+        // Use Zustand store to update the keypoints for the current modelId
+        // useModelStore.getState().setKeypoint(modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, 'purple');
 
 
         // Debugging log to show precise coordinates
@@ -275,7 +301,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         modelStore.addPaintChange(modelStore.modelId, -1, 'purple'); // Use -1 as a special index for keypoints
         modelStore.endPaintAction(modelStore.modelId);
         linkAnnotationToClass(localPoint, "");
-    }
+      }
     };
 
     if (tool === 'keypoint') {
@@ -563,10 +589,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; }> = ({ modelData, currProblem, updateProblems }) => {
+const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; currentFile: string | null; updateModelIDFileMapping : (mapping: ModelIDFileNameMap[]) => void;}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping}) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} />
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping}/>
     </Canvas>
   );
 };

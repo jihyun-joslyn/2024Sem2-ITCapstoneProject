@@ -1,28 +1,29 @@
 import { Toolbar, Typography, List, ListItem, TextField, IconButton } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useState, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
 import Problem from './Problem';
 import { ProblemType } from '../datatypes/ProblemType';
 import { ClassDetail } from '../datatypes/ClassDetail';
+import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 
 export type DetailPaneProps = {
     isShow: boolean;
     currentFile: string | null;
     currProblems: ProblemType[];
     updateProblems: (updateProblems: ProblemType[]) => void;
-    showErrorAlert: (_title: string, _content: string) => any
+    showErrorAlert: (_title: string, _content: string) => any;
+    checkIfNowCanAnnotate: () => boolean;
+    modelIDFileNameMapping: ModelIDFileNameMap[];
 };
 
-export default function DetailPane({ isShow, currentFile, currProblems, updateProblems, showErrorAlert }: DetailPaneProps) {
+export default function DetailPane({ isShow, currentFile, currProblems, updateProblems, showErrorAlert, checkIfNowCanAnnotate, modelIDFileNameMapping }: DetailPaneProps) {
     const [userInput, setUserInput] = useState<string>("");
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
-    // useEffect(() => {
-    //     if (selectedFile) {
-    //         updateStlFile(problems);
-    //     }
-    // }, [problems, selectedFile]);
+    useEffect(() => {
+ 
+    }, [currProblems]);
 
     const onAddProblemInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(userInput)) && (e.key === "Enter")) {
@@ -63,31 +64,6 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
             showErrorAlert("Error", "Problems can only be added after STL files are imported");
     }
 
-    const setClassToBeAnnotated = (problemIndex: number, classIndex: number): void => {
-        var _problems: ProblemType[] = currProblems;
-
-        if (_problems[problemIndex].classes[classIndex].isAnnotating)
-            _problems[problemIndex].classes[classIndex].isAnnotating = false;
-        else {
-            var isHasOtherAnnotating: boolean = false;
-
-            isHasOtherAnnotating = _.findIndex(_problems, function (p) {
-                return _.findIndex(p.classes, function (c) {
-                    return c.isAnnotating == true;
-                }) != -1;
-            }) != -1 ? true : false;
-
-            if (isHasOtherAnnotating)
-                showErrorAlert("Error", "Only one class can be annotated at a time.");
-            else
-                _problems[problemIndex].classes[classIndex].isAnnotating = true;
-        }
-
-        console.log(_problems);
-
-        updateProblems(_problems);
-    }
-
     return (
         <div>
             {isShow && (
@@ -113,7 +89,10 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
                                     updateProblem={updateProblem}
                                     deleteProblem={deleteProblem}
                                     updateLabel={updateLabel}
-                                    setClassToBeAnnotated={setClassToBeAnnotated}
+                                    checkIfNowCanAnnotate={checkIfNowCanAnnotate}
+                                    showErrorAlert={showErrorAlert}
+                                    modelIDFileNameMapping={modelIDFileNameMapping}
+                                    currentFile={currentFile}
                                 />
                             </ListItem>
                         ))}

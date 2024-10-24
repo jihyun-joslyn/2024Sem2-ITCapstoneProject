@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { createRoot } from "react-dom/client";
 import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
 import DetailPane from '../components/DetailPane';
@@ -12,6 +12,8 @@ import useModelStore from '../components/StateStore';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
 import { ProblemType } from '../datatypes/ProblemType';
+import { AnnotationType } from "../datatypes/ClassDetail";
+import { ModelIDFileNameMap } from "../datatypes/ModelIDFileNameMap";
 
 
 const container = document.getElementById('root');
@@ -38,8 +40,15 @@ const AppContent = () => {
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
   const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
+  const [modelIDFileNameMapping, setModelIDFileNameMapping] = useState<ModelIDFileNameMap[]>([]);
 
   const FileListStoargeKey: string = "stlFileData";
+
+  // useEffect(() => {
+  //   loadSTLFile(_.find(stlFiles, function (f) {
+  //     return _.eq(f.fileName, currentFile);
+  //   }).fileObject);
+  // }, [currProblems]);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -76,6 +85,7 @@ const AppContent = () => {
 
     setSTLFiles(_stlFiles);
     updateLocalStoargeFileList(updatedProblems);
+    
   }
 
   const updateLocalStoargeFileList = (updatedProblems: ProblemType[]) => {
@@ -211,14 +221,32 @@ const AppContent = () => {
     setIsShowErrorAlert(true);
   }
 
-  const checkIfNowCanAnnotate = () : boolean => {
+  const checkIfNowCanAnnotate = (): boolean => {
     return _.findIndex(currProblems, function (p) {
       return _.findIndex(p.classes, function (c) {
-          return c.isAnnotating == true;
+        return c.isAnnotating == true;
       }) != -1;
-  }) != -1 ? true : false;
+    }) != -1 ? true : false;
   }
 
+  const getCurrentAnnotationTool = (): AnnotationType => {
+    var currentTool: AnnotationType = AnnotationType.NONE;
+
+    currProblems.forEach(p => {
+      p.classes.forEach(c => {
+        if (c.isAnnotating) {
+          currentTool = c.annotationType;
+          return currentTool;
+        }
+      })
+    })
+
+    return currentTool;
+  }
+
+  const updateModelIDFileMapping = (mapping: ModelIDFileNameMap[]) => {
+    setModelIDFileNameMapping(mapping);
+  }
 
   return (
     <>
@@ -239,12 +267,13 @@ const AppContent = () => {
             showColorSpraySelector={showColorSpraySelector}
             onFileSelect={handleFileSelect}
             fileList={fileList}
-            currentFile={currentFile} 
+            currentFile={currentFile}
             checkIfNowCanAnnotate={checkIfNowCanAnnotate}
-            showErrorAlert={showErrorAlert} />
+            showErrorAlert={showErrorAlert}
+            getCurrentAnnotationTool={getCurrentAnnotationTool} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
+          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane
@@ -253,6 +282,8 @@ const AppContent = () => {
             currProblems={currProblems}
             updateProblems={updateDataLabels}
             showErrorAlert={showErrorAlert}
+            checkIfNowCanAnnotate={checkIfNowCanAnnotate}
+            modelIDFileNameMapping={modelIDFileNameMapping}
           />
         </Grid>
       </Grid>

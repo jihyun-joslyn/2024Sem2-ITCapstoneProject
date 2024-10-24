@@ -6,6 +6,8 @@ import UpsertMenu from './UpsertMenu';
 import Class from './Class';
 import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
+import '../style/index.css';
+import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 
 export type ProblemProps = {
     problemName: string;
@@ -14,10 +16,13 @@ export type ProblemProps = {
     updateProblem: (userInput: string, index: number) => void;
     deleteProblem: (index: number) => void;
     updateLabel: (labels: ClassDetail[], arrIndex: number) => void;
-    setClassToBeAnnotated: (problemIndex: number, classIndex: number) => void
+    checkIfNowCanAnnotate: () => boolean;
+    showErrorAlert: (_title: string, _content: string) => any;
+    modelIDFileNameMapping: ModelIDFileNameMap[];
+    currentFile: string | null;
 };
 
-export default function Problem({ problemName, classes, problemKey, updateProblem, deleteProblem, updateLabel, setClassToBeAnnotated }: ProblemProps) {
+export default function Problem({ problemName, classes, problemKey, updateProblem, deleteProblem, updateLabel, checkIfNowCanAnnotate, showErrorAlert, modelIDFileNameMapping, currentFile }: ProblemProps) {
     const [problem, setProblem] = useState(problemName);
     const [isEditProblem, setIsEditProblem] = useState(false);
     const [problemInput, setProblemInput] = useState(problemName);
@@ -29,7 +34,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
         setProblem(problemName);
         setProblemInput(problemName);
         setLabels(classes);
-    }, [problemName, classes]);
+    }, [problemName, classes, labels]);
 
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {
@@ -65,13 +70,65 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const deleteClass = (arrIndex: number): void => {
         var _labels: ClassDetail[] = labels;
 
-        _labels = _.dropWhile(_labels, function (c, i) {
-            return i != arrIndex;
+        var deletedClass: ClassDetail = _.find(_labels, function (c, i) {
+            return i == arrIndex;
+        });
+
+        _.remove(_labels, function (c, i) {
+            return i == arrIndex;
         });
 
         setLabels(_labels);
         updateLabel(_labels, problemKey);
+
+        var localModel: any = JSON.parse(localStorage.getItem("model-colors-storage"));
+        var currModelID: string = _.find(modelIDFileNameMapping, function (m) {
+            return _.eq(m.fileName, currentFile);
+        }).modelID;
+
+        switch (deletedClass.annotationType) {
+            case AnnotationType.KEYPOINT:
+                var _keypoint: any[] = localModel["state"]["keypoints"][currModelID];
+                var _point: { x: Number, y: Number, z: Number } = { x: (Number)(deletedClass.coordinates[0]), y: (Number)(deletedClass.coordinates[1]), z: (Number)(deletedClass.coordinates[2]) };
+
+                console.log(_point);
+                console.log(_.find(_keypoint, function(k) {
+                    return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
+                }));
+
+                _.remove(_keypoint, function(k) {
+                    return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
+                });
+
+                localModel["state"]["keypoints"][currModelID] = _keypoint;
+                break;
+            case AnnotationType.SPRAY:
+                break;
+            case AnnotationType.PATH:
+            case AnnotationType.NONE:
+                break;
+        }
+
+        localStorage.setItem("model-colors-storage", JSON.stringify(localModel));
     };
+
+    const setClassToBeAnnotated = (classIndex: number): void => {
+        var _labels: ClassDetail[] = labels;
+
+        if (_labels[classIndex].isAnnotating)
+            _labels[classIndex].isAnnotating = false;
+        else {
+            if (checkIfNowCanAnnotate())
+                showErrorAlert("Error", "Only one class can be annotated at a time.");
+            else
+                _labels[classIndex].isAnnotating = true;
+        }
+
+        console.log(_labels);
+
+        setLabels(_labels);
+        updateLabel(_labels, problemKey);
+    }
 
     return (
         <Accordion sx={{ width: '100%' }}>
@@ -102,15 +159,15 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                 <List>
                     {labels.map((l, j) => (
-                        <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j}
-                        selected={l.isAnnotating}
-                        onClick={() => { setClassToBeAnnotated(problemKey, j); }}
-                      >
+                        <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} className={l.isAnnotating ? 'selected-class' : ''}
+                            // selected={l.isAnnotating}
+                        >
                             <Class
                                 classDetails={l}
                                 labelIndex={j}
                                 updateLabel={updateClassArr}
                                 deleteClass={deleteClass}
+                                setClassToBeAnnotated={setClassToBeAnnotated}
                             />
                         </ListItemButton>
                     ))}
