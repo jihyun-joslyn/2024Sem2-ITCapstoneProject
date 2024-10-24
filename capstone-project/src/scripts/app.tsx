@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef } from 'react';
 import { createRoot } from "react-dom/client";
 import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
 import DetailPane from '../components/DetailPane';
@@ -12,7 +12,7 @@ import useModelStore from '../components/StateStore';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
 import { ProblemType } from '../datatypes/ProblemType';
-
+import { Mesh, BufferGeometry, Material, Object3DEventMap } from 'three'; 
 
 const container = document.getElementById('root');
 const root = createRoot(container);
@@ -38,7 +38,7 @@ const AppContent = () => {
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
   const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
-
+  const meshRef = useRef<Mesh<BufferGeometry, Material | Material[], Object3DEventMap>>(null);
   const FileListStoargeKey: string = "stlFileData";
 
   const loadSTLFile = (file: File) => {
@@ -230,7 +230,8 @@ const AppContent = () => {
           updateFileList={updateFileList}
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
-          openHotkeyDialog={openHotkeyDialog} />
+          openHotkeyDialog={openHotkeyDialog} 
+          meshRef={meshRef}/>
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -244,7 +245,7 @@ const AppContent = () => {
             showErrorAlert={showErrorAlert} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
+          {modelData && <ModelDisplay meshRef={meshRef} modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane

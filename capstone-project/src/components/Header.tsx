@@ -1,11 +1,14 @@
 import { HelpOutline as HelpOutlineIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import { AppBar, Button, Container, Menu, MenuItem, Toolbar } from '@mui/material';
 import * as _ from "lodash";
-import { useState } from 'react';
+import { useState, useRef, MutableRefObject } from 'react';
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { OutputFile } from '../datatypes/OutputFile';
 import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
+import * as THREE from 'three';
+import { Mesh } from 'three';
+import { convertProblemsToRecord } from '../utils/annotationUtils';
 
 
 export type HeaderProps = {
@@ -15,10 +18,11 @@ export type HeaderProps = {
     updateFileList: (_fileList: FileAnnotation[]) => void;
     stlFiles: FileAnnotation[];
     initializeCurrentFile: (_file: FileAnnotation) => void
-    openHotkeyDialog: () => void;//hotkey page
+    openHotkeyDialog: () => void;
+    meshRef: MutableRefObject<Mesh | null>//hotkey page
 };
 
-export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog, meshRef
 }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
@@ -303,57 +307,175 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         localStorage.setItem(FileListStoargeKey, JSON.stringify(_stlFiles));
     }
 
-    const handleSave = () => {
-        var currFile: FileAnnotation = _.find(stlFiles, function (f) {
-            return _.eq(f.fileName, currentFile);
+    const validateAnnotations = (geometry: THREE.BufferGeometry, states: Record<number, string>) => {
+        const totalVertices = geometry.attributes.position.count;
+        const unannotatedVertices: number[] = [];
+    
+        for (let i = 0; i < totalVertices; i++) {
+            if (!states[i]) {
+                unannotatedVertices.push(i);
+            }
+        }
+    
+        return unannotatedVertices;
+    };
+    
+    const checkAndWarnAnnotations = (
+        geometry: THREE.BufferGeometry,
+        states: Record<number, string>,
+        onContinue: () => void,
+        onCancel: () => void
+    ) => {
+        const unannotatedVertices = validateAnnotations(geometry, states);
+    
+        if (unannotatedVertices.length > 0) {
+            const proceed = window.confirm(`Warning: There are unannotated vertices. Do you want to continue ?`);
+            if (proceed) {
+                onContinue();
+            } else {
+                onCancel();
+            }
+        } else {
+            onContinue();
+        }
+    };
+    
+    const generateJsonWithUnlabeled = (
+        geometry: THREE.BufferGeometry,
+        states: Record<number, string>,
+        fileName: string,
+        problems: ProblemType[]
+      ) => {
+        const totalVertices = geometry.attributes.position.count;
+        const jsonOutput: any = {
+          filename: fileName,
+          problems: {}
+        };
+      
+        problems.forEach(problem => {
+          const problemName = problem.name;
+          const labelMapping: Record<string, string> = { "-1": "unlabelled" }; 
+          const pointLabels: number[] = []; 
+          const loops: number[] = []; 
+    
+          problem.classes.forEach((cls, index) => {
+            const classKey = index.toString();  
+            labelMapping[classKey] = cls.name;
+          });
+    
+          for (let i = 0; i < totalVertices; i++) {
+            const vertexState = states[i];
+            if (vertexState && vertexState !== "-1") {
+              pointLabels.push(i);
+            }
+          }
+    
+          jsonOutput.problems[problemName] = {
+            label_mapping: labelMapping,
+            point_labels: pointLabels,
+            loops: loops
+          };
         });
-
-        var currProblems: string = convertToJSONFileFormat(currFile.problems);
-        var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
-
-        const jsonData = JSON.stringify(currOutput, null, 2);
+    
+        const jsonData = JSON.stringify(jsonOutput, null, 2);
         const blob = new Blob([jsonData], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
+        link.download = fileName.replace(".stl", ".json");
         link.click();
-        removeFileFromLocalStorage(currentFile);
+    
+        return jsonOutput;
+      };
+
+      const handleSave = () => {
+        const currFile: FileAnnotation | undefined = _.find(stlFiles, function (f) {
+            return _.eq(f.fileName, currentFile);
+        });
+    
+        if (!currFile) {
+            console.error('Current file not found');
+            return;
+        }
+    
+        if (!meshRef.current) {
+            console.error('Mesh reference not found');
+            return;
+        }
+    
+        const geometry = meshRef.current.geometry;
+        if (!geometry) {
+            console.error('Geometry not found on mesh');
+            return;
+        }
+    
+        console.log("Geometry loaded:", geometry);
+        console.log("Current file problems:", currFile.problems);
+    
+        const problemsRecord = convertProblemsToRecord(currFile.problems);
+        console.log("Converted problems record:", problemsRecord);
+    
+        checkAndWarnAnnotations(
+            geometry,
+            problemsRecord,
+            () => {
+                // 合并的逻辑，生成JSON并下载
+                var currProblems: string = convertToJSONFileFormat(currFile.problems);
+                var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
+    
+                const jsonData = JSON.stringify(currOutput, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
+                link.click();
+    
+                // Optionally remove the file from local storage if required
+                removeFileFromLocalStorage(currentFile);
+    
+                console.log("Generated JSON output:", currOutput);
+                console.log("User chose to continue. Proceeding...");
+            },
+            () => {
+                console.log("User chose to cancel. Continue annotating...");
+            }
+        );
+    
         handleFileClose();
     };
-
+    
     const convertToJSONFileFormat = (problems: ProblemType[]): string => {
         var result: Record<string, any>[] = [];
-
+    
         problems.forEach(p => {
             var labelMapping: Record<string, string>[] = [];
             var colorMapping: Record<string, string>[] = [];
             var pointLabels: Record<string, string>[] = [];
             var faceLabels: Record<string, string>[] = [];
-
+    
             labelMapping.push({ "-1": "unlabelled" });
-
+    
             if (!_.isEmpty(p.classes)) {
                 p.classes.forEach((c, j) => {
                     var index: string = j.toString();
                     var labelName: string = c.name;
                     var colorCode: string = _.isEmpty(c.color) ? "" : c.color;
-
+    
                     labelMapping.push({ [index]: labelName });
                     colorMapping.push({ [index]: colorCode });
-
+    
                     switch (c.annotationType) {
                         case AnnotationType.KEYPOINT:
                             faceLabels.push({ [index]: "-1" });
-
+    
                             for (let i = 0; i < c.coordinates.length; i += 3) {
                                 var temp: any[] = [(c.coordinates)[i], (c.coordinates)[i + 1], (c.coordinates)[i + 2]];
-
+    
                                 pointLabels.push({ [index]: _.join(temp, ", ") });
                             }
                             break;
                         case AnnotationType.SPRAY:
                             pointLabels.push({ [index]: "-1" })
-
+    
                             faceLabels.push({ [index]: _.join(c.coordinates, ", ") });
                             break;
                         case AnnotationType.PATH:
@@ -365,15 +487,16 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     }
                 });
             }
-
+    
             var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }, { "face_labels": faceLabels }, { "point_labels": pointLabels }];
             var _problemName: string = p.name;
-
+    
             result.push({ [_problemName]: problemDetails });
         });
-
+    
         return JSON.parse(JSON.stringify(result));
     }
+    
 
     return (
         <div>
