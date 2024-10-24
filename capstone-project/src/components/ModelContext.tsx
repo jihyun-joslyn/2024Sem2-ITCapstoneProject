@@ -7,7 +7,7 @@ interface ModelType {
     setTool : (tool : string) => void;
     setSpray : (color : string) => void;
     setHotkeys: React.Dispatch<React.SetStateAction<Hotkeys>>;
-    controlsRef: React.RefObject<any>;
+    orbitControlsRef: React.MutableRefObject<any>;
     setSize: (size: number) => void;
     size: number;
     currentTool: string;
@@ -52,7 +52,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     });
     const [size, setSize] = useState<number>(1);
     const controlsRef = useRef<any>(null);
-    
+    const orbitControlsRef = useRef<any>(null);
     const [currentTool, setCurrentTool] = useState<string>('none');
 
     const activateBrush = () => {
@@ -66,7 +66,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, hotkeys, setHotkeys, orbitControlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
             {children}
         </ModelContext.Provider>
     );

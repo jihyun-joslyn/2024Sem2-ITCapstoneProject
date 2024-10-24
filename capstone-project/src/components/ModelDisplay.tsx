@@ -19,7 +19,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
-  const { tool, color, hotkeys, controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -28,6 +28,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const modelStore = useModelStore();
   const { states, keypoints, setState, modelId, setModelId } = useModelStore();
   const sprayRadius = 1;
+
 
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
@@ -279,40 +280,66 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   }, []);
 
 
-  const zoomCamera = (factor: number) => {
-    if (controlsRef.current) {
-      const zoomDirection = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
-      zoomDirection.multiplyScalar(factor - 1);
-      camera.position.add(zoomDirection);
-      controlsRef.current.update();
+  const zoomCamera = useCallback((factor: number) => {
+    if (orbitControlsRef.current) {
+      const controls = orbitControlsRef.current;
+      // Get the current zoom level
+      const currentZoom = camera.position.distanceTo(controls.target);
+      // Calculate new zoom
+      const newZoom = currentZoom * factor;
+      
+      // Update camera position
+      const direction = camera.position.clone().sub(controls.target).normalize();
+      camera.position.copy(controls.target).add(direction.multiplyScalar(newZoom));
+      
+      controls.update();
     }
-  };
+  }, [camera, orbitControlsRef]);
 
-  const rotateHorizontal = (angle: number) => {
-    if (controlsRef.current) {
-      const rotationMatrix = new THREE.Matrix4().makeRotationY(angle);
-      const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+  const rotateHorizontal = useCallback((angle: number) => {
+    if (orbitControlsRef.current) {
+      const controls = orbitControlsRef.current;
+      // Create a rotation matrix around the Y axis
+      const rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationY(angle);
+      
+      // Get vector from target to camera
+      const cameraPosition = camera.position.clone().sub(controls.target);
+      // Apply rotation
       cameraPosition.applyMatrix4(rotationMatrix);
-      camera.position.copy(cameraPosition.add(controlsRef.current.target));
-      camera.lookAt(controlsRef.current.target);
-      controlsRef.current.update();
+      // Set new camera position
+      camera.position.copy(controls.target).add(cameraPosition);
+      
+      // Update camera orientation
+      camera.lookAt(controls.target);
+      controls.update();
     }
-  };
+  }, [camera, orbitControlsRef]);
 
-  const rotateVertical = (angle: number) => {
-    if (controlsRef.current) {
-      const rotationAxis = new THREE.Vector3().crossVectors(
-        camera.position.clone().sub(controlsRef.current.target),
-        camera.up
-      ).normalize();
-      const rotationMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, angle);
-      const cameraPosition = new THREE.Vector3().subVectors(camera.position, controlsRef.current.target);
+
+  const rotateVertical = useCallback((angle: number) => {
+    if (orbitControlsRef.current) {
+      const controls = orbitControlsRef.current;
+      // Get the right vector (perpendicular to up vector and camera direction)
+      const right = new THREE.Vector3();
+      right.crossVectors(camera.up, camera.position.clone().sub(controls.target).normalize());
+      
+      // Create rotation matrix around the right vector
+      const rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationAxis(right.normalize(), angle);
+      
+      // Get vector from target to camera
+      const cameraPosition = camera.position.clone().sub(controls.target);
+      // Apply rotation
       cameraPosition.applyMatrix4(rotationMatrix);
-      camera.position.copy(cameraPosition.add(controlsRef.current.target));
-      camera.lookAt(controlsRef.current.target);
-      controlsRef.current.update();
+      // Set new camera position
+      camera.position.copy(controls.target).add(cameraPosition);
+      
+      // Update camera orientation
+      camera.lookAt(controls.target);
+      controls.update();
     }
-  };
+  }, [camera, orbitControlsRef]);
 
   const fitModel = () => {
     if (!meshRef.current) return;
@@ -326,83 +353,102 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
     camera.position.z += size / 2.0;
     camera.lookAt(center);
 
-    if (controlsRef.current) {
-      controlsRef.current.target.copy(center);
-      controlsRef.current.update();
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.target.copy(center);
+      orbitControlsRef.current.update();
     }
   };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (checkHotkey(event, hotkeys.zoomIn)) {
-        zoomCamera(0.9);
-      } else if (checkHotkey(event, hotkeys.zoomOut)) {
-        zoomCamera(1.1);
-      } else if (checkHotkey(event, hotkeys.rotateLeft)) {
-        rotateHorizontal(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateRight)) {
-        rotateHorizontal(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateUp)) {
-        rotateVertical(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateDown)) {
-        rotateVertical(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.prevStep)) {
+
+      // Create hotkey string from event
+      const modifiers = [
+        event.ctrlKey && 'CONTROL',
+        event.shiftKey && 'SHIFT',
+        event.altKey && 'ALT'
+      ].filter(Boolean);
+      
+      const keyString = [...modifiers, event.key.toUpperCase()].join('+');
+
+      // Define rotation and zoom amounts
+      const ROTATION_AMOUNT = Math.PI / 32; // About 5.625 degrees
+      const ZOOM_FACTOR = 0.9; // 10% zoom per step
+      // Match hotkeys and execute corresponding actions
+      if (keyString === hotkeys.zoomIn) {
+        event.preventDefault();
+        zoomCamera(ZOOM_FACTOR);
+      } else if (keyString === hotkeys.zoomOut) {
+        event.preventDefault();
+        zoomCamera(1/ZOOM_FACTOR);
+      } else if (keyString === hotkeys.rotateLeft) {
+        event.preventDefault();
+        rotateHorizontal(ROTATION_AMOUNT);
+      } else if (keyString === hotkeys.rotateRight) {
+        event.preventDefault();
+        rotateHorizontal(-ROTATION_AMOUNT);
+      } else if (keyString === hotkeys.rotateUp) {
+        event.preventDefault();
+        rotateVertical(-ROTATION_AMOUNT);
+      } else if (keyString === hotkeys.rotateDown) {
+        event.preventDefault();
+        rotateVertical(ROTATION_AMOUNT);
+      } else if (keyString === hotkeys.prevStep) {
+        event.preventDefault();
         modelStore.undo(modelStore.modelId);
         updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Undo triggered");
-      } else if (checkHotkey(event, hotkeys.nextStep)) {
+      } else if (keyString === hotkeys.nextStep) {
+        event.preventDefault();
         modelStore.redo(modelStore.modelId);
         updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Redo triggered");
       }
     };
 
-    const handleMouseDown = (event: MouseEvent) => {
-      if (checkHotkey(event, hotkeys.zoomIn)) {
-        zoomCamera(0.9);
-      } else if (checkHotkey(event, hotkeys.zoomOut)) {
-        zoomCamera(1.1);
-      } else if (checkHotkey(event, hotkeys.rotateLeft)) {
-        rotateHorizontal(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateRight)) {
-        rotateHorizontal(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateUp)) {
-        rotateVertical(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateDown)) {
-        rotateVertical(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.prevStep)) {
-        modelStore.undo(modelStore.modelId);
-        updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Undo triggered");
-      } else if (checkHotkey(event, hotkeys.nextStep)) {
-        modelStore.redo(modelStore.modelId);
-        updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Redo triggered");
-      }
-    };
+    // const handleMouseDown = (event: MouseEvent) => {
+    //   if (checkHotkey(event, hotkeys.zoomIn)) {
+    //     zoomCamera(0.9);
+    //   } else if (checkHotkey(event, hotkeys.zoomOut)) {
+    //     zoomCamera(1.1);
+    //     console.log("zoom out triggered");
+    //   } else if (checkHotkey(event, hotkeys.rotateLeft)) {
+    //     rotateHorizontal(-Math.PI / 32);
+    //   } else if (checkHotkey(event, hotkeys.rotateRight)) {
+    //     rotateHorizontal(Math.PI / 32);
+    //   } else if (checkHotkey(event, hotkeys.rotateUp)) {
+    //     rotateVertical(-Math.PI / 32);
+    //   } else if (checkHotkey(event, hotkeys.rotateDown)) {
+    //     rotateVertical(Math.PI / 32);
+    //   } else if (checkHotkey(event, hotkeys.prevStep)) {
+    //     modelStore.undo(modelStore.modelId);
+    //     updateMeshColors();
+    //     //logSessionActions(modelStore.modelId);
+    //     console.log("Undo triggered");
+    //   } else if (checkHotkey(event, hotkeys.nextStep)) {
+    //     modelStore.redo(modelStore.modelId);
+    //     updateMeshColors();
+    //     //logSessionActions(modelStore.modelId);
+    //     console.log("Redo triggered");
+    //   }
+    // };
 
-    const handleWheel = (event: WheelEvent) => {
-      if (checkHotkey(event, hotkeys.zoomIn)) {
-        zoomCamera(0.9);
-        event.preventDefault();
-      } else if (checkHotkey(event, hotkeys.zoomOut)) {
-        zoomCamera(1.1);
-        event.preventDefault();
-      }
-    };
+    // const handleWheel = (event: WheelEvent) => {
+    //   if (checkHotkey(event, hotkeys.zoomIn)) {
+    //     zoomCamera(0.9);
+    //     event.preventDefault();
+    //   } else if (checkHotkey(event, hotkeys.zoomOut)) {
+    //     zoomCamera(1.1);
+    //     event.preventDefault();
+    //   }
+    // };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('wheel', handleWheel);
+    // window.addEventListener('mousedown', handleMouseDown);
+    // window.addEventListener('wheel', handleWheel);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('wheel', handleWheel);
+      // window.removeEventListener('mousedown', handleMouseDown);
+      // window.removeEventListener('wheel', handleWheel);
     };
   }, [hotkeys, checkHotkey, zoomCamera, rotateHorizontal, rotateVertical, modelStore]);
 
@@ -447,12 +493,30 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <spotLight position={[10, 15, 10]} angle={0.3} />
-      <mesh ref={meshRef} onPointerDown={handleMouseDown} onPointerMove={handleMouseMove} onPointerUp={handleMouseUp} />
-      <OrbitControls enableRotate={tool === 'pan'} enableZoom enablePan rotateSpeed={1.0} />
-      <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
-    </>
+    <ambientLight intensity={0.5} />
+    <spotLight position={[10, 15, 10]} angle={0.3} />
+    <mesh 
+      ref={meshRef} 
+      onPointerDown={handleMouseDown} 
+      onPointerMove={handleMouseMove} 
+      onPointerUp={handleMouseUp}
+    />
+    <OrbitControls
+      ref={orbitControlsRef}
+      enableRotate={tool === 'pan'}
+      enableZoom
+      enablePan
+      rotateSpeed={1.0}
+      zoomSpeed={1.0}
+      panSpeed={1.0}
+      minDistance={1}
+      maxDistance={100}
+    />
+    <lineSegments 
+      ref={wireframeRef} 
+      material={new LineBasicMaterial({ color: 'white' })} 
+    />
+  </>
   );
 };
 
