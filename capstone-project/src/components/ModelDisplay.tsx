@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useCallback, useContext, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useContext, useState, MutableRefObject } from 'react';
 import { Canvas, useThree, extend, ThreeEvent } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { OrbitControls } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, BufferGeometry, WireframeGeometry, LineSegments, LineBasicMaterial } from 'three';
+import { Mesh, MeshStandardMaterial, BufferGeometry, WireframeGeometry, LineSegments, LineBasicMaterial, Material, Object3DEventMap  } from 'three';
 import ModelContext from './ModelContext';
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
@@ -13,12 +13,12 @@ extend({ WireframeGeometry });
 
 type ModelDisplayProps = {
   modelData: ArrayBuffer;
+  meshRef: MutableRefObject<Mesh<BufferGeometry, Material | Material[], Object3DEventMap>>;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, meshRef  }) => {
   const { tool, color } = useContext(ModelContext); // Get the tool and color state from sidebar
   const { camera, gl } = useThree();
-  const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
   const [isSpray, setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
@@ -26,27 +26,36 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   const sprayRadius = 1;
 
   useEffect(() => {
-    if (!meshRef.current || !wireframeRef.current) return;
+    if (meshRef.current) {
+      console.log('Mesh reference found:', meshRef.current);
+    } else {
+      console.log('Mesh reference not found');
+    }
 
-      // Remove previous keypoint spheres
-      while (meshRef.current.children.length > 0) {
-        meshRef.current.remove(meshRef.current.children[0]);
-      }
+    if (!meshRef.current || !wireframeRef.current) return;
 
     const loader = new STLLoader();
     let geometry: BufferGeometry = loader.parse(modelData);
 
-    const modelID = modelData.byteLength.toString();
+    if (!geometry) {
+      console.error('Geometry not found after parsing');
+      return;
+    }
+
     if (!geometry.index) {
-      geometry = BufferGeometryUtils.mergeVertices(geometry); // Merge the vertex to optimize performance
+      geometry = BufferGeometryUtils.mergeVertices(geometry); 
       geometry.computeVertexNormals();
     }
 
-    // Use the BVH to accelerate the geometry
     geometry.computeBoundsTree = computeBoundsTree;
     geometry.disposeBoundsTree = disposeBoundsTree;
     meshRef.current.raycast = acceleratedRaycast;
     geometry.computeBoundsTree();
+
+    meshRef.current.geometry = geometry;
+    meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
+
+    console.log('Geometry loaded and set on meshRef:', meshRef.current.geometry);
 
     // Get all vertices and initialize colors (default to white)
     const vertexCount = geometry.attributes.position.count;
@@ -91,6 +100,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
       });
     }
 
+    const modelID = modelData.byteLength.toString();
     setModelId(modelID);
 
     // Only set colors in geometry if there are spray annotations
@@ -220,10 +230,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData }) => {
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer }> = ({ modelData }) => {
+const ModelDisplay: React.FC<ModelDisplayProps> = ({ modelData, meshRef }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} />
+       <ModelContent modelData={modelData} meshRef={meshRef} />
     </Canvas>
   );
 };

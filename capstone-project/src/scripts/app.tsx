@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createRoot } from "react-dom/client";
 import { Grid2 as Grid, Box } from '@mui/material';
 import Header from '../components/Header';
@@ -10,7 +10,7 @@ import { ProblemType } from '../datatypes/ProblemType';
 import * as _ from "lodash";
 import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { FileList } from '../datatypes/FileList';
-
+import { Mesh, BufferGeometry, Material, Object3DEventMap } from 'three'; 
 
 const container = document.getElementById('root');
 const root = createRoot(container);
@@ -24,6 +24,7 @@ const App = () => {
   const [isShowDetailPane, setIsShowDetailPane] = useState(false);
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [isShowColorSpraySelector, setIsShowColorSpraySelector] = useState(false);
+  const meshRef = useRef<Mesh<BufferGeometry, Material | Material[], Object3DEventMap>>(null);
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [modelGridWidth, setModelGridWidth] = useState(11);
   const [detailPaneWidth, setDetailPaneWidth] = useState(0);
@@ -177,7 +178,8 @@ const App = () => {
           currentFile={currentFile}
           updateFileList={updateFileList}
           stlFiles={stlFiles}
-          initializeCurrentFile={initializeCurrentFile} />
+          initializeCurrentFile={initializeCurrentFile}
+          meshRef={meshRef}  />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -190,7 +192,7 @@ const App = () => {
             isAnnotationAllowed={isAnnotationAllowed}/>
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} />}
+          {modelData && <ModelDisplay meshRef={meshRef} modelData={modelData} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane
