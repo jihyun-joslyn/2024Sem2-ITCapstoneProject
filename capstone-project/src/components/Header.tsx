@@ -418,7 +418,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             geometry,
             problemsRecord,
             () => {
-                // 合并的逻辑，生成JSON并下载
+               
                 var currProblems: string = convertToJSONFileFormat(currFile.problems);
                 var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
     
