@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { createRoot } from "react-dom/client";
 import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
 import DetailPane from '../components/DetailPane';
@@ -41,14 +41,10 @@ const AppContent = () => {
   const [isShowErrorDialog, setIsShowErrorAlert] = useState(false);
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
   const [modelIDFileNameMapping, setModelIDFileNameMapping] = useState<ModelIDFileNameMap[]>([]);
+  const [, updateState] = useState({});
+  const forceUpdate = useCallback(() => updateState({}), []);
 
   const FileListStoargeKey: string = "stlFileData";
-
-  // useEffect(() => {
-  //   loadSTLFile(_.find(stlFiles, function (f) {
-  //     return _.eq(f.fileName, currentFile);
-  //   }).fileObject);
-  // }, [currProblems]);
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -85,7 +81,7 @@ const AppContent = () => {
 
     setSTLFiles(_stlFiles);
     updateLocalStoargeFileList(updatedProblems);
-    
+    forceUpdate();
   }
 
   const updateLocalStoargeFileList = (updatedProblems: ProblemType[]) => {
@@ -246,6 +242,10 @@ const AppContent = () => {
 
   const updateModelIDFileMapping = (mapping: ModelIDFileNameMap[]) => {
     setModelIDFileNameMapping(mapping);
+  }
+
+  const getAnnotationsLinkedToClass = () => {
+    
   }
 
   return (

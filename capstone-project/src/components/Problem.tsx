@@ -70,16 +70,13 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const deleteClass = (arrIndex: number): void => {
         var _labels: ClassDetail[] = labels;
 
-        var deletedClass: ClassDetail = _.find(_labels, function (c, i) {
-            return i == arrIndex;
-        });
+        var deletedClass: ClassDetail = _labels.at(arrIndex);
 
         _.remove(_labels, function (c, i) {
             return i == arrIndex;
         });
 
-        setLabels(_labels);
-        updateLabel(_labels, problemKey);
+        
 
         var localModel: any = JSON.parse(localStorage.getItem("model-colors-storage"));
         var currModelID: string = _.find(modelIDFileNameMapping, function (m) {
@@ -109,7 +106,10 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 break;
         }
 
+        console.log(localModel)
         localStorage.setItem("model-colors-storage", JSON.stringify(localModel));
+        setLabels(_labels);
+        updateLabel(_labels, problemKey);
     };
 
     const setClassToBeAnnotated = (classIndex: number): void => {

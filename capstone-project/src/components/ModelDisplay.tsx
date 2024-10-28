@@ -45,7 +45,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     // Remove previous keypoint spheres
     while (meshRef.current.children.length > 0) {
-      meshRef.current.remove(meshRef.current.children[0]);
+      meshRef.current.children.pop();
     }
 
     const loader = new STLLoader();
@@ -214,6 +214,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           faceIndices.forEach(index => {
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
             modelStore.addPaintChange(modelStore.modelId, index, color);
+            setState(modelId,index,color);
             linkAnnotationToClass(index, color);
           });
           colorAttributes.needsUpdate = true;

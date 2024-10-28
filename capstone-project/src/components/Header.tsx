@@ -293,8 +293,20 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         return problem;
     }
 
-    const removeFileFromLocalStorage = (fileName: string) => {
+    const removeFile = (fileName: string) => {
         var _stlFiles: FileAnnotation[] = stlFiles;
+
+        var index = _.findIndex(_stlFiles, function(f) {
+            return _.eq(f.fileName, fileName);
+        });
+
+        _stlFiles[index].annotated = true;
+
+        
+        updateFileList(_stlFiles);
+
+        if (_stlFiles.length > 0) 
+            initializeCurrentFile(_stlFiles.at(0));
 
         _.remove(_stlFiles, function(f) {
             return _.eq(f.fileName, fileName);
@@ -317,7 +329,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         link.href = URL.createObjectURL(blob);
         link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
         link.click();
-        removeFileFromLocalStorage(currentFile);
+        removeFile(currentFile);
         handleFileClose();
     };
 
