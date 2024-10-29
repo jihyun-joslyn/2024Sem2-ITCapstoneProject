@@ -273,11 +273,11 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 _className.forEach((c, x) => {
                     var _class: ClassDetail = { name: c, annotationType: AnnotationType.NONE, coordinates: [], color: _color.at(x), isAnnotating: false };
 
-                    if (spray.at(x).length > 0) {
+                    if (!_.isEmpty(spray) && spray.at(x).length > 0) {
                         _class.coordinates = spray.at(x);
 
                         _class.annotationType = AnnotationType.SPRAY
-                    } else if (keypoint.at(x).length > 0) {
+                    } else if (!_.isEmpty(keypoint) && keypoint.at(x).length > 0) {
                         _class.coordinates = keypoint.at(x);
 
                         _class.annotationType = AnnotationType.KEYPOINT;
