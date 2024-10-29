@@ -1,5 +1,7 @@
 import React, { ReactNode, createContext, useContext, useRef, useState } from 'react';
 
+import * as THREE from 'three';
+
 interface ModelType {
     tool : string;
     color : string;
@@ -7,6 +9,7 @@ interface ModelType {
     setTool : (tool : string) => void;
     setSpray : (color : string) => void;
     setHotkeys: React.Dispatch<React.SetStateAction<Hotkeys>>;
+    orbitControlsRef: React.MutableRefObject<any>;
     controlsRef: React.RefObject<any>;
     setSize: (size: number) => void;
     size: number;
@@ -14,6 +17,8 @@ interface ModelType {
     setCurrentTool: (tool: string) => void;
     activateBrush: () => void;
     activateSpray: () => void;
+    pathPoints : THREE.Vector3[];//for shortest path
+    setPathPoints : React.Dispatch<React.SetStateAction<THREE.Vector3[]>>;//for shortest path
 }
 
 export type Hotkeys = {
@@ -38,6 +43,7 @@ const ModelContext = createContext<ModelType | undefined>(undefined);
 export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children }) => {
     const [tool,setTool] = useState<string>('none');
     const [color, setSpray] = useState<string>('#ffffff');
+    const [pathPoints, setPathPoints] = useState<THREE.Vector3[]>([]);//shortest path 
     const [hotkeys, setHotkeys] = useState<Hotkeys>({
         zoomIn: 'O',
         zoomOut: 'P',
@@ -52,7 +58,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     });
     const [size, setSize] = useState<number>(1);
     const controlsRef = useRef<any>(null);
-    
+    const orbitControlsRef = useRef<any>(null);
     const [currentTool, setCurrentTool] = useState<string>('none');
 
     const activateBrush = () => {
@@ -66,7 +72,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
             {children}
         </ModelContext.Provider>
     );

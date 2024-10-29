@@ -1,4 +1,4 @@
-import { Brush as BrushIcon, Folder as FolderIcon, LocationSearching as KeypointIcon, PanTool as PanToolIcon } from '@mui/icons-material';
+import { Brush as BrushIcon, Folder as FolderIcon, LocationSearching as KeypointIcon, PanTool as PanToolIcon,Timeline as TimelineIcon } from '@mui/icons-material';
 import { Tab, Tabs, Tooltip, createSvgIcon } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
 import FilePane from './FilePane';
@@ -66,13 +66,17 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
         case 'keypoint':
             setValue(5);
             break;
+        case 'path':
+            setValue(6);
+            break;
+
         default:
             setValue(0);
     }
 }, [currentTool]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    if (newValue == 4 || newValue == 5) {
+    if (newValue == 4 || newValue == 5 || newValue == 6) {
       if (!checkIfNowCanAnnotate()) {
         showErrorAlert("Error", "Please select a class before annotating");
         newValue = 0;
@@ -80,21 +84,33 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
         var currentTool : AnnotationType = getCurrentAnnotationTool();
 
         switch(currentTool) {
+
           case AnnotationType.KEYPOINT: 
             if (newValue != 5) {
               showErrorAlert("Error", "A class can only use one annotation tool.");
             }
             newValue = 5;
             break;
-          case AnnotationType.SPRAY:
-            if (newValue != 4)
-              showErrorAlert("Error", "A class can only use one annotation tool.");
 
+          case AnnotationType.PATH:
+            if (newValue != 6) {
+              showErrorAlert("Error", "A class can only use one annotation tool.");
+            }
+            newValue = 6;
+            break;
+
+          case AnnotationType.SPRAY:
+            if (newValue != 4) {
+              showErrorAlert("Error", "A class can only use one annotation tool.");
+            }
             newValue = 4;
+
             sprayOnClick();
             break;
+
           default: 
-            break;
+           
+          break;
         }
       }
     }
@@ -114,6 +130,11 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
           break;
       case 5:
           setTool('keypoint');
+          sprayOnClick();
+          break;
+      case 6:
+          setTool('path');
+          sprayOnClick;
           break;
       default:
           setTool('none');
@@ -133,7 +154,7 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     setColorSelector(false);
   };
 
-  const sprayOnClick = () => {
+  const sprayOnClick = () => { //to select a color and put on a variable for annotation coloring use (spray, keypoint and path)
     showColorSpraySelector(!showColorSelector);
     setColorSelector(!showColorSelector);
     setIsShowFilePane(false);
@@ -152,7 +173,8 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
         <Tab icon={<PanToolIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<BrushIcon sx={{ color: '#9c806c' }} />} />
         <Tab icon={<SprayIcon />} onClick={sprayOnClick} />
-        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} onClick={() => { /*something here*/ }} />
+        <Tab icon={<KeypointIcon sx={{ color: '#9c806c' }} />} /*onClick={sprayOnClick} *//>
+        <Tab icon={<TimelineIcon sx={{ color: '#9c806c' }} />} onClick={sprayOnClick } />
       </Tabs>
       {showColorSelector && (
         <Tooltip title="Choose color" placement="right">
