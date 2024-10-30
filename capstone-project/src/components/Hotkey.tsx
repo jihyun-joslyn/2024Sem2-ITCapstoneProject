@@ -19,16 +19,26 @@ export type Hotkeys = {
   nextStep: string;
   brush: string;
   spray: string;
+  switchClass: string;
 };
 
 export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSave }) => {
-  const { hotkeys, setHotkeys } = useContext(ModelContext);
+  const { hotkeys, setHotkeys, setHotkeysEnabled } = useContext(ModelContext);
   const [tempHotkeys, setTempHotkeys] = useState<Hotkeys>(hotkeys);
   const [activeInput, setActiveInput] = useState<keyof Hotkeys | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [currentHotkey, setCurrentHotkey] = useState<string[]>([]);
   const isRecordingRef = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+        setHotkeysEnabled(false);
+    }
+    return () => {
+        setHotkeysEnabled(true);
+    };
+}, [open, setHotkeysEnabled]);
 
   const startRecording = useCallback((key: keyof Hotkeys) => {
     setActiveInput(key);

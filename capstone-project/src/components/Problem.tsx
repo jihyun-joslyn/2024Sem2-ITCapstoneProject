@@ -1,13 +1,13 @@
-import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, ListItemButton, TextField } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
-import { useState, KeyboardEvent, useEffect } from 'react';
+import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, ListItemButton, TextField } from '@mui/material';
 import * as _ from "lodash";
-import UpsertMenu from './UpsertMenu';
-import Class from './Class';
-import { ProblemType } from '../datatypes/ProblemType';
+import { KeyboardEvent, useContext, useEffect, useState } from 'react';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
-import '../style/index.css';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import '../style/index.css';
+import Class from './Class';
+import ModelContext from './ModelContext';
+import UpsertMenu from './UpsertMenu';
 
 export type ProblemProps = {
     problemName: string;
@@ -29,6 +29,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(classes);
+    const { setHotkeysEnabled } = useContext(ModelContext);
 
     useEffect(() => {
         setProblem(problemName);
@@ -39,7 +40,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const editProblem = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(problemInput)) && (e.key === "Enter")) {
             setProblem(problemInput);
-            setIsEditProblem(false);
+            handleEditEnd();
             updateProblem(problemInput, problemKey);
         }
     };
@@ -76,7 +77,6 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             return i == arrIndex;
         });
 
-        
 
         var localModel: any = JSON.parse(localStorage.getItem("model-colors-storage"));
         var currModelID: string = _.find(modelIDFileNameMapping, function (m) {
@@ -130,6 +130,27 @@ export default function Problem({ problemName, classes, problemKey, updateProble
         updateLabel(_labels, problemKey);
     }
 
+        const handleEditStart = () => {
+            setHotkeysEnabled(false);
+            setIsEditProblem(true);
+        };
+    
+        const handleEditEnd = () => {
+            setHotkeysEnabled(true);
+            setIsEditProblem(false);
+        };
+
+    const handleAddClassStart = () => {
+        setHotkeysEnabled(false);
+        setIsAddNewClass(true);
+    };
+
+
+    const handleAddClassEnd = () => {
+        setHotkeysEnabled(true);
+        setIsAddNewClass(false);
+    };
+
     return (
         <Accordion sx={{ width: '100%' }}>
             <AccordionSummary expandIcon={<UnfoldMoreIcon sx={{ color: '#9c806c' }} />}>
@@ -153,6 +174,8 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                         value={problemInput}
                         onChange={e => { setProblemInput(e.target.value); }}
                         onKeyDown={e => { editProblem(e) }}
+                        onFocus={handleEditStart}
+                        onBlur={handleEditEnd}
                     />
                 )}
             </AccordionSummary>

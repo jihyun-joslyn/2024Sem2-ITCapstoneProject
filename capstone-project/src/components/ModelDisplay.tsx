@@ -1,20 +1,21 @@
-import { OrbitControls,Line } from '@react-three/drei';
+import { Line, OrbitControls } from '@react-three/drei';
 import { Canvas, ThreeEvent, extend, useThree } from '@react-three/fiber';
+import * as _ from "lodash";
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { BufferGeometry, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, WireframeGeometry, Vector3, BufferAttribute } from 'three';
+import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, Vector3, WireframeGeometry } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
-import ModelContext from './ModelContext';
-import * as _ from "lodash";
-import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType } from '../datatypes/ClassDetail';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
+import ModelContext from './ModelContext';
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
+type HotkeyHandler = (event: HotkeyEvent) => void;
 
 
 extend({ WireframeGeometry });
@@ -28,7 +29,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
-  const { tool, color, hotkeys, orbitControlsRef ,controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef ,controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray,currentTool} = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -38,7 +39,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const { states, keypoints, setState, modelId, setModelId } = useModelStore();
   const sprayRadius = 1;
   const [problems, setProblems] = useState(currProblem);
-
   const [path, setPath] = useState<THREE.Vector3[]>([]);
   const [redPoints, setRedPoints] = useState<THREE.Vector3[]>([]);
   const [paths, setPaths] = useState<THREE.Vector3[][]>([]);
@@ -47,6 +47,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const [filledShape, setFilledShape] = useState<THREE.Mesh | null>(null);
   const [isPathClosed, setIsPathClosed] = useState(false);
   const [closedPath, setClosedPath] = useState<THREE.Vector3[][]>([]);
+  
   const getDistance = (positions: ArrayLike<number>, i: number, j: number) => {
     const x1 = positions[i*3], y1 = positions[i*3+1], z1 = positions[i*3+2];
     const x2 = positions[j*3], y2 = positions[j*3+1], z2 = positions[j*3+2];
@@ -1007,121 +1008,173 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       controlsRef.current.update();
     }
   };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-
-      // Create hotkey string from event
-      const modifiers = [
-        event.ctrlKey && 'CONTROL',
-        event.shiftKey && 'SHIFT',
-        event.altKey && 'ALT'
-      ].filter(Boolean);
+      // switch class
+      const switchToNextClass = useCallback(() => {
+        const updatedProblems = [...currProblem];
+        let foundActiveClass = false;
+        let switched = false;
+    
+        for (let i = 0; i < updatedProblems.length; i++) {
+          const problem = updatedProblems[i];
+          const classes = problem.classes;
+          
+          for (let j = 0; j < classes.length; j++) {
+            if (classes[j].isAnnotating) {
+              foundActiveClass = true;
+              classes[j].isAnnotating = false;
+              if (j < classes.length - 1) {
+                classes[j + 1].isAnnotating = true;
+                switched = true;
+                break;
+              }
+            }
+          }
+          
+          if (foundActiveClass && !switched && i < updatedProblems.length - 1) {
+            const nextProblem = updatedProblems[i + 1];
+            if (nextProblem.classes.length > 0) {
+              nextProblem.classes[0].isAnnotating = true;
+              switched = true;
+            }
+          } 
+          if (switched) break;
+        }
+        if (foundActiveClass && !switched && updatedProblems.length > 0) {
+          const firstProblem = updatedProblems[0];
+          if (firstProblem.classes.length > 0) {
+            firstProblem.classes[0].isAnnotating = true;
+          }
+        }
+        updateProblems(updatedProblems);
+      }, [currProblem, updateProblems]);
       
-      const keyString = [...modifiers, event.key.toUpperCase()].join('+');
+      const updateMeshColors = useCallback(() => {
+        if (!meshRef.current) return;
+        const geometry = meshRef.current.geometry as BufferGeometry;
+        const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
+        const { colors, keypoints } = modelStore.getCurrentState(modelStore.modelId);
+    
+        // Update vertex colors
+        for (let i = 0; i < colorAttributes.count; i++) {
+          const color = colors[i] ? new THREE.Color(colors[i].color) : new THREE.Color(0xffffff);
+          colorAttributes.setXYZ(i, color.r, color.g, color.b);
+        }
+    
+        // Update keypoints
+        meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
+        keypoints.forEach(keypoint => {
+          const sphere = new THREE.Mesh(sphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
+          sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
+          meshRef.current?.add(sphere);
+        });
+    
+        colorAttributes.needsUpdate = true;
+      }, [modelStore]);
 
-      // Define rotation and zoom amounts
-      const ROTATION_AMOUNT = Math.PI / 32; // About 5.625 degrees
-      const ZOOM_FACTOR = 0.9; // 10% zoom per step
-      // Match hotkeys and execute corresponding actions
-      if (keyString === hotkeys.zoomIn) {
-        event.preventDefault();
-        zoomCamera(ZOOM_FACTOR);
-      } else if (keyString === hotkeys.zoomOut) {
-        event.preventDefault();
-        zoomCamera(1/ZOOM_FACTOR);
-      } else if (keyString === hotkeys.rotateLeft) {
-        event.preventDefault();
-        rotateHorizontal(ROTATION_AMOUNT);
-      } else if (keyString === hotkeys.rotateRight) {
-        event.preventDefault();
-        rotateHorizontal(-ROTATION_AMOUNT);
-      } else if (keyString === hotkeys.rotateUp) {
-        event.preventDefault();
-        rotateVertical(-ROTATION_AMOUNT);
-      } else if (keyString === hotkeys.rotateDown) {
-        event.preventDefault();
-        rotateVertical(ROTATION_AMOUNT);
-      } else if (keyString === hotkeys.prevStep) {
-        event.preventDefault();
-        modelStore.undo(modelStore.modelId);
-        updateMeshColors();
-      } else if (keyString === hotkeys.nextStep) {
-        event.preventDefault();
-        modelStore.redo(modelStore.modelId);
-        updateMeshColors();
-      }
-    };
+      useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+          if (!hotkeysEnabled) {
+            return;
+          }
+          
+          // 忽略输入框中的按键事件
+          if (document.activeElement?.tagName === 'INPUT' || 
+              document.activeElement?.tagName === 'TEXTAREA') {
+            return;
+          }
+    
+          // 创建热键字符串
+          const keyString = [
+            event.ctrlKey && 'CONTROL',
+            event.shiftKey && 'SHIFT',
+            event.altKey && 'ALT',
+            event.key.toUpperCase()
+          ].filter(Boolean).join('+');
+    
+          // 防止默认行为
+          const preventDefaultFor = [
+            hotkeys.zoomIn,
+            hotkeys.zoomOut,
+            hotkeys.rotateLeft,
+            hotkeys.rotateRight,
+            hotkeys.rotateUp,
+            hotkeys.rotateDown,
+            hotkeys.prevStep,
+            hotkeys.nextStep,
+            hotkeys.brush,
+            hotkeys.spray,
+            hotkeys.switchClass
+          ];
+    
+          if (preventDefaultFor.includes(keyString)) {
+            event.preventDefault();
+          }
+    
+          // 工具切换热键处理
+          if (keyString === hotkeys.brush) {
+            activateBrush();
+            return;
+          }
+    
+          if (keyString === hotkeys.spray) {
+            activateSpray();
+            setSpray('#ffffff'); // 设置默认颜色
+            return;
+          }
+    
+          // 其他热键处理
+          switch (keyString) {
+            case hotkeys.zoomIn:
+              zoomCamera(0.9);
+              break;
+            case hotkeys.zoomOut:
+              zoomCamera(1.1);
+              break;
+            case hotkeys.rotateLeft:
+              rotateHorizontal(-Math.PI / 32);
+              break;
+            case hotkeys.rotateRight:
+              rotateHorizontal(Math.PI / 32);
+              break;
+            case hotkeys.rotateUp:
+              rotateVertical(-Math.PI / 32);
+              break;
+            case hotkeys.rotateDown:
+              rotateVertical(Math.PI / 32);
+              break;
+            case hotkeys.prevStep:
+              modelStore.undo(modelStore.modelId);
+              updateMeshColors();
+              break;
+            case hotkeys.nextStep:
+              modelStore.redo(modelStore.modelId);
+              updateMeshColors();
+              break;
+            case hotkeys.switchClass:
+              switchToNextClass();
+              break;
+          }
+        };
+    
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+          window.removeEventListener('keydown', handleKeyDown);
+        };
+      }, [
+        hotkeys,
+        hotkeysEnabled,
+        zoomCamera,
+        rotateHorizontal,
+        rotateVertical,
+        modelStore,
+        switchToNextClass,
+        activateBrush,
+        activateSpray,
+        setSpray,
+        setTool,
+        updateMeshColors
+      ]);
 
-  /*  const handleMouseDown = (event: MouseEvent) => {
-      if (checkHotkey(event, hotkeys.zoomIn)) {
-        zoomCamera(0.9);
-      } else if (checkHotkey(event, hotkeys.zoomOut)) {
-        zoomCamera(1.1);
-      } else if (checkHotkey(event, hotkeys.rotateLeft)) {
-        rotateHorizontal(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateRight)) {
-        rotateHorizontal(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateUp)) {
-        rotateVertical(-Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.rotateDown)) {
-        rotateVertical(Math.PI / 32);
-      } else if (checkHotkey(event, hotkeys.prevStep)) {
-        modelStore.undo(modelStore.modelId);
-        updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Undo triggered");
-      } else if (checkHotkey(event, hotkeys.nextStep)) {
-        modelStore.redo(modelStore.modelId);
-        updateMeshColors();
-        //logSessionActions(modelStore.modelId);
-        console.log("Redo triggered");
-      }
-    };*/
-
-    /*const handleWheel = (event: WheelEvent) => {
-      if (checkHotkey(event, hotkeys.zoomIn)) {
-        zoomCamera(0.9);
-        event.preventDefault();
-      } else if (checkHotkey(event, hotkeys.zoomOut)) {
-        zoomCamera(1.1);
-        event.preventDefault();
-      }
-    }; */
-
-    window.addEventListener('keydown', handleKeyDown);
-    //window.addEventListener('mousedown', handleMouseDown);
-    //window.addEventListener('wheel', handleWheel);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      //window.removeEventListener('mousedown', handleMouseDown);
-      //window.removeEventListener('wheel', handleWheel);
-    };
-  }, [hotkeys, checkHotkey, zoomCamera, rotateHorizontal, rotateVertical, modelStore]);
-
-  const updateMeshColors = useCallback(() => {
-    if (!meshRef.current) return;
-    const geometry = meshRef.current.geometry as BufferGeometry;
-    const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
-    const { colors, keypoints } = modelStore.getCurrentState(modelStore.modelId);
-
-    // Update vertex colors
-    for (let i = 0; i < colorAttributes.count; i++) {
-      const color = colors[i] ? new THREE.Color(colors[i].color) : new THREE.Color(0xffffff);
-      colorAttributes.setXYZ(i, color.r, color.g, color.b);
-    }
-
-    // Update keypoints
-    meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
-    keypoints.forEach(keypoint => {
-      const sphere = new THREE.Mesh(sphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
-      sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
-      meshRef.current?.add(sphere);
-    });
-
-    colorAttributes.needsUpdate = true;
-  }, [modelStore]);
 
   // debugging function to log session actions
   // const logSessionActions = (modelId: string) => {
@@ -1138,6 +1191,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   //     console.log("No session state found for this model.");
   //   }
   // };
+
 
   const linkAnnotationToClass = (coordinates: any, color: string) => {
     if (_.findIndex(currProblem, function (p) {
