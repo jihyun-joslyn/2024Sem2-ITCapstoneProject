@@ -25,9 +25,10 @@ type ModelDisplayProps = {
   updateProblems: (updateProblems: ProblemType[]) => void;
   currentFile: string | null;
   updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
+  checkIfNowCanAnnotate: () => boolean;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping,  checkIfNowCanAnnotate }) => {
   const { tool, color, hotkeys, orbitControlsRef ,controlsRef } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
@@ -214,7 +215,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   }, [modelData, states, keypoints]);
 
   const spray = useCallback((position: THREE.Vector2) => {
-    if (!meshRef.current || !meshRef.current.geometry.boundsTree) return;
+    if ( checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
     const raycaster = raycasterRef.current;
     const geometry = meshRef.current.geometry as BufferGeometry;
     const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
@@ -316,18 +317,18 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         modelStore.startPaintAction(modelStore.modelId, 'point');
         modelStore.addPaintChange(modelStore.modelId, -1, color); // Use -1 as a special index for keypoints
         modelStore.endPaintAction(modelStore.modelId);
-        linkAnnotationToClass(localPoint, "");
+        linkAnnotationToClass(localPoint, color);
       }
     };
 
-    if (tool === 'keypoint') {
+    if (tool === 'keypoint' && checkIfNowCanAnnotate()) {
       window.addEventListener('click', handlePointerClick);
     }
 
     return () => {
       window.removeEventListener('click', handlePointerClick);
     };
-  }, [tool, camera, gl, meshRef, modelStore]);
+  }, [tool, camera, gl, meshRef, modelStore, color]);
 
   
   //Starting coding for Shortest Path  
@@ -1174,6 +1175,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               c.coordinates.push(coordinates.y);
               c.coordinates.push(coordinates.z);
 
+              c.color = color;
               c.annotationType = AnnotationType.KEYPOINT;
               c.isAnnotating = false;
               break;
@@ -1275,10 +1277,17 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; currentFile: string | null; updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void; }> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
+const ModelDisplay: React.FC<{ 
+  modelData: ArrayBuffer, 
+  currProblem: ProblemType[], 
+  updateProblems: (updateProblems: ProblemType[]) => void; 
+  currentFile: string | null; 
+  updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void; 
+  checkIfNowCanAnnotate: () => boolean;
+}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping,  checkIfNowCanAnnotate }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} />
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate}/>
     </Canvas>
   );
 };

@@ -6,6 +6,8 @@ import { FileAnnotation } from '../datatypes/FileAnnotation';
 import { OutputFile } from '../datatypes/OutputFile';
 import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
+import useModelStore from './StateStore';
+import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 
 
 export type HeaderProps = {
@@ -14,14 +16,15 @@ export type HeaderProps = {
     currentFile: string | null;
     updateFileList: (_fileList: FileAnnotation[]) => void;
     stlFiles: FileAnnotation[];
-    initializeCurrentFile: (_file: FileAnnotation) => void
+    initializeCurrentFile: (_file: FileAnnotation) => void;
     openHotkeyDialog: () => void;//hotkey page
+    modelIDFileNameMapping: ModelIDFileNameMap[];
 };
 
-export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog
-}: HeaderProps) {
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile, openHotkeyDialog, modelIDFileNameMapping }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
+    const { removeModel } = useModelStore();
 
     const fileMenuOpen = Boolean(fileAnchorEl);
     const settingMenuOpen = Boolean(settingAnchorEl);
@@ -96,7 +99,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     }) == -1)) {
                         var temp1: FileAnnotation = { fileName: f.name, fileObject: f, problems: [], annotated: isAnnotated(files, f.name) };
 
-                        if (checkIfFileExistsInLocalStorage(f.name)) { 
+                        if (checkIfFileExistsInLocalStorage(f.name)) {
                             temp1.problems = getFileDataFromLocalStorage(f.name);
 
                             //reset current class
@@ -121,7 +124,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
             if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
                 localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
-            else 
+            else
                 addFileToLocalStorage(_fileList);
 
             initializeCurrentFile(_fileList[0]);
@@ -139,7 +142,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
 
         _files.forEach(f => {
-            if (_.findIndex(_fileList, function(_f) {
+            if (_.findIndex(_fileList, function (_f) {
                 return _.eq(_f.fileName, f.fileName)
             }) == -1) {
                 _fileList.push(f);
@@ -169,7 +172,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
     const getFileDataFromLocalStorage = (fileName: string): ProblemType[] => {
         var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
-        var _file : FileAnnotation = _.find(_fileList, function (f) {
+        var _file: FileAnnotation = _.find(_fileList, function (f) {
             return _.eq(f.fileName, fileName);
         });
 
@@ -296,23 +299,41 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
     const removeFile = (fileName: string) => {
         var _stlFiles: FileAnnotation[] = stlFiles;
 
-        var index = _.findIndex(_stlFiles, function(f) {
+        var index = _.findIndex(_stlFiles, function (f) {
             return _.eq(f.fileName, fileName);
         });
 
         _stlFiles[index].annotated = true;
 
-        
-        updateFileList(_stlFiles);
-
-        if (_stlFiles.length > 0) 
-            initializeCurrentFile(_stlFiles.at(0));
-
-        _.remove(_stlFiles, function(f) {
+        _.remove(_stlFiles, function (f) {
             return _.eq(f.fileName, fileName);
         })
 
-        localStorage.setItem(FileListStoargeKey, JSON.stringify(_stlFiles));
+        updateFileList(_stlFiles);
+
+        if (_stlFiles.length > 0)
+            initializeCurrentFile(_stlFiles.at(0));
+
+        removeFileFromLocalStorage(fileName);
+    }
+
+    const removeFileFromLocalStorage = (fileName: string) => {
+        if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
+            return;
+
+        var _fileList: FileAnnotation[] = JSON.parse(localStorage.getItem(FileListStoargeKey));
+
+        _.remove(_fileList, function (f) {
+            return _.eq(f.fileName, fileName)
+        });
+
+        localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
+
+        var currModelID: string = _.find(modelIDFileNameMapping, function (m) {
+            return _.eq(m.fileName, currentFile);
+        }).modelID;
+
+        removeModel(currModelID);
     }
 
     const handleSave = () => {

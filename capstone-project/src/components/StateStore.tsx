@@ -35,6 +35,7 @@ interface ModelColorState {
   setModelId: (modelId: string) => void;
   setModelKeypoint: (modelId: string, keypointArr: KeypointState[]) => void;
   setModelSpray: (modelId: string, sprayArr: any) => void;
+  removeModel: (modelId: string) => void;
 
   // New methods for session-based actions
   startPaintAction: (modelId: string, type: 'spray' | 'point') => void;
@@ -99,6 +100,17 @@ const useModelStore = create<ModelColorState>()(
             }
           }))
         },
+
+        removeModel: (modelId) => 
+            set((state) => {
+              delete state.keypoints[modelId];
+              delete state.states[modelId];
+              
+              return {
+                ...state
+              }
+            })
+        ,
 
         setModelId: (id) =>
           set((state) => ({

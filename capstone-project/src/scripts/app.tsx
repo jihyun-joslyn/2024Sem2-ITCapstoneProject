@@ -70,6 +70,11 @@ const AppContent = () => {
     });
 
     setFileList(_file);
+
+    if (_.isEmpty(_file)) {
+      setModelData(null);
+      forceUpdate();
+    }
   }
 
   const updateDataLabels = (updatedProblems: ProblemType[]): void => {
@@ -244,8 +249,19 @@ const AppContent = () => {
     setModelIDFileNameMapping(mapping);
   }
 
-  const getAnnotationsLinkedToClass = () => {
-    
+  const getCurrentAnnotationColor = (): string => {
+    var currentColor: string = "";
+
+    currProblems.forEach(p => {
+      p.classes.forEach(c => {
+        if (c.isAnnotating) {
+          currentColor = c.color;
+          return currentColor;
+        }
+      })
+    })
+
+    return currentColor;
   }
 
   return (
@@ -258,6 +274,7 @@ const AppContent = () => {
           updateFileList={updateFileList}
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
+          modelIDFileNameMapping={modelIDFileNameMapping}
           openHotkeyDialog={openHotkeyDialog} />
       </Box>
       <Grid container rowSpacing={1}>
@@ -270,10 +287,11 @@ const AppContent = () => {
             currentFile={currentFile}
             checkIfNowCanAnnotate={checkIfNowCanAnnotate}
             showErrorAlert={showErrorAlert}
-            getCurrentAnnotationTool={getCurrentAnnotationTool} />
+            getCurrentAnnotationTool={getCurrentAnnotationTool}
+            getCurrentAnnotationColor={getCurrentAnnotationColor} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} />}
+          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate} />}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane

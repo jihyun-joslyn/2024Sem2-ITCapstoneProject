@@ -1,14 +1,14 @@
 import { Accordion, AccordionDetails, AccordionSummary, List, ListItem, ListItemButton, TextField } from '@mui/material';
 import { UnfoldMore as UnfoldMoreIcon } from '@mui/icons-material';
-import { useState, KeyboardEvent, useEffect } from 'react';
+import { useState, KeyboardEvent, useEffect, useContext } from 'react';
 import * as _ from "lodash";
 import UpsertMenu from './UpsertMenu';
 import Class from './Class';
-import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 import '../style/index.css';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 import useModelStore from '../components/StateStore';
+import ModelContext from './ModelContext';
 
 export type ProblemProps = {
     problemName: string;
@@ -30,7 +30,8 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(classes);
-    const { states, keypoints, setState, modelId, setModelKeypoint, setModelSpray } = useModelStore();
+    const { states, keypoints, setModelKeypoint, setModelSpray } = useModelStore();
+    const { setTool, setCurrentTool } = useContext(ModelContext);
 
     useEffect(() => {
         setProblem(problemName);
@@ -50,6 +51,9 @@ export default function Problem({ problemName, classes, problemKey, updateProble
         if (!_.isEmpty(_.trim(inputNewClass)) && (e.key === "Enter")) {
             var _labels: ClassDetail[] = labels;
             var newClass: ClassDetail = { name: inputNewClass, annotationType: AnnotationType.NONE, coordinates: [], color: "", isAnnotating: false };
+
+            if (!checkIfNowCanAnnotate())
+                newClass.isAnnotating = true;
 
             _labels.push(newClass);
 
@@ -73,6 +77,11 @@ export default function Problem({ problemName, classes, problemKey, updateProble
         var _labels: ClassDetail[] = labels;
 
         var deletedClass: ClassDetail = _labels.at(arrIndex);
+
+        if (deletedClass.isAnnotating) {
+            showErrorAlert("Error", "Please de-select the class before deleting the class");
+            return;
+        }
 
         _.remove(_labels, function (c, i) {
             return i == arrIndex;
@@ -99,7 +108,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 var _vertex: Number[] = deletedClass.coordinates;
 
                 Object.keys(_spray).forEach(v => {
-                    if (_.includes(_vertex, (Number)(v))) 
+                    if (_.includes(_vertex, (Number)(v)))
                         delete _spray[v];
                 })
 
@@ -117,16 +126,17 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const setClassToBeAnnotated = (classIndex: number): void => {
         var _labels: ClassDetail[] = labels;
 
-        if (_labels[classIndex].isAnnotating)
+        if (_labels[classIndex].isAnnotating) {
             _labels[classIndex].isAnnotating = false;
+            setTool('none');
+            setCurrentTool('none');
+        }
         else {
             if (checkIfNowCanAnnotate())
                 showErrorAlert("Error", "Only one class can be annotated at a time.");
             else
                 _labels[classIndex].isAnnotating = true;
         }
-
-        console.log(_labels);
 
         setLabels(_labels);
         updateLabel(_labels, problemKey);
@@ -161,9 +171,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             <AccordionDetails sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }}>
                 <List>
                     {labels.map((l, j) => (
-                        <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} className={l.isAnnotating ? 'selected-class' : ''}
-                        // selected={l.isAnnotating}
-                        >
+                        <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} className={l.isAnnotating ? 'selected-class' : ''}>
                             <Class
                                 classDetails={l}
                                 labelIndex={j}

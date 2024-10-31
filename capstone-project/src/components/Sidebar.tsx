@@ -16,8 +16,8 @@ export type SidebarProps = {
   currentFile: string;
   checkIfNowCanAnnotate: () => boolean;
   showErrorAlert: (_title: string, _content: string) => any;
-  getCurrentAnnotationTool: () => AnnotationType
-
+  getCurrentAnnotationTool: () => AnnotationType;
+  getCurrentAnnotationColor: () => string
 };
 
 const ArrowIcon = createSvgIcon(
@@ -44,12 +44,12 @@ const SprayIcon = createSvgIcon(
   'spray-can',
 );
 
-export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, checkIfNowCanAnnotate, showErrorAlert, getCurrentAnnotationTool }: SidebarProps) {
+export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySelector, fileList, currentFile, checkIfNowCanAnnotate, showErrorAlert, getCurrentAnnotationTool, getCurrentAnnotationColor }: SidebarProps) {
   const [isShowFilePane, setIsShowFilePane] = useState(false);
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
-  const { setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);
+  const { setTool, setSpray, activateBrush, activateSpray, currentTool, tool } = useContext(ModelContext);
 
   useEffect(() => {
     // Update the selected tab based on the current tool
@@ -72,8 +72,9 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
 
         default:
             setValue(0);
+            break;
     }
-}, [currentTool]);
+}, [currentTool, tool]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     if (newValue == 4 || newValue == 5 || newValue == 6) {
@@ -141,9 +142,15 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   }
 };
 
-  const handleColorChange = (color: ColorResult) => {
-    setColor(color.hex);
-    setSpray(color.hex);
+  const handleColorChange = (_color: ColorResult) => {
+    if (!_.eq(getCurrentAnnotationColor, _color.hex) && !_.isEmpty(getCurrentAnnotationColor)) {
+      showErrorAlert("Error", "A class can only have a color.");
+      _color.hex = getCurrentAnnotationColor();
+
+    }
+
+    setColor(_color.hex);
+    setSpray(_color.hex);
     setColorSelector(false);
     showColorSpraySelector(!showColorSelector);
   }
