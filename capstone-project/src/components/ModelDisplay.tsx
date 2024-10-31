@@ -24,7 +24,7 @@ type ModelDisplayProps = {
   currProblem: ProblemType[];
   updateProblems: (updateProblems: ProblemType[]) => void;
   currentFile: string | null;
-  updateModelIDFileMapping : (mapping: ModelIDFileNameMap[]) => void;
+  updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
@@ -107,10 +107,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       var mapping: ModelIDFileNameMap = { modelID: modelID, fileName: currentFile };
 
 
-      if ((!_.isUndefined(localStorage.getItem(modelIDFileNameMappingKey)) && !_.isNull(localStorage.getItem(modelIDFileNameMappingKey)))) 
+      if ((!_.isUndefined(localStorage.getItem(modelIDFileNameMappingKey)) && !_.isNull(localStorage.getItem(modelIDFileNameMappingKey))))
         mappingArr = JSON.parse(localStorage.getItem(modelIDFileNameMappingKey));
 
-      if (_.findIndex(mappingArr, function(m) {
+      if (_.findIndex(mappingArr, function (m) {
         return _.eq(m.fileName, currentFile)
       }) == -1)
         mappingArr.push(mapping);
@@ -140,6 +140,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     // Load keypoints and add spheres at the saved positions
     const savedKeypoints = keypoints[modelId] || []; // Default to empty array if no keypoints exist
+
     if (savedKeypoints.length > 0) {
       savedKeypoints.forEach(({ position, color }) => {
         if (position && color) { // Ensure both position and color are valid
@@ -210,7 +211,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     wireframeRef.current.geometry = wireframeGeometry;
 
     fitModel();
-  }, [modelData, problems]);
+  }, [modelData, states, keypoints]);
 
   const spray = useCallback((position: THREE.Vector2) => {
     if (!meshRef.current || !meshRef.current.geometry.boundsTree) return;
@@ -229,7 +230,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           faceIndices.forEach(index => {
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
             modelStore.addPaintChange(modelStore.modelId, index, color);
-            setState(modelId,index,color);
+            setState(modelId, index, color);
             linkAnnotationToClass(index, color);
           });
           colorAttributes.needsUpdate = true;
@@ -1274,10 +1275,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   );
 };
 
-const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; currentFile: string | null; updateModelIDFileMapping : (mapping: ModelIDFileNameMap[]) => void;}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping}) => {
+const ModelDisplay: React.FC<{ modelData: ArrayBuffer, currProblem: ProblemType[], updateProblems: (updateProblems: ProblemType[]) => void; currentFile: string | null; updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void; }> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping}/>
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} />
     </Canvas>
   );
 };

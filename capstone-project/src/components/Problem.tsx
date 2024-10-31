@@ -8,6 +8,7 @@ import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 import '../style/index.css';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import useModelStore from '../components/StateStore';
 
 export type ProblemProps = {
     problemName: string;
@@ -29,6 +30,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
     const [isAddNewClass, setIsAddNewClass] = useState(false);
     const [inputNewClass, setInputNewClass] = useState("");
     const [labels, setLabels] = useState(classes);
+    const { states, keypoints, setState, modelId, setModelKeypoint, setModelSpray } = useModelStore();
 
     useEffect(() => {
         setProblem(problemName);
@@ -76,38 +78,38 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             return i == arrIndex;
         });
 
-        
-
-        var localModel: any = JSON.parse(localStorage.getItem("model-colors-storage"));
         var currModelID: string = _.find(modelIDFileNameMapping, function (m) {
             return _.eq(m.fileName, currentFile);
         }).modelID;
 
         switch (deletedClass.annotationType) {
             case AnnotationType.KEYPOINT:
-                var _keypoint: any[] = localModel["state"]["keypoints"][currModelID];
+                var _keypoint: any[] = keypoints[currModelID];
                 var _point: { x: Number, y: Number, z: Number } = { x: (Number)(deletedClass.coordinates[0]), y: (Number)(deletedClass.coordinates[1]), z: (Number)(deletedClass.coordinates[2]) };
 
-                console.log(_point);
-                console.log(_.find(_keypoint, function(k) {
-                    return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
-                }));
-
-                _.remove(_keypoint, function(k) {
+                _.remove(_keypoint, function (k) {
                     return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
                 });
 
-                localModel["state"]["keypoints"][currModelID] = _keypoint;
+                setModelKeypoint(currModelID, _keypoint);
+
                 break;
             case AnnotationType.SPRAY:
+                var _spray: any = states[currModelID];
+                var _vertex: Number[] = deletedClass.coordinates;
+
+                Object.keys(_spray).forEach(v => {
+                    if (_.includes(_vertex, (Number)(v))) 
+                        delete _spray[v];
+                })
+
+                setModelSpray(currModelID, _spray);
                 break;
             case AnnotationType.PATH:
             case AnnotationType.NONE:
                 break;
         }
 
-        console.log(localModel)
-        localStorage.setItem("model-colors-storage", JSON.stringify(localModel));
         setLabels(_labels);
         updateLabel(_labels, problemKey);
     };
@@ -160,7 +162,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 <List>
                     {labels.map((l, j) => (
                         <ListItemButton sx={{ paddingY: '0px', paddingRight: '0px', border: '0px' }} key={j} className={l.isAnnotating ? 'selected-class' : ''}
-                            // selected={l.isAnnotating}
+                        // selected={l.isAnnotating}
                         >
                             <Class
                                 classDetails={l}
