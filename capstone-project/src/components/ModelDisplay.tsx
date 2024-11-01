@@ -12,6 +12,8 @@ import { AnnotationType } from '../datatypes/ClassDetail';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
+import { CoordinatesType } from '../datatypes/CoordinateType';
+import { FaceLabel, PathAnnotation, Point } from '../datatypes/PathAnnotation';
 import ModelContext from './ModelContext';
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
@@ -29,8 +31,8 @@ type ModelDisplayProps = {
   checkIfNowCanAnnotate: () => boolean;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping,  checkIfNowCanAnnotate }) => {
-  const { tool, color, hotkeys, orbitControlsRef ,controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray,currentTool} = useContext(ModelContext);//get the tool and color state from siderbar
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate }) => {
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray,currentTool} = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -50,9 +52,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const [closedPath, setClosedPath] = useState<THREE.Vector3[][]>([]);
   
   const getDistance = (positions: ArrayLike<number>, i: number, j: number) => {
-    const x1 = positions[i*3], y1 = positions[i*3+1], z1 = positions[i*3+2];
-    const x2 = positions[j*3], y2 = positions[j*3+1], z2 = positions[j*3+2];
-    return Math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2);
+    const x1 = positions[i * 3], y1 = positions[i * 3 + 1], z1 = positions[i * 3 + 2];
+    const x2 = positions[j * 3], y2 = positions[j * 3 + 1], z2 = positions[j * 3 + 2];
+    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
   };
 
   useEffect(() => {
@@ -216,7 +218,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   }, [modelData, states, keypoints]);
 
   const spray = useCallback((position: THREE.Vector2) => {
-    if ( checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
+    if (checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
     const raycaster = raycasterRef.current;
     const geometry = meshRef.current.geometry as BufferGeometry;
     const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
@@ -233,7 +235,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
             modelStore.addPaintChange(modelStore.modelId, index, color);
             setState(modelId, index, color);
-            linkAnnotationToClass(index, color);
+            linkAnnotationToClass(index, color, CoordinatesType.FACE);
           });
           colorAttributes.needsUpdate = true;
         }
@@ -279,7 +281,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
 
   useEffect(() => {
-    
+
     const handlePointerClick = (event: MouseEvent) => {
 
       if (!meshRef.current || tool !== 'keypoint') return;
@@ -318,7 +320,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         modelStore.startPaintAction(modelStore.modelId, 'point');
         modelStore.addPaintChange(modelStore.modelId, -1, color); // Use -1 as a special index for keypoints
         modelStore.endPaintAction(modelStore.modelId);
-        linkAnnotationToClass(localPoint, color);
+        linkAnnotationToClass(localPoint, color, CoordinatesType.POINT);
       }
     };
 
@@ -331,10 +333,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     };
   }, [tool, camera, gl, meshRef, modelStore, color]);
 
-  
+
   //Starting coding for Shortest Path  
 
-      // 添加新的函数来处理路径工具的点
+  // 添加新的函数来处理路径工具的点
   const handlePathToolClick = useCallback((event: MouseEvent) => {
     if (!meshRef.current || tool !== 'path') return;
 
@@ -362,14 +364,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         meshRef.current.geometry.attributes.position.getZ(nearestVertex)
       );
 
+      const SPHERE_COLOR: string = 'red';
       // 创建红色球体并添加到场景
       const redSphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 'red' })
+        new THREE.MeshBasicMaterial({ color: SPHERE_COLOR })
       );
       redSphere.position.copy(nearestPoint);
       redSphereRef.current.add(redSphere);
 
+      linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
       setRedPoints(prevPoints => {
         const newPoints = [...prevPoints, nearestPoint];
         console.log('Red points:', newPoints);
@@ -382,11 +386,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
             setPaths(prevPaths => {
               const newPaths = [...prevPaths, path];
               console.log('All paths:', newPaths);
-              
+
               // 检查图形是否封闭
               const closed = isShapeClosed(newPaths);
               setIsPathClosed(closed);  // 更新闭合状态
-              
+
               if (closed) {
                 console.log('Shape is closed, creating filled shape');
                 const fillingSuccess = createFilledShape(newPaths);
@@ -400,7 +404,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                   }, 100);
                 }
               }
-              
+
               return newPaths;
             });
           } else {
@@ -422,11 +426,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const startVertex = findNearestVertex(start, graph);
     const endVertex = findNearestVertex(end, graph);
     console.log('Start vertex:', startVertex, 'End vertex:', endVertex);
-    
+
     const path = aStar(graph, startVertex, endVertex);
-    
+
     console.log('Raw path:', path);
-    
+
     const validPath = path.map(vertexIndex => new THREE.Vector3(
       geometry.attributes.position.getX(vertexIndex),
       geometry.attributes.position.getY(vertexIndex),
@@ -434,7 +438,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     ));
 
     console.log('Valid path:', validPath);
-    
+
     if (validPath.length < 2) {
       console.warn('No valid path found, attempting direct connection');
       const directPath = attemptDirectConnection(start, end, geometry);
@@ -445,7 +449,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       console.warn('Direct connection failed, returning straight line');
       return [start, end];
     }
-    
+
     return validPath;
   };
   // 修改 aStar 函数
@@ -504,13 +508,13 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     if (indices) {
       for (let i = 0; i < indices.length; i += 3) {
-        addEdge(indices[i], indices[i+1]);
-        addEdge(indices[i+1], indices[i+2]);
-        addEdge(indices[i+2], indices[i]);
+        addEdge(indices[i], indices[i + 1]);
+        addEdge(indices[i + 1], indices[i + 2]);
+        addEdge(indices[i + 2], indices[i]);
       }
     } else {
       for (let i = 0; i < positions.length; i += 9) {
-        const v1 = i/3, v2 = (i+3)/3, v3 = (i+6)/3;
+        const v1 = i / 3, v2 = (i + 3) / 3, v3 = (i + 6) / 3;
         addEdge(v1, v2);
         addEdge(v2, v3);
         addEdge(v3, v1);
@@ -578,39 +582,39 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   // 在加载模型时建立边到三角形的映射关系（在 useEffect 中添加）
   useEffect(() => {
     if (!meshRef.current) return;
-    
+
     const geometry = meshRef.current.geometry as BufferGeometry;
     const positions = geometry.attributes.position;
     const indices = geometry.index;
-    
+
     // 建立边到三角形的映射
     const edgeToTriangles = new Map<string, Set<number>>();
-    
+
     for (let i = 0; i < indices!.count; i += 3) {
-        const triangleIndex = Math.floor(i / 3);
-        const ia = indices!.getX(i);
-        const ib = indices!.getX(i + 1);
-        const ic = indices!.getX(i + 2);
+      const triangleIndex = Math.floor(i / 3);
+      const ia = indices!.getX(i);
+      const ib = indices!.getX(i + 1);
+      const ic = indices!.getX(i + 2);
 
-        const va = new Vector3().fromBufferAttribute(positions, ia);
-        const vb = new Vector3().fromBufferAttribute(positions, ib);
-        const vc = new Vector3().fromBufferAttribute(positions, ic);
+      const va = new Vector3().fromBufferAttribute(positions, ia);
+      const vb = new Vector3().fromBufferAttribute(positions, ib);
+      const vc = new Vector3().fromBufferAttribute(positions, ic);
 
-        // 为三角形的每条边添加映射
-        const edges = [
-            createEdgeKey(va, vb),
-            createEdgeKey(vb, vc),
-            createEdgeKey(vc, va)
-        ];
+      // 为三角形的每条边添加映射
+      const edges = [
+        createEdgeKey(va, vb),
+        createEdgeKey(vb, vc),
+        createEdgeKey(vc, va)
+      ];
 
-        edges.forEach(edge => {
-            if (!edgeToTriangles.has(edge)) {
-                edgeToTriangles.set(edge, new Set());
-            }
-            edgeToTriangles.get(edge)!.add(triangleIndex);
-        });
+      edges.forEach(edge => {
+        if (!edgeToTriangles.has(edge)) {
+          edgeToTriangles.set(edge, new Set());
+        }
+        edgeToTriangles.get(edge)!.add(triangleIndex);
+      });
     }
-    
+
     edgeToTrianglesRef.current = edgeToTriangles;
   }, [modelData]); // 只在模型加载时执行一次
 
@@ -619,9 +623,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     let sum = 0;
     // 计算路径的有向面积
     for (let i = 0; i < path.length; i++) {
-        const current = path[i];
-        const next = path[(i + 1) % path.length];
-        sum += (next.x - current.x) * (next.y + current.y);
+      const current = path[i];
+      const next = path[(i + 1) % path.length];
+      sum += (next.x - current.x) * (next.y + current.y);
     }
     return sum > 0;
   };
@@ -635,76 +639,76 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   ): boolean => {
     const indices = geometry.index!;
     const positions = geometry.attributes.position;
-    
+
     // 获取三角形的三个顶点
     const i = triangleIndex * 3;
     const va = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i));
     const vb = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 1));
     const vc = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 2));
-    
+
     // 计算三角形的质心
     const centroid = new THREE.Vector3()
-        .add(va)
-        .add(vb)
-        .add(vc)
-        .divideScalar(3);
-    
+      .add(va)
+      .add(vb)
+      .add(vc)
+      .divideScalar(3);
+
     // 计算路径边的方向向量
     const edgeDirection = new THREE.Vector3()
-        .subVectors(pathEdge[1], pathEdge[0]);
-    
+      .subVectors(pathEdge[1], pathEdge[0]);
+
     // 计算从路径起点到三角形质心的向量
     const toCentroid = new THREE.Vector3()
-        .subVectors(centroid, pathEdge[0]);
-    
+      .subVectors(centroid, pathEdge[0]);
+
     // 计算叉积来判断方向
     const crossProduct = new THREE.Vector3()
-        .crossVectors(edgeDirection, toCentroid);
-    
+      .crossVectors(edgeDirection, toCentroid);
+
     // 根据路径的方向（顺时针/逆时针）来判断内外侧
     return isPathClockwise ? crossProduct.z < 0 : crossProduct.z > 0;
   };
 
   // 修改获取相邻三角形的函数，使用边来判断相邻关系
   const getAdjacentTriangles = (
-      triangleIndex: number,
-      geometry: THREE.BufferGeometry
+    triangleIndex: number,
+    geometry: THREE.BufferGeometry
   ): Set<number> => {
-      const indices = geometry.index!;
-      const positions = geometry.attributes.position;
-      const adjacent = new Set<number>();
-      
-      // 获取当前三角形的三个顶点
-      const i = triangleIndex * 3;
-      const v1 = indices.getX(i);
-      const v2 = indices.getX(i + 1);
-      const v3 = indices.getX(i + 2);
+    const indices = geometry.index!;
+    const positions = geometry.attributes.position;
+    const adjacent = new Set<number>();
 
-      // 获取三个顶点的位置
-      const p1 = new THREE.Vector3().fromBufferAttribute(positions, v1);
-      const p2 = new THREE.Vector3().fromBufferAttribute(positions, v2);
-      const p3 = new THREE.Vector3().fromBufferAttribute(positions, v3);
+    // 获取当前三角形的三个顶点
+    const i = triangleIndex * 3;
+    const v1 = indices.getX(i);
+    const v2 = indices.getX(i + 1);
+    const v3 = indices.getX(i + 2);
 
-      // 创建三条边的key
-      const edges = [
-          createEdgeKey(p1, p2),
-          createEdgeKey(p2, p3),
-          createEdgeKey(p3, p1)
-      ];
+    // 获取三个顶点的位置
+    const p1 = new THREE.Vector3().fromBufferAttribute(positions, v1);
+    const p2 = new THREE.Vector3().fromBufferAttribute(positions, v2);
+    const p3 = new THREE.Vector3().fromBufferAttribute(positions, v3);
 
-      // 通过边找到相邻的三角形
-      edges.forEach(edge => {
-          const adjacentToEdge = edgeToTrianglesRef.current.get(edge);
-          if (adjacentToEdge) {
-              adjacentToEdge.forEach(adjTriangle => {
-                  if (adjTriangle !== triangleIndex) {
-                      adjacent.add(adjTriangle);
-                  }
-              });
+    // 创建三条边的key
+    const edges = [
+      createEdgeKey(p1, p2),
+      createEdgeKey(p2, p3),
+      createEdgeKey(p3, p1)
+    ];
+
+    // 通过边找到相邻的三角形
+    edges.forEach(edge => {
+      const adjacentToEdge = edgeToTrianglesRef.current.get(edge);
+      if (adjacentToEdge) {
+        adjacentToEdge.forEach(adjTriangle => {
+          if (adjTriangle !== triangleIndex) {
+            adjacent.add(adjTriangle);
           }
-      });
-      
-      return adjacent;
+        });
+      }
+    });
+
+    return adjacent;
   };
 
   // 修改 createFilledShape 函数，使用 context 中的 color
@@ -728,67 +732,71 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const boundaryTriangles = new Set<number>();
     const allTrianglesToColor = new Set<number>();
     const processedTriangles = new Set<number>();
-    
+
     // 添加打印语句来查看 color 的值
     console.log('Current color value:', color);
     console.log('Color type:', typeof color);
-    
+
     // 修改颜色判断逻辑
     const fillColor = new THREE.Color(color === '#ffffff' ? '#00FF00' : color);  // 默认白色，则使用绿色
 
     // 首先找到所有边界三角形
     paths.forEach(path => {
-        for (let i = 0; i < path.length - 1; i++) {
-            const edge = createEdgeKey(path[i], path[i + 1]);
-            const pathEdge: [THREE.Vector3, THREE.Vector3] = [path[i], path[i + 1]];
-            
-            const adjacentTriangles = edgeToTrianglesRef.current.get(edge);
-            if (adjacentTriangles) {
-                adjacentTriangles.forEach(triangleIndex => {
-                    if (isTriangleOnInnerSide(triangleIndex, pathEdge, geometry, isPathClockwise)) {
-                        boundaryTriangles.add(triangleIndex);
-                        allTrianglesToColor.add(triangleIndex);
-                        processedTriangles.add(triangleIndex);
-                    }
-                });
+      for (let i = 0; i < path.length - 1; i++) {
+        const edge = createEdgeKey(path[i], path[i + 1]);
+        const pathEdge: [THREE.Vector3, THREE.Vector3] = [path[i], path[i + 1]];
+
+        const adjacentTriangles = edgeToTrianglesRef.current.get(edge);
+        if (adjacentTriangles) {
+          adjacentTriangles.forEach(triangleIndex => {
+            if (isTriangleOnInnerSide(triangleIndex, pathEdge, geometry, isPathClockwise)) {
+              boundaryTriangles.add(triangleIndex);
+              allTrianglesToColor.add(triangleIndex);
+              processedTriangles.add(triangleIndex);
             }
+          });
         }
+      }
     });
 
     // 递归填充函数
     const fillRecursively = (triangleIndex: number) => {
-        const adjacentTriangles = getAdjacentTriangles(triangleIndex, geometry);
-        
-        adjacentTriangles.forEach(adjTriangle => {
-            if (!processedTriangles.has(adjTriangle)) {
-                processedTriangles.add(adjTriangle);
-                
-                const adjCentroid = getTriangleCentroid(adjTriangle, geometry);
-                if (isPointInPolygon(adjCentroid, completePath)) {
-                    allTrianglesToColor.add(adjTriangle);
-                    // 递归处理相邻三角形
-                    fillRecursively(adjTriangle);
-                }
-            }
-        });
+      const adjacentTriangles = getAdjacentTriangles(triangleIndex, geometry);
+
+      adjacentTriangles.forEach(adjTriangle => {
+        if (!processedTriangles.has(adjTriangle)) {
+          processedTriangles.add(adjTriangle);
+
+          const adjCentroid = getTriangleCentroid(adjTriangle, geometry);
+          if (isPointInPolygon(adjCentroid, completePath)) {
+            allTrianglesToColor.add(adjTriangle);
+            // 递归处理相邻三角形
+            fillRecursively(adjTriangle);
+          }
+        }
+      });
     };
 
     // 从每个边界三角形开始递归填充
     boundaryTriangles.forEach(triangleIndex => {
-        fillRecursively(triangleIndex);
+      fillRecursively(triangleIndex);
     });
 
     // 对所有收集到的三角形进行染色
     allTrianglesToColor.forEach(triangleIndex => {
-        const i = triangleIndex * 3;
-        const ia = indices!.getX(i);
-        const ib = indices!.getX(i + 1);
-        const ic = indices!.getX(i + 2);
+      const i = triangleIndex * 3;
+      const ia = indices!.getX(i);
+      const ib = indices!.getX(i + 1);
+      const ic = indices!.getX(i + 2);
 
-        // 使用选择的颜色进行填充
-        colors.setXYZ(ia, fillColor.r, fillColor.g, fillColor.b);
-        colors.setXYZ(ib, fillColor.r, fillColor.g, fillColor.b);
-        colors.setXYZ(ic, fillColor.r, fillColor.g, fillColor.b);
+      // 使用选择的颜色进行填充
+      colors.setXYZ(ia, fillColor.r, fillColor.g, fillColor.b);
+      colors.setXYZ(ib, fillColor.r, fillColor.g, fillColor.b);
+      colors.setXYZ(ic, fillColor.r, fillColor.g, fillColor.b);
+
+      for (var j = i; j <= i + 2; j++) {
+        linkAnnotationToClass(j, fillColor.getHexString(), CoordinatesType.FACE);
+      }
     });
 
     colors.needsUpdate = true;
@@ -799,46 +807,46 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const getTriangleCentroid = (triangleIndex: number, geometry: THREE.BufferGeometry): THREE.Vector3 => {
     const indices = geometry.index!;
     const positions = geometry.attributes.position;
-    
+
     const i = triangleIndex * 3;
     const va = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i));
     const vb = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 1));
     const vc = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 2));
-    
+
     return new THREE.Vector3()
-        .add(va)
-        .add(vb)
-        .add(vc)
-        .divideScalar(3);
+      .add(va)
+      .add(vb)
+      .add(vc)
+      .divideScalar(3);
   };
 
   // 添加判断点是否在多边形内的函数
   const isPointInPolygon = (point: THREE.Vector3, polygon: THREE.Vector3[]): boolean => {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i].x, yi = polygon[i].y;
-        const xj = polygon[j].x, yj = polygon[j].y;
-        
-        const intersect = ((yi > point.y) !== (yj > point.y))
-            && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
+      const xi = polygon[i].x, yi = polygon[i].y;
+      const xj = polygon[j].x, yj = polygon[j].y;
+
+      const intersect = ((yi > point.y) !== (yj > point.y))
+        && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
     }
     return inside;
   };
 
   // 添加创建边键值的辅助函数
   const createEdgeKey = (v1: THREE.Vector3, v2: THREE.Vector3): string => {
-      // 为了确保边的唯一性，我们总是用较小的坐标值在前
-      const points = [
-          [v1.x, v1.y, v1.z],
-          [v2.x, v2.y, v2.z]
-      ].sort((a, b) => {
-          if (a[0] !== b[0]) return a[0] - b[0];
-          if (a[1] !== b[1]) return a[1] - b[1];
-          return a[2] - b[2];
-      });
-      
-      return `${points[0].join(',')}-${points[1].join(',')}`;
+    // 为了确保边的唯一性，我们总是用较小的坐标值在前
+    const points = [
+      [v1.x, v1.y, v1.z],
+      [v2.x, v2.y, v2.z]
+    ].sort((a, b) => {
+      if (a[0] !== b[0]) return a[0] - b[0];
+      if (a[1] !== b[1]) return a[1] - b[1];
+      return a[2] - b[2];
+    });
+
+    return `${points[0].join(',')}-${points[1].join(',')}`;
   };
 
   useEffect(() => {
@@ -881,14 +889,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   // 添加判断图形是否封闭的函数
   const isShapeClosed = (paths: THREE.Vector3[][]): boolean => {
     if (paths.length < 3) return false;
-    
+
     const firstPoint = paths[0][0];
     const lastPoint = paths[paths.length - 1][paths[paths.length - 1].length - 1];
     const newPoint = paths[paths.length - 1][0]; // 最新添加的点
-    
+
     const tolerance = 0.001; // 可以根据需要调整这个值
     return firstPoint.distanceTo(lastPoint) < tolerance || firstPoint.distanceTo(newPoint) < tolerance;
-  }; 
+  };
 
   //End Shortest Path function
 
@@ -940,11 +948,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       const currentZoom = camera.position.distanceTo(controls.target);
       // Calculate new zoom
       const newZoom = currentZoom * factor;
-      
+
       // Update camera position
       const direction = camera.position.clone().sub(controls.target).normalize();
       camera.position.copy(controls.target).add(direction.multiplyScalar(newZoom));
-      
+
       controls.update();
     }
   }, [camera, orbitControlsRef]);
@@ -955,14 +963,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       // Create a rotation matrix around the Y axis
       const rotationMatrix = new THREE.Matrix4();
       rotationMatrix.makeRotationY(angle);
-      
+
       // Get vector from target to camera
       const cameraPosition = camera.position.clone().sub(controls.target);
       // Apply rotation
       cameraPosition.applyMatrix4(rotationMatrix);
       // Set new camera position
       camera.position.copy(controls.target).add(cameraPosition);
-      
+
       // Update camera orientation
       camera.lookAt(controls.target);
       controls.update();
@@ -975,18 +983,18 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       // Get the right vector (perpendicular to up vector and camera direction)
       const right = new THREE.Vector3();
       right.crossVectors(camera.up, camera.position.clone().sub(controls.target).normalize());
-      
+
       // Create rotation matrix around the right vector
       const rotationMatrix = new THREE.Matrix4();
       rotationMatrix.makeRotationAxis(right.normalize(), angle);
-      
+
       // Get vector from target to camera
       const cameraPosition = camera.position.clone().sub(controls.target);
       // Apply rotation
       cameraPosition.applyMatrix4(rotationMatrix);
       // Set new camera position
       camera.position.copy(controls.target).add(cameraPosition);
-      
+
       // Update camera orientation
       camera.lookAt(controls.target);
       controls.update();
@@ -1194,8 +1202,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   //   }
   // };
 
-
-  const linkAnnotationToClass = (coordinates: any, color: string) => {
+  const linkAnnotationToClass = (coordinates: any, color: string, type: CoordinatesType) => {
     if (_.findIndex(currProblem, function (p) {
       return _.findIndex(p.classes, function (c) {
         return c.isAnnotating == true;
@@ -1233,6 +1240,39 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               c.annotationType = AnnotationType.KEYPOINT;
               c.isAnnotating = false;
               break;
+            case "path":
+              var _coordinates: PathAnnotation = _.isEmpty(c.coordinates) ? { point: [], edge: [], faces: [] } : c.coordinates[0];
+
+              switch (type) {
+                case CoordinatesType.FACE:
+                  if (_.findIndex(_coordinates.faces, function (v) {
+                    return v.vertex == coordinates;
+                  }) == -1) {
+                    var temp: FaceLabel = { vertex: coordinates, color: color };
+
+                    _coordinates.faces.push(temp);
+                  }
+                  break;
+                case CoordinatesType.POINT:
+                  if (_.findIndex(_coordinates.point, function(p) {
+                    return p.x == coordinates.x && p.y == coordinates.y && p.z == coordinates.z;
+                  }) == -1)
+                  {
+                    var temp1 : Point = {x: (Number) (coordinates.x), y: (Number) (coordinates.y), z: (Number) (coordinates.z), color: color};
+
+                    _coordinates.point.push(temp1);
+                  }
+                  break;
+                case CoordinatesType.EDGE:
+
+                  break;
+                default:
+                  break;
+              }
+
+              c.annotationType = AnnotationType.PATH;
+              c.coordinates[0] =_coordinates;
+              break;
             default:
               break;
           }
@@ -1261,18 +1301,18 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       <spotLight position={[10, 15, 10]} angle={0.3} />
       <mesh ref={meshRef} onPointerDown={handleMouseDown} onPointerMove={handleMouseMove} onPointerUp={handleMouseUp} />
       <OrbitControls
-      ref={orbitControlsRef}
-      enableRotate={tool === 'pan'}
-      enableZoom
-      enablePan
-      rotateSpeed={1.0}
-      zoomSpeed={1.0}
-      panSpeed={1.0}
-      minDistance={1}
-      maxDistance={100}
-    />
+        ref={orbitControlsRef}
+        enableRotate={tool === 'pan'}
+        enableZoom
+        enablePan
+        rotateSpeed={1.0}
+        zoomSpeed={1.0}
+        panSpeed={1.0}
+        minDistance={1}
+        maxDistance={100}
+      />
       <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
-   
+
 
       {/* 渲红点 */}
       <primitive object={redSphereRef.current} />
@@ -1289,8 +1329,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           />
         );
       })}
-   
-      
+
+
       {/* 渲染填充形状 */}
       {/* {filledShape && <primitive object={filledShape} />} */}
 
@@ -1305,10 +1345,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           />
         )
       ))}
-   
-      
-       {/* 渲染已闭合的路径（蓝色） */}
-       {closedPath.map((path, index) => (
+
+
+      {/* 渲染已闭合的路径（蓝色） */}
+      {closedPath.map((path, index) => (
         path && Array.isArray(path) && path.length >= 2 && (
           <Line
             key={`closed-${index}`}
@@ -1318,30 +1358,30 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           />
         )
       ))}
-   
-   
-   
-   
-   
-   
-   
-   
-   
+
+
+
+
+
+
+
+
+
     </>
   );
 };
 
-const ModelDisplay: React.FC<{ 
-  modelData: ArrayBuffer, 
-  currProblem: ProblemType[], 
-  updateProblems: (updateProblems: ProblemType[]) => void; 
-  currentFile: string | null; 
-  updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void; 
+const ModelDisplay: React.FC<{
+  modelData: ArrayBuffer,
+  currProblem: ProblemType[],
+  updateProblems: (updateProblems: ProblemType[]) => void;
+  currentFile: string | null;
+  updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
   checkIfNowCanAnnotate: () => boolean;
-}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping,  checkIfNowCanAnnotate }) => {
+}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate}/>
+      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate} />
     </Canvas>
   );
 };
