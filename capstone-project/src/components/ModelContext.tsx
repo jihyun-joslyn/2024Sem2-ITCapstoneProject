@@ -19,6 +19,8 @@ interface ModelType {
     activateSpray: () => void;
     pathPoints : THREE.Vector3[];//for shortest path
     setPathPoints : React.Dispatch<React.SetStateAction<THREE.Vector3[]>>;//for shortest path
+    hotkeysEnabled: boolean;
+    setHotkeysEnabled: (enabled: boolean) => void;
 }
 
 export type Hotkeys = {
@@ -32,6 +34,7 @@ export type Hotkeys = {
     nextStep: string;
     brush: string;
     spray: string;
+    switchClass: string;
 };
 
 interface ModelProvider {
@@ -44,6 +47,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     const [tool,setTool] = useState<string>('none');
     const [color, setSpray] = useState<string>('#ffffff');
     const [pathPoints, setPathPoints] = useState<THREE.Vector3[]>([]);//shortest path 
+    const [hotkeysEnabled, setHotkeysEnabled] = useState<boolean>(true);
     const [hotkeys, setHotkeys] = useState<Hotkeys>({
         zoomIn: 'O',
         zoomOut: 'P',
@@ -54,7 +58,8 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
         prevStep: '[',
         nextStep: ']',
         brush: '1',
-        spray: '2'
+        spray: '2',
+        switchClass: 'Tab'
     });
     const [size, setSize] = useState<number>(1);
     const controlsRef = useRef<any>(null);
@@ -72,7 +77,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray}}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray, hotkeysEnabled,setHotkeysEnabled,}}>
             {children}
         </ModelContext.Provider>
     );

@@ -1,8 +1,9 @@
 import { Button, TextField } from '@mui/material';
-import { useState, KeyboardEvent, useEffect } from 'react';
 import * as _ from "lodash";
-import UpsertMenu from './UpsertMenu';
+import { KeyboardEvent, useContext, useEffect, useState } from 'react';
 import { ClassDetail } from '../datatypes/ClassDetail';
+import ModelContext from './ModelContext';
+import UpsertMenu from './UpsertMenu';
 
 export type ClassProps = {
     classDetails: ClassDetail,
@@ -16,11 +17,22 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
     const [details, setDetails] = useState(classDetails);
     const [className, setClassName] = useState(classDetails.name);
     const [isEditClass, setIsEditClass] = useState(false);
+    const { setHotkeysEnabled } = useContext(ModelContext);
 
     useEffect(() => {
         setDetails(classDetails);
         setClassName(classDetails.name);
     }, [classDetails]);
+
+    const handleEditStart = () => {
+        setHotkeysEnabled(false);
+        setIsEditClass(true);
+    };
+
+    const handleEditEnd = () => {
+        setHotkeysEnabled(true);
+        setIsEditClass(false);
+    };
 
     const editClass = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(className)) && e.key === "Enter") {
@@ -46,6 +58,8 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
                         value={className}
                         onChange={e => setClassName(e.target.value)}
                         onKeyDown={e => editClass(e)}
+                        onFocus={handleEditStart}
+                        onBlur={handleEditEnd}
                     />
                 ) : (
                     <span>
