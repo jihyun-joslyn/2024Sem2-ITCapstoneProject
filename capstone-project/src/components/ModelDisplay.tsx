@@ -59,7 +59,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     setProblems(currProblem);
 
     if (!meshRef.current || !wireframeRef.current) return;
-
+    console.log(meshRef)
     // Remove previous keypoint spheres
     while (meshRef.current.children.length > 0) {
       meshRef.current.children.pop();
