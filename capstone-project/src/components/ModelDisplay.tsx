@@ -8,13 +8,15 @@ import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
-import { AnnotationType } from '../datatypes/ClassDetail';
+import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
 import { CoordinatesType } from '../datatypes/CoordinateType';
 import { FaceLabel, PathAnnotation, Point } from '../datatypes/PathAnnotation';
 import ModelContext from './ModelContext';
+import { FileAnnotation } from '../datatypes/FileAnnotation';
+
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
 type HotkeyHandler = (event: HotkeyEvent) => void;
@@ -123,7 +125,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       updateModelIDFileMapping(mappingArr);
     }
 
-
+    
     // Load the saved states of color
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
 
@@ -213,6 +215,125 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     // Add the mesh effect to model
     const wireframeGeometry = new WireframeGeometry(geometry);
     wireframeRef.current.geometry = wireframeGeometry;
+
+
+    //Here must load vertex from shortest path saved in local storage under stlFileData Key
+
+                    
+                              // Create geometry for the red spheres
+                const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Adjust size as needed
+                const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color
+
+                // Declare instancedSpheres with the correct type
+                let instancedSpheres: THREE.InstancedMesh | null = null;
+
+                // Retrieve the stlFileData from localStorage
+                const storedData: FileAnnotation[] = JSON.parse(localStorage.getItem("stlFileData") || "[]");
+
+                // Find the data related to the current file
+                const currentFileData = storedData.find(data => data.fileName === currentFile);
+
+                // Ensure data for the current file exists
+                if (!currentFileData || !currentFileData.problems) return;
+
+                // Iterate over problems and process each problem and class
+                currentFileData.problems.forEach((problem) => {
+                    problem.classes.forEach((classData: ClassDetail) => {
+                        // Handle PATH annotation type (drawing lines and spheres)
+                        if (classData.annotationType === AnnotationType.PATH && classData.coordinates.length > 0) {
+                            // Create an array to store points for the current class
+                            const pathPoints: THREE.Vector3[] = [];
+
+                            classData.coordinates.forEach((coordData: PathAnnotation) => {
+                                coordData.point.forEach(({ x, y, z }: Point) => {
+                                    pathPoints.push(new THREE.Vector3(x as number, y as number, z as number));
+                                });
+                            });
+
+                            // Ensure there are enough points to create a closed path
+                            if (pathPoints.length >= 3) { // A closed path needs at least 3 points
+                                // Create the line geometry and material
+                                const closedPathPoints = [...pathPoints, pathPoints[0]]; // Close the path by adding the first point again
+                                const pathGeometry = new THREE.BufferGeometry
+                                    pathGeometry.setFromPoints(closedPathPoints);
+                                const pathMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, opacity: 1, transparent: false });
+
+                                // Create the line object
+                                const pathLine = new THREE.Line(pathGeometry, pathMaterial);
+                                meshRef.current.add(pathLine); // Add the line to the mesh
+
+                                // Initialize the instanced spheres for the current class if not done already
+                                if (!instancedSpheres) {
+                                    instancedSpheres = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, closedPathPoints.length);
+                                    meshRef.current.add(instancedSpheres); // Add it to the mesh once
+                                }
+
+                                // Set the positions of the spheres in the InstancedMesh
+                                closedPathPoints.forEach((point, index) => {
+                                    const matrix = new THREE.Matrix4();
+                                    matrix.setPosition(point);
+                                    instancedSpheres.setMatrixAt(index, matrix);
+                                });
+                            } else {
+                                console.warn(`Not enough points to create a closed path for class: ${classData}`);
+                            }
+                        }
+
+                        // Handle FACE annotation type (drawing triangle faces)
+                        if (classData.annotationType === 2 && classData.coordinates.length > 0) { // 2 represents FACE annotation type
+                          const faceVertices: Number[] = [];
+                          const faceColors: Number[] = [];
+
+                          classData.coordinates.forEach((coordData: PathAnnotation) => {
+                              // Iterate over faces to extract vertex and color information
+                              if (coordData.faces) {
+                                  coordData.faces.forEach(face => {
+                                      const vertexIndex = face.vertex; // Retrieve the vertex index
+                                      const color = face.color; // Retrieve the color from the face
+
+                                      // Create a vertex position based on vertexIndex
+                                      const vertexPosition = getVertexPositionByIndex(vertexIndex); // Implement this method
+
+                                      if (vertexPosition) {
+                                          // Add vertex position to the faceVertices array
+                                          faceVertices.push(vertexPosition.x as Number, vertexPosition.y as Number, vertexPosition.z as Number);
+                                          
+                                          // Convert color from hex string to THREE.Color
+                                          const colorObject = new THREE.Color(`#${color}`); // Ensure color is in hex format
+                                          faceColors.push(colorObject.r as Number, colorObject.g as Number, colorObject.b as Number);
+                                      }
+                                  });
+                              }
+                          });
+
+                          // Create geometry for the triangle faces
+                          const faceGeometry = new THREE.BufferGeometry();
+                          faceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(faceVertices as any, 3));
+                          faceGeometry.setAttribute('color', new THREE.Float32BufferAttribute(faceColors as any, 3));
+
+                          // Create a mesh for the triangle faces
+                          const faceMesh = new THREE.Mesh(faceGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+                          meshRef.current.add(faceMesh); // Add the face mesh to the main mesh or scene
+                      }
+                  });
+                });
+
+                // Implement this function to retrieve vertex position from your data structure
+                function getVertexPositionByIndex(index: Number): THREE.Vector3 | null {
+                  // This function should access your stored vertex data to return the correct position
+                  // Replace the following mock implementation with your actual vertex data access logic
+                  const vertexData = [
+                      new THREE.Vector3(0, 0, 0), // Mock data; replace with actual data
+                      new THREE.Vector3(1, 0, 0),
+                      new THREE.Vector3(0, 1, 0),
+                      // ... Add more vertices based on your STL data
+                  ];
+                  return vertexData[index as number] || null; // Return null if index is out of bounds
+                }
+
+
+
+
 
     fitModel();
   }, [modelData, states, keypoints]);
@@ -730,9 +851,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     // Merge all paths into one complete path 将所有路径合并成一个完整的路径
     const completePath = paths.reduce((acc, curr) => [...acc, ...curr], []);
     
-    console.table(completePath); //to be deleted (just was for test)
-
-
     const isPathClockwise = isClockwise(completePath);
 
     // 收集边界三角形
@@ -759,7 +877,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               const vector3Point = new THREE.Vector3(point.x, point.y, point.z);
               
               // Print the result to verify
-              console.log("Unique Vector3 Point:", vector3Point);
+              //console.log("Unique Vector3 Point:", vector3Point);
               
               // Use vector3Point in linkAnnotationToClass
               linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.POINT);
@@ -785,7 +903,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       }
     });
 
-    // 递归填充函数
+    // Recursive fill function 递归填充函数
     const fillRecursively = (triangleIndex: number) => {
       const adjacentTriangles = getAdjacentTriangles(triangleIndex, geometry);
 
@@ -886,7 +1004,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   useEffect(() => {
     console.log('Paths updated:', paths);
   }, [paths]);
-  // 在 return 语句之前添加这个函数
+  // Add this function before the return statement 在 return 语句之前添加这个函数
   const formatPathForLine = (path: THREE.Vector3[]) => {
     return path.flatMap(p => [p.x, p.y, p.z]);
   };
@@ -1374,7 +1492,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       ))}
 
 
-      {/* 渲染已闭合的路径（蓝色） */}
+      {/* Rendering a closed path (blue) 渲染已闭合的路径（蓝色） */}
       {closedPath.map((path, index) => (
         path && Array.isArray(path) && path.length >= 2 && (
           <Line
@@ -1385,14 +1503,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           />
         )
       ))}
-
-
-
-
-
-
-
-
 
     </>
   );
