@@ -179,7 +179,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                 break;
               case AnnotationType.KEYPOINT:
                 const keypointSphere = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.05, 16, 16),
+                  new THREE.SphereGeometry(0.07, 16, 16),
                   new THREE.MeshBasicMaterial({ color: c.color })
                 );
 
@@ -276,7 +276,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
 
   //Starting KeyPoint Marking function.
-  const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Small sphere
+  const KPsphereGeometry = new THREE.SphereGeometry(0.07, 16, 16); // Small sphere
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
 
 
@@ -308,7 +308,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         localPoint.applyMatrix4(inverseMatrix); // Transform point into local coordinates
 
         // Create a precise sphere at the local intersection point
-        const preciseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        const preciseSphere = new THREE.Mesh(KPsphereGeometry, sphereMaterial);
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
@@ -336,7 +336,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
   //Starting coding for Shortest Path  
 
-  // 添加新的函数来处理路径工具的点
+  //// Add new functions to handle points of path tool 添加新的函数来处理路径工具的点
   const handlePathToolClick = useCallback((event: MouseEvent) => {
     if (!meshRef.current || tool !== 'path') return;
 
@@ -365,7 +365,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       );
 
       const SPHERE_COLOR: string = 'red';
-      // 创建红色球体并添加到场景
+      // Create a red sphere and add it to the scene 创建红色球体并添加到场景
       const redSphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 16, 16),
         new THREE.MeshBasicMaterial({ color: SPHERE_COLOR })
@@ -373,7 +373,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       redSphere.position.copy(nearestPoint);
       redSphereRef.current.add(redSphere);
 
-      linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
+      //linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
       setRedPoints(prevPoints => {
         const newPoints = [...prevPoints, nearestPoint];
         console.log('Red points:', newPoints);
@@ -387,17 +387,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               const newPaths = [...prevPaths, path];
               console.log('All paths:', newPaths);
 
-              // 检查图形是否封闭
+              // Check if the shape is closed 检查图形是否封闭
               const closed = isShapeClosed(newPaths);
-              setIsPathClosed(closed);  // 更新闭合状态
+              setIsPathClosed(closed);  // Update closed state 更新闭合状态
+
 
               if (closed) {
                 console.log('Shape is closed, creating filled shape');
                 const fillingSuccess = createFilledShape(newPaths);
                 if (fillingSuccess) {
-                  // 保存闭合的路径
+                  // Save closed paths 保存闭合的路径
                   setClosedPath(newPaths);
-                  // 清除当前路径和红点
+
+                  // Clear the current path and red dot 清除当前路径和红点
                   setTimeout(() => {
                     setRedPoints([]);
                     setPaths([]);
@@ -418,7 +420,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       console.log(`Clicked point (nearest vertex):\nX: ${nearestPoint.x.toFixed(2)}\nY: ${nearestPoint.y.toFixed(2)}\nZ: ${nearestPoint.z.toFixed(2)}`);
     }
   }, [tool, camera, gl, meshRef]);
-  // 修改 findShortestPath 函数
+
+  // Modify the findShortestPath function 修改 findShortestPath 函数
   const findShortestPath = (start: THREE.Vector3, end: THREE.Vector3, geometry: THREE.BufferGeometry) => {
     console.log('Finding path from', start, 'to', end);
     const graph = buildGraph(geometry);
@@ -452,7 +455,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     return validPath;
   };
-  // 修改 aStar 函数
+  // Modify the aStar function 修改 aStar 函数
   const aStar = (graph: Map<number, Set<number>>, start: number, goal: number) => {
     const openSet = new PriorityQueue<number>((a, b) => a[1] < b[1]);
     openSet.enqueue([start, 0]);
@@ -493,7 +496,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     console.warn('A* algorithm reached maximum iterations without finding a path');
     return [];
   };
-  // 修改 buildGraph 函数以确保图的连通性
+  // Modify the buildGraph function to ensure graph connectivity 修改 buildGraph 函数以确保图的连通性
   const buildGraph = (geometry: THREE.BufferGeometry) => {
     const graph: Map<number, Set<number>> = new Map();
     const positions = geometry.attributes.position.array;
@@ -564,7 +567,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     );
     return Math.round(posA.distanceTo(posB) * 100) / 100; // 保持与边权重相同的精度
   };
-  // 重建路径
+  // Reconstruction Path 重建路径
   const reconstructPath = (cameFrom: Map<number, number>, current: number) => {
     const totalPath = [current];
     while (cameFrom.has(current)) {
@@ -576,10 +579,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   // 添加一个新的类型定义
   type EdgeToTriangles = Map<string, Set<number>>;
 
-  // 在 ModelContent 组件中添加一个 useRef 来存储边到三角形的映射
+  // Add a useRef to the ModelContent component to store the mapping of edges to triangles 在 ModelContent 组件中添加一个 useRef 来存储边到三角形的映射
   const edgeToTrianglesRef = useRef<EdgeToTriangles>(new Map());
 
-  // 在加载模型时建立边到三角形的映射关系（在 useEffect 中添加）
+  // Create a mapping from edges to triangles when loading the model (added in useEffect) 在加载模型时建立边到三角形的映射关系（在 useEffect 中添加）
   useEffect(() => {
     if (!meshRef.current) return;
 
@@ -600,7 +603,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       const vb = new Vector3().fromBufferAttribute(positions, ib);
       const vc = new Vector3().fromBufferAttribute(positions, ic);
 
-      // 为三角形的每条边添加映射
+      //Add a mapping for each edge of the triangle 为三角形的每条边添加映射
       const edges = [
         createEdgeKey(va, vb),
         createEdgeKey(vb, vc),
@@ -616,12 +619,12 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
 
     edgeToTrianglesRef.current = edgeToTriangles;
-  }, [modelData]); // 只在模型加载时执行一次
+  }, [modelData]); // Only executed once when the model is loaded 只在模型加载时执行一次
 
-  // 添加一个函数来判断路径的方向（顺时针或逆时针）
+  // Add a function to determine the direction of the path (clockwise or counterclockwise) 添加一个函数来判断路径的方向（顺时针或逆时针）
   const isClockwise = (path: THREE.Vector3[]): boolean => {
     let sum = 0;
-    // 计算路径的有向面积
+    // Calculate the directed area of ​​a path 计算路径的有向面积
     for (let i = 0; i < path.length; i++) {
       const current = path[i];
       const next = path[(i + 1) % path.length];
@@ -711,7 +714,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return adjacent;
   };
 
-  // 修改 createFilledShape 函数，使用 context 中的 color
+  // Modify the createFilledShape function to use the color in the context 修改 createFilledShape 函数，使用 context 中的 color
   const createFilledShape = (paths: THREE.Vector3[][]): boolean => {
     if (!meshRef.current || paths.length < 3) return false;
 
@@ -724,8 +727,12 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       geometry.setAttribute('color', colors);
     }
 
-    // 将所有路径合并成一个完整的路径
+    // Merge all paths into one complete path 将所有路径合并成一个完整的路径
     const completePath = paths.reduce((acc, curr) => [...acc, ...curr], []);
+    
+    console.table(completePath); //to be deleted (just was for test)
+
+
     const isPathClockwise = isClockwise(completePath);
 
     // 收集边界三角形
@@ -733,14 +740,33 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const allTrianglesToColor = new Set<number>();
     const processedTriangles = new Set<number>();
 
-    // 添加打印语句来查看 color 的值
+    // Add print statements to view the value of color 添加打印语句来查看 color 的值
     console.log('Current color value:', color);
     console.log('Color type:', typeof color);
 
-    // 修改颜色判断逻辑
-    const fillColor = new THREE.Color(color === '#ffffff' ? '#00FF00' : color);  // 默认白色，则使用绿色
+    // Modify the color judgment logic 修改颜色判断逻辑
+    const fillColor = new THREE.Color(color === '#ffffff' ? '#00FF00' : color);  // If the default is white, use green 默认白色，则使用绿色
 
-    // 首先找到所有边界三角形
+        // To call linkAnnotation for saving closedPath(means all vertex involved in the polygon shaped) and color of the polygon
+            // Remove duplicates based on x, y, and z coordinates
+            const uniqueCompletePath = completePath.filter(
+              (value, index, self) =>
+                index === self.findIndex((v) => v.x === value.x && v.y === value.y && v.z === value.z)
+            );
+
+            // Loop through each unique point and create a THREE.Vector3 instance
+            uniqueCompletePath.forEach(point => {
+              const vector3Point = new THREE.Vector3(point.x, point.y, point.z);
+              
+              // Print the result to verify
+              console.log("Unique Vector3 Point:", vector3Point);
+              
+              // Use vector3Point in linkAnnotationToClass
+              linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.POINT);
+            });
+  
+
+    // First find all the bounding triangles 首先找到所有边界三角形
     paths.forEach(path => {
       for (let i = 0; i < path.length - 1; i++) {
         const edge = createEdgeKey(path[i], path[i + 1]);
@@ -803,7 +829,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return true;
   };
 
-  // 添加获取三角形质心的辅助函数
+  // Add a helper function to get the centroid of a triangle 添加获取三角形质心的辅助函数
   const getTriangleCentroid = (triangleIndex: number, geometry: THREE.BufferGeometry): THREE.Vector3 => {
     const indices = geometry.index!;
     const positions = geometry.attributes.position;
@@ -820,7 +846,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       .divideScalar(3);
   };
 
-  // 添加判断点是否在多边形内的函数
+  // Add a function to determine whether a point is inside a polygon 添加判断点是否在多边形内的函数
   const isPointInPolygon = (point: THREE.Vector3, polygon: THREE.Vector3[]): boolean => {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -834,9 +860,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return inside;
   };
 
-  // 添加创建边键值的辅助函数
+  // Add helper function to create edge key value 添加创建边键值的辅助函数
   const createEdgeKey = (v1: THREE.Vector3, v2: THREE.Vector3): string => {
-    // 为了确保边的唯一性，我们总是用较小的坐标值在前
+    // To ensure the uniqueness of the edge, we always use the smaller coordinate value first. 为了确保边的唯一性，我们总是用较小的坐标值在前
     const points = [
       [v1.x, v1.y, v1.z],
       [v2.x, v2.y, v2.z]
@@ -886,15 +912,15 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     return path;
   };
-  // 添加判断图形是否封闭的函数
+  // Add a function to determine whether the figure is closed 添加判断图形是否封闭的函数
   const isShapeClosed = (paths: THREE.Vector3[][]): boolean => {
     if (paths.length < 3) return false;
 
     const firstPoint = paths[0][0];
     const lastPoint = paths[paths.length - 1][paths[paths.length - 1].length - 1];
-    const newPoint = paths[paths.length - 1][0]; // 最新添加的点
+    const newPoint = paths[paths.length - 1][0]; // Latest added points 最新添加的点
 
-    const tolerance = 0.001; // 可以根据需要调整这个值
+    const tolerance = 0.001; //You can adjust this value as needed. 可以根据需要调整这个值
     return firstPoint.distanceTo(lastPoint) < tolerance || firstPoint.distanceTo(newPoint) < tolerance;
   };
 
@@ -1073,7 +1099,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         // Update keypoints
         meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
         keypoints.forEach(keypoint => {
-          const sphere = new THREE.Mesh(sphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
+          const sphere = new THREE.Mesh(KPsphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
           sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
           meshRef.current?.add(sphere);
         });
@@ -1240,6 +1266,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               c.annotationType = AnnotationType.KEYPOINT;
               c.isAnnotating = false;
               break;
+
             case "path":
               var _coordinates: PathAnnotation = _.isEmpty(c.coordinates) ? { point: [], edge: [], faces: [] } : c.coordinates[0];
 
