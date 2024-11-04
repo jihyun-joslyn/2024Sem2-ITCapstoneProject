@@ -1,7 +1,7 @@
 import * as _ from "lodash";
 import { useContext, useState, useRef } from 'react';
 import { createRoot } from "react-dom/client";
-import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle } from '@mui/material';
+import { Grid2 as Grid, Box, Snackbar, Alert, AlertTitle, Button } from '@mui/material';
 import DetailPane from '../components/DetailPane';
 import Header from '../components/Header';
 import HotkeyDialog from '../components/Hotkey';
@@ -16,6 +16,13 @@ import { Mesh, BufferGeometry, Material, Object3DEventMap } from 'three';
 
 const container = document.getElementById('root');
 const root = createRoot(container);
+const handleConfirm = () => {
+  console.log("Confirmed");
+};
+
+const handleCancel = () => {
+  console.log("Cancelled");
+};
 
 //bool use to control component width
 var isShowDetail: boolean = false;
@@ -40,6 +47,9 @@ const AppContent = () => {
   const [alertContent, setAlertContent] = useState<{ title: string, content: string }>({ title: "", content: "" });
   const meshRef = useRef<Mesh<BufferGeometry, Material | Material[], Object3DEventMap>>(null);
   const FileListStoargeKey: string = "stlFileData";
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => {});
+  const [cancelAction, setCancelAction] = useState<() => void>(() => {});
+
 
   const loadSTLFile = (file: File) => {
     const reader = new FileReader();
@@ -201,23 +211,35 @@ const AppContent = () => {
     setIsShowErrorAlert(false);
   }
 
-  const showErrorAlert = (_title: string, _content: string): any => {
-    var _alertContent: { title: string, content: string } = alertContent;
-
-    _alertContent.title = _title;
-    _alertContent.content = _content;
-
-    setAlertContent(_alertContent);
+  const showErrorAlert = (
+    _title: string,
+    _content: string,
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ): void => {
+    setAlertContent({ title: _title, content: _content });
     setIsShowErrorAlert(true);
-  }
 
-  const checkIfNowCanAnnotate = () : boolean => {
-    return _.findIndex(currProblems, function (p) {
-      return _.findIndex(p.classes, function (c) {
-          return c.isAnnotating == true;
-      }) != -1;
-  }) != -1 ? true : false;
-  }
+    setConfirmAction(() => () => {
+      setIsShowErrorAlert(false);
+      if (onConfirm) onConfirm();
+    });
+  
+    setCancelAction(() => () => {
+      setIsShowErrorAlert(false);
+      if (onCancel) onCancel();
+    });
+  };
+  
+  
+
+
+const checkIfNowCanAnnotate = (): boolean => {
+  return _.findIndex(currProblems, (p) => {
+    return _.findIndex(p.classes, (c) => c.isAnnotating === true) !== -1;
+  }) !== -1;
+};
+
 
 
   return (
@@ -231,7 +253,8 @@ const AppContent = () => {
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
           openHotkeyDialog={openHotkeyDialog} 
-          meshRef={meshRef}/>
+          meshRef={meshRef}
+          showErrorAlert={showErrorAlert} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -260,17 +283,27 @@ const AppContent = () => {
       <Snackbar
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         open={isShowErrorDialog}
-        autoHideDuration={6000}
+        autoHideDuration={null} 
+        
         onClose={handleCloseErrorDialog}>
         <Alert
-          onClose={handleCloseErrorDialog}
-          severity="error"
-          sx={{ width: '100%' }}
-        >
-          <AlertTitle>{alertContent.title}</AlertTitle>
-          {alertContent.content}
-        </Alert>
-      </Snackbar>
+    onClose={handleCloseErrorDialog}
+    severity="warning"
+    action={
+      <>
+        <Button color="inherit" size="small" onClick={confirmAction}>
+          OK
+        </Button>
+        <Button color="inherit" size="small" onClick={cancelAction}>
+          Cancel
+        </Button>
+      </>
+    }
+  >
+    <AlertTitle>{alertContent.title}</AlertTitle>
+    {alertContent.content}
+  </Alert>
+</Snackbar>
       <HotkeyDialog
         open={isHotkeyDialogOpen}
         onClose={() => setIsHotkeyDialogOpen(false)}

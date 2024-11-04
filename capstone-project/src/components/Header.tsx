@@ -8,7 +8,7 @@ import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 import * as THREE from 'three';
 import { Mesh } from 'three';
-import { convertProblemsToRecord } from '../utils/annotationUtils';
+
 
 
 export type HeaderProps = {
@@ -20,9 +20,22 @@ export type HeaderProps = {
     initializeCurrentFile: (_file: FileAnnotation) => void
     openHotkeyDialog: () => void;
     meshRef: MutableRefObject<Mesh | null>//hotkey page
+    showErrorAlert: (title: string, content: string, onConfirm?: () => void, onCancel?: () => void) => void;
 };
 
-export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog, meshRef
+type JSONDataType = {
+    problems: Array<{
+        [problemName: string]: Array<{
+            label_mapping: Array<{ [key: string]: string }>;
+            color_mapping: Array<{ [key: string]: string }>;
+            face_labels: Array<{ [key: string]: string }>;
+            point_labels: Array<{ [key: string]: string }>;
+        }>
+    }>
+};
+
+
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile,openHotkeyDialog, meshRef, showErrorAlert
 }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
@@ -307,87 +320,142 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         localStorage.setItem(FileListStoargeKey, JSON.stringify(_stlFiles));
     }
 
-    const validateAnnotations = (geometry: THREE.BufferGeometry, states: Record<number, string>) => {
+    const fillStatesFromJSON = (
+        jsonData: JSONDataType, 
+        vertexStates: Record<number, string>, 
+        faceStates: Record<number, string>
+    ): void => {
+        jsonData.problems.forEach(problem => {
+            const problemName = Object.keys(problem)[0];
+            const problemData = problem[problemName];
+    
+            const labelMapping: Record<string, string> = {};
+            problemData[0].label_mapping.forEach((labelObj: { [key: string]: string }) => {
+                const index = Object.keys(labelObj)[0];
+                labelMapping[index] = labelObj[index];
+            });
+
+            problemData[3].point_labels.forEach((pointLabel: { [key: string]: string }) => {
+                const classKey = Object.keys(pointLabel)[0];
+                const points = pointLabel[classKey];
+                
+                if (classKey !== "-1") {
+                    points.split(", ").forEach((pointIndex: string) => {
+                        vertexStates[parseInt(pointIndex)] = classKey;
+                    });
+                }
+            });
+    
+            problemData[2].face_labels.forEach((faceLabel: { [key: string]: string }) => {
+                const classKey = Object.keys(faceLabel)[0];
+                const faces = faceLabel[classKey];
+                
+                if (classKey !== "-1") {
+                    faces.split(", ").forEach((faceIndex: string) => {
+                        faceStates[parseInt(faceIndex)] = classKey;
+                    });
+                }
+            });
+        });
+    };
+    
+
+    const validateAnnotations = (geometry: THREE.BufferGeometry, vertexStates: Record<number, string>, faceStates: Record<number, string>) => {
         const totalVertices = geometry.attributes.position.count;
         const unannotatedVertices: number[] = [];
+        const totalFaces = geometry.index ? geometry.index.count / 3 : 0;
+        const unannotatedFaces: number[] = [];
     
         for (let i = 0; i < totalVertices; i++) {
-            if (!states[i]) {
+            if (!vertexStates[i]) {
                 unannotatedVertices.push(i);
             }
         }
     
-        return unannotatedVertices;
+        for (let i = 0; i < totalFaces; i++) {
+            if (!faceStates[i]) {
+                unannotatedFaces.push(i);
+            }
+        }
+    
+        return { unannotatedVertices, unannotatedFaces };
     };
     
     const checkAndWarnAnnotations = (
         geometry: THREE.BufferGeometry,
-        states: Record<number, string>,
+        vertexStates: Record<number, string>,
+        faceStates: Record<number, string>,
         onContinue: () => void,
         onCancel: () => void
     ) => {
-        const unannotatedVertices = validateAnnotations(geometry, states);
+        const { unannotatedVertices, unannotatedFaces } = validateAnnotations(geometry, vertexStates, faceStates);
     
-        if (unannotatedVertices.length > 0) {
-            const proceed = window.confirm(`Warning: There are unannotated vertices. Do you want to continue ?`);
-            if (proceed) {
-                onContinue();
-            } else {
-                onCancel();
-            }
+        if (unannotatedVertices.length > 0 || unannotatedFaces.length > 0) {
+            const vertexCount = unannotatedVertices.length;
+            const faceCount = unannotatedFaces.length;
+            
+            showErrorAlert(
+                "Warning",
+                `There are ${vertexCount} unannotated vertices and ${faceCount} unannotated faces. Do you want to continue?`,
+                onContinue,
+                onCancel
+            );
         } else {
             onContinue();
         }
     };
     
-    const generateJsonWithUnlabeled = (
-        geometry: THREE.BufferGeometry,
-        states: Record<number, string>,
-        fileName: string,
-        problems: ProblemType[]
-      ) => {
-        const totalVertices = geometry.attributes.position.count;
-        const jsonOutput: any = {
-          filename: fileName,
-          problems: {}
-        };
-      
+
+    type JSONDataType = {
+        problems: Array<Record<string, any>>;
+    };
+    
+    const convertProblemTypeToJSONDataType = (problems: ProblemType[]): JSONDataType => {
+        const jsonData: JSONDataType = { problems: [] };
+    
         problems.forEach(problem => {
-          const problemName = problem.name;
-          const labelMapping: Record<string, string> = { "-1": "unlabelled" }; 
-          const pointLabels: number[] = []; 
-          const loops: number[] = []; 
+            const problemData: Record<string, any> = {};
+            const labelMapping: Array<{ [key: string]: string }> = [{ "-1": "unlabelled" }];
+            const colorMapping: Array<{ [key: string]: string }> = [];
+            const faceLabels: Array<{ [key: string]: string }> = [];
+            const pointLabels: Array<{ [key: string]: string }> = [];
     
-          problem.classes.forEach((cls, index) => {
-            const classKey = index.toString();  
-            labelMapping[classKey] = cls.name;
-          });
+            problem.classes.forEach((cls, index) => {
+                const classKey = index.toString();
+                labelMapping.push({ [classKey]: cls.name });
+                colorMapping.push({ [classKey]: cls.color || "" });
     
-          for (let i = 0; i < totalVertices; i++) {
-            const vertexState = states[i];
-            if (vertexState && vertexState !== "-1") {
-              pointLabels.push(i);
-            }
-          }
+                if (cls.annotationType === AnnotationType.KEYPOINT) {
+                    const coords: string[] = [];
+                    for (let i = 0; i < cls.coordinates.length; i += 3) {
+                        coords.push([
+                            cls.coordinates[i],
+                            cls.coordinates[i + 1],
+                            cls.coordinates[i + 2]
+                        ].join(", "));
+                    }
+                    pointLabels.push({ [classKey]: coords.join(", ") });
+                } else if (cls.annotationType === AnnotationType.SPRAY) {
+                    faceLabels.push({ [classKey]: cls.coordinates.join(", ") });
+                }
+            });
     
-          jsonOutput.problems[problemName] = {
-            label_mapping: labelMapping,
-            point_labels: pointLabels,
-            loops: loops
-          };
+            problemData[problem.name] = [
+                { label_mapping: labelMapping },
+                { color_mapping: colorMapping },
+                { face_labels: faceLabels },
+                { point_labels: pointLabels }
+            ];
+    
+            jsonData.problems.push(problemData);
         });
     
-        const jsonData = JSON.stringify(jsonOutput, null, 2);
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = fileName.replace(".stl", ".json");
-        link.click();
+        return jsonData;
+    };
     
-        return jsonOutput;
-      };
-
-      const handleSave = () => {
+    
+    
+    const handleSave = () => {
         const currFile: FileAnnotation | undefined = _.find(stlFiles, function (f) {
             return _.eq(f.fileName, currentFile);
         });
@@ -410,30 +478,34 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
     
         console.log("Geometry loaded:", geometry);
         console.log("Current file problems:", currFile.problems);
+
+        const jsonData = convertProblemTypeToJSONDataType(currFile.problems);
+
+        const vertexStates: Record<number, string> = {};
+        const faceStates: Record<number, string> = {};
     
-        const problemsRecord = convertProblemsToRecord(currFile.problems);
-        console.log("Converted problems record:", problemsRecord);
+        fillStatesFromJSON(jsonData, vertexStates, faceStates);
     
         checkAndWarnAnnotations(
             geometry,
-            problemsRecord,
+            vertexStates,
+            faceStates,
             () => {
-               
-                var currProblems: string = convertToJSONFileFormat(currFile.problems);
-                var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
+                const { unannotatedVertices, unannotatedFaces } = validateAnnotations(geometry, vertexStates, faceStates);
     
-                const jsonData = JSON.stringify(currOutput, null, 2);
-                const blob = new Blob([jsonData], { type: 'application/json' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = _.trimEnd(currFile.fileName, ".stl").concat(".json");
-                link.click();
+                generateCompleteJSON(
+                    geometry,
+                    vertexStates,
+                    faceStates,
+                    currFile.fileName,
+                    currFile.problems,
+                    unannotatedVertices,
+                    unannotatedFaces
+                );
     
-                // Optionally remove the file from local storage if required
                 removeFileFromLocalStorage(currentFile);
     
-                console.log("Generated JSON output:", currOutput);
-                console.log("User chose to continue. Proceeding...");
+                console.log("User chose to continue. JSON output generated and saved.");
             },
             () => {
                 console.log("User chose to cancel. Continue annotating...");
@@ -443,59 +515,106 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         handleFileClose();
     };
     
-    const convertToJSONFileFormat = (problems: ProblemType[]): string => {
-        var result: Record<string, any>[] = [];
     
-        problems.forEach(p => {
-            var labelMapping: Record<string, string>[] = [];
-            var colorMapping: Record<string, string>[] = [];
-            var pointLabels: Record<string, string>[] = [];
-            var faceLabels: Record<string, string>[] = [];
+    const generateCompleteJSON = (
+        geometry: THREE.BufferGeometry,
+        vertexStates: Record<number, string>,
+        faceStates: Record<number, string>,
+        fileName: string,
+        problems: ProblemType[],
+        unannotatedVertices: number[],
+        unannotatedFaces: number[]
+    ): any => {
+        const jsonOutput: any = {
+            filename: fileName,
+            problems: []
+        };
     
-            labelMapping.push({ "-1": "unlabelled" });
+        problems.forEach((problem: ProblemType) => {
+            const problemData: Record<string, any> = {};
+            const problemName = problem.name;
     
-            if (!_.isEmpty(p.classes)) {
-                p.classes.forEach((c, j) => {
-                    var index: string = j.toString();
-                    var labelName: string = c.name;
-                    var colorCode: string = _.isEmpty(c.color) ? "" : c.color;
+            const labelMapping: Record<string, string>[] = [{ "-1": "unlabelled" }];
+            const colorMapping: Record<string, string>[] = [];
+            const pointLabels: Record<string, string>[] = [];
+            const faceLabels: Record<string, string>[] = [];
     
-                    labelMapping.push({ [index]: labelName });
-                    colorMapping.push({ [index]: colorCode });
+            problem.classes.forEach((cls, index) => {
+                const classKey = index.toString();
+                labelMapping.push({ [classKey]: cls.name });
+                colorMapping.push({ [classKey]: cls.color || "" });
     
-                    switch (c.annotationType) {
-                        case AnnotationType.KEYPOINT:
-                            faceLabels.push({ [index]: "-1" });
-    
-                            for (let i = 0; i < c.coordinates.length; i += 3) {
-                                var temp: any[] = [(c.coordinates)[i], (c.coordinates)[i + 1], (c.coordinates)[i + 2]];
-    
-                                pointLabels.push({ [index]: _.join(temp, ", ") });
-                            }
-                            break;
-                        case AnnotationType.SPRAY:
-                            pointLabels.push({ [index]: "-1" })
-    
-                            faceLabels.push({ [index]: _.join(c.coordinates, ", ") });
-                            break;
-                        case AnnotationType.PATH:
-                        case AnnotationType.NONE:
-                        default:
-                            pointLabels.push({ [index]: "-1" });
-                            faceLabels.push({ [index]: "-1" });
-                            break;
+                if (cls.annotationType === AnnotationType.KEYPOINT) {
+                    const coords: string[] = [];
+                    for (let i = 0; i < cls.coordinates.length; i += 3) {
+                        coords.push([
+                            cls.coordinates[i],
+                            cls.coordinates[i + 1],
+                            cls.coordinates[i + 2]
+                        ].join(", "));
                     }
-                });
-            }
+                    pointLabels.push({ [classKey]: coords.join(", ") });
+                } 
+                else if (cls.annotationType === AnnotationType.SPRAY) {
+                    faceLabels.push({ [classKey]: cls.coordinates.join(", ") });
+                }
+            });
     
-            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }, { "face_labels": faceLabels }, { "point_labels": pointLabels }];
-            var _problemName: string = p.name;
+            // Map annotated vertices to pointLabels and ensure sorted order by classKey as numbers
+const annotatedPoints: Record<string, string[]> = {};
+Object.keys(vertexStates).forEach((vertexIndex: string) => {
+    const state = vertexStates[parseInt(vertexIndex)];
+    if (state !== "-1") {
+        if (!annotatedPoints[state]) annotatedPoints[state] = [];
+        annotatedPoints[state].push(vertexIndex);
+    }
+});
+
+Object.keys(annotatedPoints)
+    .map(Number) 
+    .sort((a, b) => a - b) 
+    .forEach((classKey) => {
+        pointLabels.push({ [classKey.toString()]: annotatedPoints[classKey.toString()].join(", ") });
+    });
+
+// Map annotated faces to faceLabels and ensure sorted order by classKey as numbers
+const annotatedFaces: Record<string, string[]> = {};
+Object.keys(faceStates).forEach((faceIndex: string) => {
+    const state = faceStates[parseInt(faceIndex)];
+    if (state !== "-1") {
+        if (!annotatedFaces[state]) annotatedFaces[state] = [];
+        annotatedFaces[state].push(faceIndex);
+    }
+});
+
+Object.keys(annotatedFaces)
+.map(Number) 
+.sort((a, b) => a - b) 
+.forEach((classKey) => {
+    faceLabels.push({ [classKey.toString()]: annotatedFaces[classKey.toString()].join(", ") });
+});
+
+            problemData[problemName] = [
+                { label_mapping: labelMapping },
+                { color_mapping: colorMapping },
+                { face_labels: faceLabels },
+                { point_labels: pointLabels }
+            ];
     
-            result.push({ [_problemName]: problemDetails });
+            jsonOutput.problems.push(problemData);
         });
     
-        return JSON.parse(JSON.stringify(result));
-    }
+        const jsonData = JSON.stringify(jsonOutput, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName.replace(".stl", ".json");
+        link.click();
+    
+        return jsonOutput;
+    };
+    
+    
     
 
     return (
