@@ -1,14 +1,18 @@
 export type PathAnnotation = {
     point: Point[];
-    edge: any[];
+    edge: PointCoordinates[];
     faces: FaceLabel[];
 }
 
-export type Point = {
+export type PointCoordinates = {
     x: Number;
     y: Number;
     z: Number;
-    color: string;
+}
+
+export type Point =  {
+    coordinates: PointCoordinates,
+    color: string
 }
 
 export type FaceLabel =  {

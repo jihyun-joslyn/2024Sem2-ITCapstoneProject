@@ -264,6 +264,13 @@ const AppContent = () => {
     return currentColor;
   }
 
+  const checkIfLocalStorageIsEmpty = (storageKey: string): boolean => {
+    if (_.isUndefined(localStorage.getItem(storageKey)) || _.isNull(localStorage.getItem(storageKey)))
+        return true;
+    else
+        return false;
+}
+
   return (
     <>
       <Box sx={{ flexGrow: 0 }}>
@@ -275,7 +282,8 @@ const AppContent = () => {
           stlFiles={stlFiles}
           initializeCurrentFile={initializeCurrentFile}
           modelIDFileNameMapping={modelIDFileNameMapping}
-          openHotkeyDialog={openHotkeyDialog} />
+          openHotkeyDialog={openHotkeyDialog}
+          checkIfLocalStorageIsEmpty={checkIfLocalStorageIsEmpty} />
       </Box>
       <Grid container rowSpacing={1}>
         <Grid size={sidebarWidth}>
@@ -323,6 +331,7 @@ const AppContent = () => {
         open={isHotkeyDialogOpen}
         onClose={() => setIsHotkeyDialogOpen(false)}
         onSave={handleHotkeySave}
+        checkIfLocalStorageIsEmpty={checkIfLocalStorageIsEmpty}
       />
     </>
   );

@@ -1,6 +1,6 @@
 import { Brush as BrushIcon, Folder as FolderIcon, LocationSearching as KeypointIcon, PanTool as PanToolIcon,Timeline as TimelineIcon } from '@mui/icons-material';
 import { Tab, Tabs, Tooltip, createSvgIcon } from '@mui/material';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import FilePane from './FilePane';
 import ModelContext from './ModelContext';
 import { SketchPicker, ColorResult } from 'react-color';
@@ -50,7 +50,9 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
   const { setTool, setSpray, activateBrush, activateSpray, currentTool, tool } = useContext(ModelContext);
-
+  const [, updateState] = useState({});
+  const forceUpdate = useCallback(() => updateState({}), []);
+  
   useEffect(() => {
     // Update the selected tab based on the current tool
     switch (currentTool) {
@@ -146,13 +148,14 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     if (!_.eq(getCurrentAnnotationColor, _color.hex) && !_.isEmpty(getCurrentAnnotationColor)) {
       showErrorAlert("Error", "A class can only have a color.");
       _color.hex = getCurrentAnnotationColor();
-
     }
 
     setColor(_color.hex);
     setSpray(_color.hex);
     setColorSelector(false);
     showColorSpraySelector(!showColorSelector);
+
+    forceUpdate();
   }
 
   const folderOnClick = () => {

@@ -8,6 +8,7 @@ import { ProblemType } from '../datatypes/ProblemType';
 import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
 import useModelStore from './StateStore';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 
 
 export type HeaderProps = {
@@ -19,9 +20,10 @@ export type HeaderProps = {
     initializeCurrentFile: (_file: FileAnnotation) => void;
     openHotkeyDialog: () => void;//hotkey page
     modelIDFileNameMapping: ModelIDFileNameMap[];
+    checkIfLocalStorageIsEmpty : (storageKey: string) => boolean;
 };
 
-export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile, openHotkeyDialog, modelIDFileNameMapping }: HeaderProps) {
+export default function Header({ showDetailPane, isShowDetailPane, currentFile, stlFiles, updateFileList, initializeCurrentFile, openHotkeyDialog, modelIDFileNameMapping, checkIfLocalStorageIsEmpty }: HeaderProps) {
     const [fileAnchorEl, setFileAnchorEl] = useState<null | HTMLElement>(null);
     const [settingAnchorEl, setSettingAnchorEl] = useState<null | HTMLElement>(null);
     const { removeModel } = useModelStore();
@@ -152,13 +154,6 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         localStorage.setItem(FileListStoargeKey, JSON.stringify(_fileList));
     }
 
-    const checkIfLocalStorageIsEmpty = (storageKey: string): boolean => {
-        if (_.isUndefined(localStorage.getItem(storageKey)) || _.isNull(localStorage.getItem(storageKey)))
-            return true;
-        else
-            return false;
-    }
-
     const checkIfFileExistsInLocalStorage = (fileName: string): boolean => {
         if (checkIfLocalStorageIsEmpty(FileListStoargeKey))
             return false;
@@ -228,6 +223,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 var _color: string[] = [];
                 var spray: any[][] = [];
                 var keypoint: any[] = [];
+                var edge: any[] = [];
 
                 for (var x in _problems[i][j]) {
                     for (var y in _problems[i][j][x]) {
@@ -269,6 +265,17 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
 
                                 keypoint.push(point);
                             }
+                        } else if (_.eq(_.toString(y), "edge_labels")) {
+                            for (var z in Object.values(_mapping)) {
+                                var _edge: any[] = _.eq((_.toString(Object.values(_mapping[z])[0])), "-1") ? [] : _.toString(Object.values(_mapping[z])[0]).split(", ");
+
+                                if (!_.isEmpty(_edge))
+                                    _edge.forEach(v => {
+                                        v = parseFloat(v.toString());
+                                    })
+
+                                edge.push(_edge);
+                            }
                         }
                     }
                 }
@@ -276,7 +283,31 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                 _className.forEach((c, x) => {
                     var _class: ClassDetail = { name: c, annotationType: AnnotationType.NONE, coordinates: [], color: _color.at(x), isAnnotating: false };
 
-                    if (!_.isEmpty(spray) && spray.at(x).length > 0) {
+
+                    if (!_.isEmpty(edge) && edge.at(x).length > 0) {
+                        var _path : PathAnnotation = {point: [], edge: [], faces: []};
+
+                        for (var i = 0; i < keypoint.at(x).length; i += 3) {
+                            var _point : PointCoordinates = {x: (Number)(keypoint.at(x)[i]), y: (Number)(keypoint.at(x)[i + 1]), z: (Number)(keypoint.at(x)[i + 2])};
+
+                            _path.point.push({coordinates: _point, color: "#FF0000"});
+                        }
+
+                        for (var i = 0; i < edge.at(x).length; i += 3) {
+                            var _edge : PointCoordinates = {x: (Number)(edge.at(x)[i]), y: (Number)(edge.at(x)[i + 1]), z: (Number)(edge.at(x)[i + 2])};
+
+                            _path.edge.push(_edge);
+                        }
+
+                        spray.at(x).forEach(f => {
+                            var _face : FaceLabel = {vertex: (Number)(f), color: _class.color};
+
+                            _path.faces.push(_face);
+                        })
+
+                        _class.coordinates.push(_path);
+                        _class.annotationType = AnnotationType.PATH;
+                    } else if (!_.isEmpty(spray) && spray.at(x).length > 0) {
                         _class.coordinates = spray.at(x);
 
                         _class.annotationType = AnnotationType.SPRAY
@@ -345,6 +376,8 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
         var currOutput: OutputFile = { fileName: currFile.fileName, problems: currProblems };
 
         const jsonData = JSON.stringify(currOutput, null, 2);
+
+        console.log(jsonData)
         const blob = new Blob([jsonData], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -362,6 +395,7 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
             var colorMapping: Record<string, string>[] = [];
             var pointLabels: Record<string, string>[] = [];
             var faceLabels: Record<string, string>[] = [];
+            var edgeLabels: Record<string, string>[] = [];
 
             labelMapping.push({ "-1": "unlabelled" });
 
@@ -371,35 +405,74 @@ export default function Header({ showDetailPane, isShowDetailPane, currentFile, 
                     var labelName: string = c.name;
                     var colorCode: string = _.isEmpty(c.color) ? "" : c.color;
 
-                    labelMapping.push({ [index]: labelName });
-                    colorMapping.push({ [index]: colorCode });
-
                     switch (c.annotationType) {
                         case AnnotationType.KEYPOINT:
                             faceLabels.push({ [index]: "-1" });
+                            edgeLabels.push({ [index]: "-1" });
+
+                            var _points: string = "";
 
                             for (let i = 0; i < c.coordinates.length; i += 3) {
                                 var temp: any[] = [(c.coordinates)[i], (c.coordinates)[i + 1], (c.coordinates)[i + 2]];
 
-                                pointLabels.push({ [index]: _.join(temp, ", ") });
+                                _points = _points.concat(_.join(temp, ", "), (i + 3) == c.coordinates.length ? "" : ", ");
                             }
+
+                            pointLabels.push({ [index]: _points });
                             break;
                         case AnnotationType.SPRAY:
-                            pointLabels.push({ [index]: "-1" })
+                            pointLabels.push({ [index]: "-1" });
+                            edgeLabels.push({ [index]: "-1" });
 
                             faceLabels.push({ [index]: _.join(c.coordinates, ", ") });
                             break;
                         case AnnotationType.PATH:
+                            var _path: PathAnnotation = c.coordinates[0];
+
+                            var _pathPoints: string = "";
+
+                            _path.point.forEach((_p, i) => {
+                                var temp1: any[] = [_p.coordinates.x, _p.coordinates.y, _p.coordinates.z];
+
+                                _pathPoints = _pathPoints.concat(_.join(temp1, ", "), (i + 1) == _path.point.length ? "" : ", ");
+                            })
+
+                            pointLabels.push({ [index]: _pathPoints });
+
+                            var _edgePoints: string = "";
+
+                            _path.edge.forEach((e, i) => {
+                                var temp2: any[] = [e.x, e.y, e.z];
+
+                                _edgePoints = _edgePoints.concat(_.join(temp2, ", "), (i + 1) == _path.edge.length ? "" : ", ");
+                            })
+
+                            edgeLabels.push({ [index]: _edgePoints });
+
+                            var _faceVertex: string = "";
+
+                            _path.faces.forEach((f, i) => {
+                                _faceVertex = _faceVertex.concat(f.vertex.toString(), (i + 1) == _path.faces.length ? "" : ", ");
+                            })
+
+                            faceLabels.push({ [index]: _faceVertex });
+
+                            colorCode = _path.faces[0].color;
+                            break;
                         case AnnotationType.NONE:
                         default:
                             pointLabels.push({ [index]: "-1" });
                             faceLabels.push({ [index]: "-1" });
+                            edgeLabels.push({ [index]: "-1" })
                             break;
                     }
+
+                    labelMapping.push({ [index]: labelName });
+                    colorMapping.push({ [index]: colorCode });
                 });
             }
 
-            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }, { "face_labels": faceLabels }, { "point_labels": pointLabels }];
+            var problemDetails: Record<string, any>[] = [{ "label_mapping": labelMapping }, { "color_mapping": colorMapping }, { "face_labels": faceLabels }, { "point_labels": pointLabels }, { "edge_labels": edgeLabels }];
             var _problemName: string = p.name;
 
             result.push({ [_problemName]: problemDetails });

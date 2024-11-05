@@ -6,6 +6,7 @@ export type HotkeyDialogProps = {
   open: boolean;
   onClose: () => void;
   onSave: (newHotkeys: Hotkeys) => void;
+  checkIfLocalStorageIsEmpty : (storageKey: string) => boolean;
 };
 
 export type Hotkeys = {
@@ -22,7 +23,7 @@ export type Hotkeys = {
   switchClass: string;
 };
 
-export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSave }) => {
+export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSave, checkIfLocalStorageIsEmpty }) => {
   const { hotkeys, setHotkeys, setHotkeysEnabled } = useContext(ModelContext);
   const [tempHotkeys, setTempHotkeys] = useState<Hotkeys>(hotkeys);
   const [activeInput, setActiveInput] = useState<keyof Hotkeys | null>(null);
@@ -31,7 +32,17 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSav
   const [currentHotkey, setCurrentHotkey] = useState<string[]>([]);
   const isRecordingRef = useRef(false);
 
+  const HotKeyLocalStorageID: string = "hotkey";
+
   useEffect(() => {
+    if (!checkIfLocalStorageIsEmpty(HotKeyLocalStorageID))
+    {
+      var hotkey : Hotkeys = JSON.parse(localStorage.getItem(HotKeyLocalStorageID));
+
+      setTempHotkeys(hotkey)
+      setHotkeys(hotkey);
+    }
+
     if (open) {
         setHotkeysEnabled(false);
     }
@@ -131,6 +142,8 @@ export const HotkeyDialog: React.FC<HotkeyDialogProps> = ({ open, onClose, onSav
     setHotkeys(tempHotkeys);
     onSave(tempHotkeys);
     onClose();
+
+    localStorage.setItem(HotKeyLocalStorageID, JSON.stringify(tempHotkeys));
   };
 
   const handleCancel = () => {

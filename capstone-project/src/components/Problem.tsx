@@ -9,6 +9,7 @@ import Class from './Class';
 import UpsertMenu from './UpsertMenu';
 import useModelStore from '../components/StateStore';
 import ModelContext from './ModelContext';
+import { FaceLabel } from '../datatypes/PathAnnotation';
 
 export type ProblemProps = {
     problemName: string;
@@ -115,6 +116,18 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 setModelSpray(currModelID, _spray);
                 break;
             case AnnotationType.PATH:
+                var _state: any = states[currModelID];
+                var _faces: FaceLabel[] = deletedClass.coordinates[0].faces;
+
+                Object.keys(_state).forEach(v => {
+                    if (_.findIndex(_faces, function(f) {
+                        return f.vertex == (Number)(v);
+                    }) != -1)
+                        delete _state[v];
+                })
+
+                setModelSpray(currModelID, _state);
+                break;
             case AnnotationType.NONE:
                 break;
         }

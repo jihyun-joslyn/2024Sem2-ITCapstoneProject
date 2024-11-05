@@ -8,14 +8,13 @@ import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
-import { AnnotationType, ClassDetail } from '../datatypes/ClassDetail';
+import { AnnotationType } from '../datatypes/ClassDetail';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
 import { CoordinatesType } from '../datatypes/CoordinateType';
-import { FaceLabel, PathAnnotation, Point } from '../datatypes/PathAnnotation';
+import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import ModelContext from './ModelContext';
-import { FileAnnotation } from '../datatypes/FileAnnotation';
 
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
@@ -34,7 +33,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray,currentTool} = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -52,7 +51,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const [filledShape, setFilledShape] = useState<THREE.Mesh | null>(null);
   const [isPathClosed, setIsPathClosed] = useState(false);
   const [closedPath, setClosedPath] = useState<THREE.Vector3[][]>([]);
-  
+
   const getDistance = (positions: ArrayLike<number>, i: number, j: number) => {
     const x1 = positions[i * 3], y1 = positions[i * 3 + 1], z1 = positions[i * 3 + 2];
     const x2 = positions[j * 3], y2 = positions[j * 3 + 1], z2 = positions[j * 3 + 2];
@@ -63,7 +62,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     setProblems(currProblem);
 
     if (!meshRef.current || !wireframeRef.current) return;
-    console.log(meshRef)
+
     // Remove previous keypoint spheres
     while (meshRef.current.children.length > 0) {
       meshRef.current.children.pop();
@@ -125,7 +124,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       updateModelIDFileMapping(mappingArr);
     }
 
-    
+
     // Load the saved states of color
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
 
@@ -190,6 +189,51 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                   meshRef.current.add(keypointSphere);
                 }
                 break;
+              case AnnotationType.PATH:
+                var _path: PathAnnotation = c.coordinates[0];
+
+                if (!_.isEmpty(_path.faces)) {
+                  _path.faces.forEach(f => {
+                    const _color = new THREE.Color(f.color || '#ffffff');
+
+                    colors[Number(f.vertex) * 3] = _color.r;
+                    colors[Number(f.vertex) * 3 + 1] = _color.g;
+                    colors[Number(f.vertex) * 3 + 2] = _color.b;
+                  });
+                }
+
+                if (_path.point.length >= 3 && !_.isEmpty(_path.edge)) {
+                  var _pathVertex: THREE.Vector3[] = [];
+
+                  _path.edge.forEach(p => {
+                    _pathVertex.push(new THREE.Vector3(p.x as number, p.y as number, p.z as number));
+                  });
+                  _pathVertex.push(new THREE.Vector3(_path.edge[0].x as number, _path.edge[0].y as number, _path.edge[0].z as number));
+
+                  const pathGeometry = new THREE.BufferGeometry
+                  pathGeometry.setFromPoints(_pathVertex);
+                  const pathMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, transparent: false, linewidth: 3 });
+
+                  const pathLine = new THREE.Line(pathGeometry, pathMaterial);
+                  meshRef.current.add(pathLine);
+                } else {
+                  console.warn(`Not enough points to create a closed path for class: ${c.name}`);
+                }
+
+                if (!_.isEmpty(_path.point)) {
+                  _path.point.forEach(p => {
+                    var _sphere = new THREE.Mesh(
+                      new THREE.SphereGeometry(0.07, 16, 16),
+                      new THREE.MeshBasicMaterial({ color: p.color })
+                    );
+
+                    _sphere.position.set((Number)(p.coordinates.x), (Number)(p.coordinates.y), (Number)(p.coordinates.z));
+                    meshRef.current.add(_sphere);
+                  })
+                }
+
+
+                break;
               default:
                 break;
             }
@@ -199,12 +243,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
 
     setModelId(modelID);
-
-
-    // Only set colors in geometry if there are spray annotations
-    if (hasSprayAnnotations) {
-      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    }
 
     // add the color into geometry, each vertex use three data to record color
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -216,124 +254,18 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const wireframeGeometry = new WireframeGeometry(geometry);
     wireframeRef.current.geometry = wireframeGeometry;
 
-
-    //Here must load vertex from shortest path saved in local storage under stlFileData Key
-
-                    
-                              // Create geometry for the red spheres
-                const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16); // Adjust size as needed
-                const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red color
-
-                // Declare instancedSpheres with the correct type
-                let instancedSpheres: THREE.InstancedMesh | null = null;
-
-                // Retrieve the stlFileData from localStorage
-                const storedData: FileAnnotation[] = JSON.parse(localStorage.getItem("stlFileData") || "[]");
-
-                // Find the data related to the current file
-                const currentFileData = storedData.find(data => data.fileName === currentFile);
-
-                // Ensure data for the current file exists
-                if (!currentFileData || !currentFileData.problems) return;
-
-                // Iterate over problems and process each problem and class
-                currentFileData.problems.forEach((problem) => {
-                    problem.classes.forEach((classData: ClassDetail) => {
-                        // Handle PATH annotation type (drawing lines and spheres)
-                        if (classData.annotationType === AnnotationType.PATH && classData.coordinates.length > 0) {
-                            // Create an array to store points for the current class
-                            const pathPoints: THREE.Vector3[] = [];
-
-                            classData.coordinates.forEach((coordData: PathAnnotation) => {
-                                coordData.point.forEach(({ x, y, z }: Point) => {
-                                    pathPoints.push(new THREE.Vector3(x as number, y as number, z as number));
-                                });
-                            });
-
-                            // Ensure there are enough points to create a closed path
-                            if (pathPoints.length >= 3) { // A closed path needs at least 3 points
-                                // Create the line geometry and material
-                                const closedPathPoints = [...pathPoints, pathPoints[0]]; // Close the path by adding the first point again
-                                const pathGeometry = new THREE.BufferGeometry
-                                    pathGeometry.setFromPoints(closedPathPoints);
-                                const pathMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, opacity: 1, transparent: false });
-
-                                // Create the line object
-                                const pathLine = new THREE.Line(pathGeometry, pathMaterial);
-                                meshRef.current.add(pathLine); // Add the line to the mesh
-
-                                // Initialize the instanced spheres for the current class if not done already
-                                if (!instancedSpheres) {
-                                    instancedSpheres = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, closedPathPoints.length);
-                                    meshRef.current.add(instancedSpheres); // Add it to the mesh once
-                                }
-
-                                // Set the positions of the spheres in the InstancedMesh
-                                closedPathPoints.forEach((point, index) => {
-                                    const matrix = new THREE.Matrix4();
-                                    matrix.setPosition(point);
-                                    instancedSpheres.setMatrixAt(index, matrix);
-                                });
-                            } else {
-                                console.warn(`Not enough points to create a closed path for class: ${classData}`);
-                            }
-                        }
-
-                        // Handle FACE annotation type (drawing triangle faces)
-                        if (classData.annotationType === 2 && classData.coordinates.length > 0) { // 2 represents FACE annotation type
-                          const faceVertices: Number[] = [];
-                          const faceColors: Number[] = [];
-
-                          classData.coordinates.forEach((coordData: PathAnnotation) => {
-                              // Iterate over faces to extract vertex and color information
-                              if (coordData.faces) {
-                                  coordData.faces.forEach(face => {
-                                      const vertexIndex = face.vertex; // Retrieve the vertex index
-                                      const color = face.color; // Retrieve the color from the face
-
-                                      // Create a vertex position based on vertexIndex
-                                      const vertexPosition = getVertexPositionByIndex(vertexIndex); // Implement this method
-
-                                      if (vertexPosition) {
-                                          // Add vertex position to the faceVertices array
-                                          faceVertices.push(vertexPosition.x as Number, vertexPosition.y as Number, vertexPosition.z as Number);
-                                          
-                                          // Convert color from hex string to THREE.Color
-                                          const colorObject = new THREE.Color(`#${color}`); // Ensure color is in hex format
-                                          faceColors.push(colorObject.r as Number, colorObject.g as Number, colorObject.b as Number);
-                                      }
-                                  });
-                              }
-                          });
-
-                          // Create geometry for the triangle faces
-                          const faceGeometry = new THREE.BufferGeometry();
-                          faceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(faceVertices as any, 3));
-                          faceGeometry.setAttribute('color', new THREE.Float32BufferAttribute(faceColors as any, 3));
-
-                          // Create a mesh for the triangle faces
-                          const faceMesh = new THREE.Mesh(faceGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-                          meshRef.current.add(faceMesh); // Add the face mesh to the main mesh or scene
-                      }
-                  });
-                });
-
-                // Implement this function to retrieve vertex position from your data structure
-                function getVertexPositionByIndex(index: Number): THREE.Vector3 | null {
-                  // This function should access your stored vertex data to return the correct position
-                  // Replace the following mock implementation with your actual vertex data access logic
-                  const vertexData = [
-                      new THREE.Vector3(0, 0, 0), // Mock data; replace with actual data
-                      new THREE.Vector3(1, 0, 0),
-                      new THREE.Vector3(0, 1, 0),
-                      // ... Add more vertices based on your STL data
-                  ];
-                  return vertexData[index as number] || null; // Return null if index is out of bounds
-                }
-
-
-
-
+    // // Implement this function to retrieve vertex position from your data structure
+    // function getVertexPositionByIndex(index: Number): THREE.Vector3 | null {
+    //   // This function should access your stored vertex data to return the correct position
+    //   // Replace the following mock implementation with your actual vertex data access logic
+    //   const vertexData = [
+    //     new THREE.Vector3(0, 0, 0), // Mock data; replace with actual data
+    //     new THREE.Vector3(1, 0, 0),
+    //     new THREE.Vector3(0, 1, 0),
+    //     // ... Add more vertices based on your STL data
+    //   ];
+    //   return vertexData[index as number] || null; // Return null if index is out of bounds
+    // }
 
     fitModel();
   }, [modelData, states, keypoints]);
@@ -485,7 +417,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         meshRef.current.geometry.attributes.position.getZ(nearestVertex)
       );
 
-      const SPHERE_COLOR: string = 'red';
+      const SPHERE_COLOR: string = '#FF0000';
       // Create a red sphere and add it to the scene 创建红色球体并添加到场景
       const redSphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 16, 16),
@@ -494,7 +426,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       redSphere.position.copy(nearestPoint);
       redSphereRef.current.add(redSphere);
 
-      //linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
+      linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
       setRedPoints(prevPoints => {
         const newPoints = [...prevPoints, nearestPoint];
         console.log('Red points:', newPoints);
@@ -850,7 +782,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     // Merge all paths into one complete path 将所有路径合并成一个完整的路径
     const completePath = paths.reduce((acc, curr) => [...acc, ...curr], []);
-    
+
     const isPathClockwise = isClockwise(completePath);
 
     // 收集边界三角形
@@ -865,24 +797,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     // Modify the color judgment logic 修改颜色判断逻辑
     const fillColor = new THREE.Color(color === '#ffffff' ? '#00FF00' : color);  // If the default is white, use green 默认白色，则使用绿色
 
-        // To call linkAnnotation for saving closedPath(means all vertex involved in the polygon shaped) and color of the polygon
-            // Remove duplicates based on x, y, and z coordinates
-            const uniqueCompletePath = completePath.filter(
-              (value, index, self) =>
-                index === self.findIndex((v) => v.x === value.x && v.y === value.y && v.z === value.z)
-            );
+    // To call linkAnnotation for saving closedPath(means all vertex involved in the polygon shaped) and color of the polygon
+    // Remove duplicates based on x, y, and z coordinates
+    const uniqueCompletePath = completePath.filter(
+      (value, index, self) =>
+        index === self.findIndex((v) => v.x === value.x && v.y === value.y && v.z === value.z)
+    );
 
-            // Loop through each unique point and create a THREE.Vector3 instance
-            uniqueCompletePath.forEach(point => {
-              const vector3Point = new THREE.Vector3(point.x, point.y, point.z);
-              
-              // Print the result to verify
-              //console.log("Unique Vector3 Point:", vector3Point);
-              
-              // Use vector3Point in linkAnnotationToClass
-              linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.POINT);
-            });
-  
+    // Loop through each unique point and create a THREE.Vector3 instance
+    uniqueCompletePath.forEach(point => {
+      const vector3Point = new THREE.Vector3(point.x, point.y, point.z);
+
+      // Print the result to verify
+      //console.log("Unique Vector3 Point:", vector3Point);
+
+      // Use vector3Point in linkAnnotationToClass
+      linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.EDGE);
+    });
+
 
     // First find all the bounding triangles 首先找到所有边界三角形
     paths.forEach(path => {
@@ -938,9 +870,13 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       colors.setXYZ(ib, fillColor.r, fillColor.g, fillColor.b);
       colors.setXYZ(ic, fillColor.r, fillColor.g, fillColor.b);
 
-      for (var j = i; j <= i + 2; j++) {
-        linkAnnotationToClass(j, fillColor.getHexString(), CoordinatesType.FACE);
-      }
+      linkAnnotationToClass(ia, fillColor.getHexString(), CoordinatesType.FACE);
+      linkAnnotationToClass(ib, fillColor.getHexString(), CoordinatesType.FACE);
+      linkAnnotationToClass(ic, fillColor.getHexString(), CoordinatesType.FACE);
+
+      setState(modelId, ia, color);
+      setState(modelId, ib, color);
+      setState(modelId, ib, color);
     });
 
     colors.needsUpdate = true;
@@ -1162,172 +1098,172 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       controlsRef.current.update();
     }
   };
-      // switch class
-      const switchToNextClass = useCallback(() => {
-        const updatedProblems = [...currProblem];
-        let foundActiveClass = false;
-        let switched = false;
-    
-        for (let i = 0; i < updatedProblems.length; i++) {
-          const problem = updatedProblems[i];
-          const classes = problem.classes;
-          
-          for (let j = 0; j < classes.length; j++) {
-            if (classes[j].isAnnotating) {
-              foundActiveClass = true;
-              classes[j].isAnnotating = false;
-              if (j < classes.length - 1) {
-                classes[j + 1].isAnnotating = true;
-                switched = true;
-                break;
-              }
-            }
-          }
-          
-          if (foundActiveClass && !switched && i < updatedProblems.length - 1) {
-            const nextProblem = updatedProblems[i + 1];
-            if (nextProblem.classes.length > 0) {
-              nextProblem.classes[0].isAnnotating = true;
-              switched = true;
-            }
-          } 
-          if (switched) break;
-        }
-        if (foundActiveClass && !switched && updatedProblems.length > 0) {
-          const firstProblem = updatedProblems[0];
-          if (firstProblem.classes.length > 0) {
-            firstProblem.classes[0].isAnnotating = true;
-          }
-        }
-        updateProblems(updatedProblems);
-      }, [currProblem, updateProblems]);
-      
-      const updateMeshColors = useCallback(() => {
-        if (!meshRef.current) return;
-        const geometry = meshRef.current.geometry as BufferGeometry;
-        const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
-        const { colors, keypoints } = modelStore.getCurrentState(modelStore.modelId);
-    
-        // Update vertex colors
-        for (let i = 0; i < colorAttributes.count; i++) {
-          const color = colors[i] ? new THREE.Color(colors[i].color) : new THREE.Color(0xffffff);
-          colorAttributes.setXYZ(i, color.r, color.g, color.b);
-        }
-    
-        // Update keypoints
-        meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
-        keypoints.forEach(keypoint => {
-          const sphere = new THREE.Mesh(KPsphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
-          sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
-          meshRef.current?.add(sphere);
-        });
-    
-        colorAttributes.needsUpdate = true;
-      }, [modelStore]);
+  // switch class
+  const switchToNextClass = useCallback(() => {
+    const updatedProblems = [...currProblem];
+    let foundActiveClass = false;
+    let switched = false;
 
-      useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-          if (!hotkeysEnabled) {
-            return;
+    for (let i = 0; i < updatedProblems.length; i++) {
+      const problem = updatedProblems[i];
+      const classes = problem.classes;
+
+      for (let j = 0; j < classes.length; j++) {
+        if (classes[j].isAnnotating) {
+          foundActiveClass = true;
+          classes[j].isAnnotating = false;
+          if (j < classes.length - 1) {
+            classes[j + 1].isAnnotating = true;
+            switched = true;
+            break;
           }
-          
-          // 忽略输入框中的按键事件
-          if (document.activeElement?.tagName === 'INPUT' || 
-              document.activeElement?.tagName === 'TEXTAREA') {
-            return;
-          }
-    
-          // 创建热键字符串
-          const keyString = [
-            event.ctrlKey && 'CONTROL',
-            event.shiftKey && 'SHIFT',
-            event.altKey && 'ALT',
-            event.key.toUpperCase()
-          ].filter(Boolean).join('+');
-    
-          // 防止默认行为
-          const preventDefaultFor = [
-            hotkeys.zoomIn,
-            hotkeys.zoomOut,
-            hotkeys.rotateLeft,
-            hotkeys.rotateRight,
-            hotkeys.rotateUp,
-            hotkeys.rotateDown,
-            hotkeys.prevStep,
-            hotkeys.nextStep,
-            hotkeys.brush,
-            hotkeys.spray,
-            hotkeys.switchClass
-          ];
-    
-          if (preventDefaultFor.includes(keyString)) {
-            event.preventDefault();
-          }
-    
-          // 工具切换热键处理
-          if (keyString === hotkeys.brush) {
-            activateBrush();
-            return;
-          }
-    
-          if (keyString === hotkeys.spray) {
-            activateSpray();
-            setSpray('#ffffff'); // 设置默认颜色
-            return;
-          }
-    
-          // 其他热键处理
-          switch (keyString) {
-            case hotkeys.zoomIn:
-              zoomCamera(0.9);
-              break;
-            case hotkeys.zoomOut:
-              zoomCamera(1.1);
-              break;
-            case hotkeys.rotateLeft:
-              rotateHorizontal(-Math.PI / 32);
-              break;
-            case hotkeys.rotateRight:
-              rotateHorizontal(Math.PI / 32);
-              break;
-            case hotkeys.rotateUp:
-              rotateVertical(-Math.PI / 32);
-              break;
-            case hotkeys.rotateDown:
-              rotateVertical(Math.PI / 32);
-              break;
-            case hotkeys.prevStep:
-              modelStore.undo(modelStore.modelId);
-              updateMeshColors();
-              break;
-            case hotkeys.nextStep:
-              modelStore.redo(modelStore.modelId);
-              updateMeshColors();
-              break;
-            case hotkeys.switchClass:
-              switchToNextClass();
-              break;
-          }
-        };
-    
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-          window.removeEventListener('keydown', handleKeyDown);
-        };
-      }, [
-        hotkeys,
-        hotkeysEnabled,
-        zoomCamera,
-        rotateHorizontal,
-        rotateVertical,
-        modelStore,
-        switchToNextClass,
-        activateBrush,
-        activateSpray,
-        setSpray,
-        setTool,
-        updateMeshColors
-      ]);
+        }
+      }
+
+      if (foundActiveClass && !switched && i < updatedProblems.length - 1) {
+        const nextProblem = updatedProblems[i + 1];
+        if (nextProblem.classes.length > 0) {
+          nextProblem.classes[0].isAnnotating = true;
+          switched = true;
+        }
+      }
+      if (switched) break;
+    }
+    if (foundActiveClass && !switched && updatedProblems.length > 0) {
+      const firstProblem = updatedProblems[0];
+      if (firstProblem.classes.length > 0) {
+        firstProblem.classes[0].isAnnotating = true;
+      }
+    }
+    updateProblems(updatedProblems);
+  }, [currProblem, updateProblems]);
+
+  const updateMeshColors = useCallback(() => {
+    if (!meshRef.current) return;
+    const geometry = meshRef.current.geometry as BufferGeometry;
+    const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
+    const { colors, keypoints } = modelStore.getCurrentState(modelStore.modelId);
+
+    // Update vertex colors
+    for (let i = 0; i < colorAttributes.count; i++) {
+      const color = colors[i] ? new THREE.Color(colors[i].color) : new THREE.Color(0xffffff);
+      colorAttributes.setXYZ(i, color.r, color.g, color.b);
+    }
+
+    // Update keypoints
+    meshRef.current.children = meshRef.current.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry));
+    keypoints.forEach(keypoint => {
+      const sphere = new THREE.Mesh(KPsphereGeometry, new THREE.MeshBasicMaterial({ color: keypoint.color }));
+      sphere.position.set(keypoint.position.x, keypoint.position.y, keypoint.position.z);
+      meshRef.current?.add(sphere);
+    });
+
+    colorAttributes.needsUpdate = true;
+  }, [modelStore]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!hotkeysEnabled) {
+        return;
+      }
+
+      // 忽略输入框中的按键事件
+      if (document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // 创建热键字符串
+      const keyString = [
+        event.ctrlKey && 'CONTROL',
+        event.shiftKey && 'SHIFT',
+        event.altKey && 'ALT',
+        event.key.toUpperCase()
+      ].filter(Boolean).join('+');
+
+      // 防止默认行为
+      const preventDefaultFor = [
+        hotkeys.zoomIn,
+        hotkeys.zoomOut,
+        hotkeys.rotateLeft,
+        hotkeys.rotateRight,
+        hotkeys.rotateUp,
+        hotkeys.rotateDown,
+        hotkeys.prevStep,
+        hotkeys.nextStep,
+        hotkeys.brush,
+        hotkeys.spray,
+        hotkeys.switchClass
+      ];
+
+      if (preventDefaultFor.includes(keyString)) {
+        event.preventDefault();
+      }
+
+      // 工具切换热键处理
+      if (keyString === hotkeys.brush) {
+        activateBrush();
+        return;
+      }
+
+      if (keyString === hotkeys.spray) {
+        activateSpray();
+        setSpray('#ffffff'); // 设置默认颜色
+        return;
+      }
+
+      // 其他热键处理
+      switch (keyString) {
+        case hotkeys.zoomIn:
+          zoomCamera(0.9);
+          break;
+        case hotkeys.zoomOut:
+          zoomCamera(1.1);
+          break;
+        case hotkeys.rotateLeft:
+          rotateHorizontal(-Math.PI / 32);
+          break;
+        case hotkeys.rotateRight:
+          rotateHorizontal(Math.PI / 32);
+          break;
+        case hotkeys.rotateUp:
+          rotateVertical(-Math.PI / 32);
+          break;
+        case hotkeys.rotateDown:
+          rotateVertical(Math.PI / 32);
+          break;
+        case hotkeys.prevStep:
+          modelStore.undo(modelStore.modelId);
+          updateMeshColors();
+          break;
+        case hotkeys.nextStep:
+          modelStore.redo(modelStore.modelId);
+          updateMeshColors();
+          break;
+        case hotkeys.switchClass:
+          switchToNextClass();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    hotkeys,
+    hotkeysEnabled,
+    zoomCamera,
+    rotateHorizontal,
+    rotateVertical,
+    modelStore,
+    switchToNextClass,
+    activateBrush,
+    activateSpray,
+    setSpray,
+    setTool,
+    updateMeshColors
+  ]);
 
 
   // debugging function to log session actions
@@ -1354,6 +1290,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }) == -1) return;
 
     var _currProblem = currProblem;
+
+    if (!_.startsWith(color, "#"))
+      color = "#".concat(color);
+
     _currProblem.forEach(p => {
       p.classes.forEach(c => {
         if (c.isAnnotating) {
@@ -1391,7 +1331,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               switch (type) {
                 case CoordinatesType.FACE:
                   if (_.findIndex(_coordinates.faces, function (v) {
-                    return v.vertex == coordinates;
+                    return (Number)(v.vertex) == (Number)(coordinates);
                   }) == -1) {
                     var temp: FaceLabel = { vertex: coordinates, color: color };
 
@@ -1399,24 +1339,30 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                   }
                   break;
                 case CoordinatesType.POINT:
-                  if (_.findIndex(_coordinates.point, function(p) {
-                    return p.x == coordinates.x && p.y == coordinates.y && p.z == coordinates.z;
-                  }) == -1)
-                  {
-                    var temp1 : Point = {x: (Number) (coordinates.x), y: (Number) (coordinates.y), z: (Number) (coordinates.z), color: color};
+                  if (_.findIndex(_coordinates.point, function (p) {
+                    return (Number)(p.coordinates.x) == (Number)(coordinates.x) && (Number)(p.coordinates.y) == (Number)(coordinates.y) && (Number)(p.coordinates.z) == (Number)(coordinates.z);
+                  }) == -1) {
+                    var temp1: PointCoordinates = { x: (Number)(coordinates.x), y: (Number)(coordinates.y), z: (Number)(coordinates.z) };
 
-                    _coordinates.point.push(temp1);
+                    var temp3: Point = { coordinates: temp1, color: color };
+                    _coordinates.point.push(temp3);
                   }
                   break;
                 case CoordinatesType.EDGE:
+                  if (_.findIndex(_coordinates.edge, function (p) {
+                    return (Number)(p.x) == (Number)(coordinates.x) && (Number)(p.y) == (Number)(coordinates.y) && (Number)(p.z) == (Number)(coordinates.z);
+                  }) == -1) {
+                    var temp2: PointCoordinates = { x: (Number)(coordinates.x), y: (Number)(coordinates.y), z: (Number)(coordinates.z) };
 
+                    _coordinates.edge.push(temp2);
+                  }
                   break;
                 default:
                   break;
               }
 
               c.annotationType = AnnotationType.PATH;
-              c.coordinates[0] =_coordinates;
+              c.coordinates[0] = _coordinates;
               break;
             default:
               break;
