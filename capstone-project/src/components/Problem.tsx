@@ -46,6 +46,11 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             handleEditEnd();
             updateProblem(problemInput, problemKey);
         }
+
+        if (e.key === "Escape") {
+            setProblem(problemName);
+            handleEditEnd();
+        }
     };
 
     const onAddClassInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -62,6 +67,11 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             setInputNewClass("");
             setIsAddNewClass(false);
             updateLabel(_labels, problemKey);
+        }
+
+        if(e.key === "Escape") {
+            setInputNewClass("");
+            setIsAddNewClass(false);
         }
     };
 
@@ -120,7 +130,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 var _faces: FaceLabel[] = deletedClass.coordinates[0].faces;
 
                 Object.keys(_state).forEach(v => {
-                    if (_.findIndex(_faces, function(f) {
+                    if (_.findIndex(_faces, function (f) {
                         return f.vertex == (Number)(v);
                     }) != -1)
                         delete _state[v];
@@ -155,15 +165,15 @@ export default function Problem({ problemName, classes, problemKey, updateProble
         updateLabel(_labels, problemKey);
     }
 
-        const handleEditStart = () => {
-            setHotkeysEnabled(false);
-            setIsEditProblem(true);
-        };
-    
-        const handleEditEnd = () => {
-            setHotkeysEnabled(true);
-            setIsEditProblem(false);
-        };
+    const handleEditStart = () => {
+        setHotkeysEnabled(false);
+        setIsEditProblem(true);
+    };
+
+    const handleEditEnd = () => {
+        setHotkeysEnabled(true);
+        setIsEditProblem(false);
+    };
 
     const handleAddClassStart = () => {
         setHotkeysEnabled(false);

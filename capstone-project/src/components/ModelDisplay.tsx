@@ -59,14 +59,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   };
 
   useEffect(() => {
-    setProblems(currProblem);
-
     if (!meshRef.current || !wireframeRef.current) return;
 
-    // Remove previous keypoint spheres
-    while (meshRef.current.children.length > 0) {
-      meshRef.current.children.pop();
-    }
+    
 
     const loader = new STLLoader();
     let geometry: BufferGeometry = loader.parse(modelData);
@@ -77,7 +72,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       geometry.computeVertexNormals();
     }
 
-
     // Use the BVH to accelerate the geometry
 
     geometry.computeBoundsTree = computeBoundsTree;
@@ -85,24 +79,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     meshRef.current.raycast = acceleratedRaycast;
     geometry.computeBoundsTree();
 
-    // Get all vertices and initialize colors (default to white)
-    const vertexCount = geometry.attributes.position.count;
-    const colors = new Float32Array(vertexCount * 3).fill(1);
-
-
-    //load the saved states of color
-    const { colors: savedColors } = modelStore.getCurrentState(modelID);
-
-    if (savedColors) {
-      Object.entries(savedColors).forEach(([index, colorState]) => {
-        const color = new THREE.Color(colorState.color);
-        const i = Number(index);
-        colors[i * 3] = color.r;
-        colors[i * 3 + 1] = color.g;
-        colors[i * 3 + 2] = color.b;
-      });
-    }
-
+    
     modelStore.setModelId(modelID);
 
     //mapping for modelId and fileName;
@@ -125,7 +102,49 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
 
 
-    // Load the saved states of color
+    setModelId(modelID);
+
+    // add the color into geometry, each vertex use three data to record color
+    
+    geometry = showAnnotationsInLoader(geometry);
+    meshRef.current.geometry = geometry;
+    meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
+
+    // Add the mesh effect to model
+    const wireframeGeometry = new WireframeGeometry(geometry);
+    wireframeRef.current.geometry = wireframeGeometry;
+
+    fitModel();
+  }, [modelData]);
+
+  useEffect(() => {
+    meshRef.current.geometry = showAnnotationsInLoader(meshRef.current.geometry);
+  }, [keypoints, states]);
+
+  const showAnnotationsInLoader = (geometry: BufferGeometry): BufferGeometry => {
+    // Remove previous keypoint spheres
+    while (meshRef.current.children.length > 0) {
+      meshRef.current.children.pop();
+    }
+
+    // Get all vertices and initialize colors (default to white)
+    const vertexCount = geometry.attributes.position.count;
+    const colors = new Float32Array(vertexCount * 3).fill(1);
+
+
+    //load the saved states of color
+    const { colors: savedColors } = modelStore.getCurrentState(modelId);
+
+    if (savedColors) {
+      Object.entries(savedColors).forEach(([index, colorState]) => {
+        const color = new THREE.Color(colorState.color);
+        const i = Number(index);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+      });
+    }
+
     const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
 
     // Check if there are any spray annotations
@@ -210,7 +229,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                   });
                   _pathVertex.push(new THREE.Vector3(_path.edge[0].x as number, _path.edge[0].y as number, _path.edge[0].z as number));
 
-                  const pathGeometry = new THREE.BufferGeometry
+                  const pathGeometry = new BufferGeometry();
                   pathGeometry.setFromPoints(_pathVertex);
                   const pathMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, transparent: false, linewidth: 3 });
 
@@ -242,33 +261,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       })
     }
 
-    setModelId(modelID);
-
-    // add the color into geometry, each vertex use three data to record color
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    meshRef.current.geometry = geometry;
-    meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
-
-    // Add the mesh effect to model
-    const wireframeGeometry = new WireframeGeometry(geometry);
-    wireframeRef.current.geometry = wireframeGeometry;
-
-    // // Implement this function to retrieve vertex position from your data structure
-    // function getVertexPositionByIndex(index: Number): THREE.Vector3 | null {
-    //   // This function should access your stored vertex data to return the correct position
-    //   // Replace the following mock implementation with your actual vertex data access logic
-    //   const vertexData = [
-    //     new THREE.Vector3(0, 0, 0), // Mock data; replace with actual data
-    //     new THREE.Vector3(1, 0, 0),
-    //     new THREE.Vector3(0, 1, 0),
-    //     // ... Add more vertices based on your STL data
-    //   ];
-    //   return vertexData[index as number] || null; // Return null if index is out of bounds
-    // }
-
-    fitModel();
-  }, [modelData, states, keypoints]);
+    return geometry;
+  }
 
   const spray = useCallback((position: THREE.Vector2) => {
     if (checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
@@ -390,7 +386,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   //Starting coding for Shortest Path  
 
   //// Add new functions to handle points of path tool 添加新的函数来处理路径工具的点
-  const handlePathToolClick = useCallback((event: MouseEvent) => {
+  const handlePathToolClick = useCallback((event: MouseEvent, faceColor: string) => {
     if (!meshRef.current || tool !== 'path') return;
 
     const rect = gl.domElement.getBoundingClientRect();
@@ -447,7 +443,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
               if (closed) {
                 console.log('Shape is closed, creating filled shape');
-                const fillingSuccess = createFilledShape(newPaths);
+                const fillingSuccess = createFilledShape(newPaths, faceColor);
                 if (fillingSuccess) {
                   // Save closed paths 保存闭合的路径
                   setClosedPath(newPaths);
@@ -768,7 +764,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   };
 
   // Modify the createFilledShape function to use the color in the context 修改 createFilledShape 函数，使用 context 中的 color
-  const createFilledShape = (paths: THREE.Vector3[][]): boolean => {
+  const createFilledShape = (paths: THREE.Vector3[][], faceColor: string): boolean => {
     if (!meshRef.current || paths.length < 3) return false;
 
     const geometry = meshRef.current.geometry as BufferGeometry;
@@ -791,11 +787,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const processedTriangles = new Set<number>();
 
     // Add print statements to view the value of color 添加打印语句来查看 color 的值
-    console.log('Current color value:', color);
-    console.log('Color type:', typeof color);
+    console.log('Current color value:', faceColor);
+    console.log('Color type:', typeof faceColor);
 
     // Modify the color judgment logic 修改颜色判断逻辑
-    const fillColor = new THREE.Color(color === '#ffffff' ? '#00FF00' : color);  // If the default is white, use green 默认白色，则使用绿色
+    const fillColor = new THREE.Color(faceColor === '#ffffff' ? '#00FF00' : faceColor);  // If the default is white, use green 默认白色，则使用绿色
 
     // To call linkAnnotation for saving closedPath(means all vertex involved in the polygon shaped) and color of the polygon
     // Remove duplicates based on x, y, and z coordinates
@@ -874,9 +870,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       linkAnnotationToClass(ib, fillColor.getHexString(), CoordinatesType.FACE);
       linkAnnotationToClass(ic, fillColor.getHexString(), CoordinatesType.FACE);
 
-      setState(modelId, ia, color);
-      setState(modelId, ib, color);
-      setState(modelId, ib, color);
+      setState(modelId, ia, "#".concat(fillColor.getHexString()));
+      setState(modelId, ib, "#".concat(fillColor.getHexString()));
+      setState(modelId, ib, "#".concat(fillColor.getHexString()));
     });
 
     colors.needsUpdate = true;
@@ -930,13 +926,13 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   };
 
   useEffect(() => {
-    if (tool === 'path') {
-      window.addEventListener('click', handlePathToolClick);
+    if (tool === 'path' && checkIfNowCanAnnotate()) {
+      window.addEventListener('click', e => handlePathToolClick(e, color));
     }
     return () => {
-      window.removeEventListener('click', handlePathToolClick);
+      window.removeEventListener('click', e => handlePathToolClick(e, color));
     };
-  }, [tool, handlePathToolClick]);
+  }, [tool, handlePathToolClick, color]);
   useEffect(() => {
     console.log('Paths updated:', paths);
   }, [paths]);

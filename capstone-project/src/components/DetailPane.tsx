@@ -22,13 +22,18 @@ export default function DetailPane({ isShow, currentFile, currProblems, updatePr
     const [isAddNewProblem, setIsAddNewProblem] = useState(false);
 
     useEffect(() => {
- 
+
     }, [currProblems]);
 
     const onAddProblemInputChange = (e: KeyboardEvent<HTMLDivElement>): void => {
         if (!_.isEmpty(_.trim(userInput)) && (e.key === "Enter")) {
             const updatedProblems: ProblemType[] = [...currProblems, { name: userInput, classes: [] }];
             updateProblems(updatedProblems);
+            setUserInput("");
+            setIsAddNewProblem(false);
+        }
+
+        if (e.key === "Escape") {
             setUserInput("");
             setIsAddNewProblem(false);
         }

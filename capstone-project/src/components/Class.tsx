@@ -45,6 +45,11 @@ export default function Class({ classDetails, labelIndex, updateLabel, deleteCla
 
             updateLabel(_details, labelIndex);
         }
+
+        if (e.key === "Escape") {
+            setClassName(classDetails.name);
+            setIsEditClass(false);
+        }
     };
 
     return (
