@@ -69,7 +69,7 @@ export default function Problem({ problemName, classes, problemKey, updateProble
             updateLabel(_labels, problemKey);
         }
 
-        if(e.key === "Escape") {
+        if (e.key === "Escape") {
             setInputNewClass("");
             setIsAddNewClass(false);
         }
@@ -107,9 +107,11 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 var _keypoint: any[] = keypoints[currModelID];
                 var _point: { x: Number, y: Number, z: Number } = { x: (Number)(deletedClass.coordinates[0]), y: (Number)(deletedClass.coordinates[1]), z: (Number)(deletedClass.coordinates[2]) };
 
-                _.remove(_keypoint, function (k) {
-                    return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
-                });
+                if (!_.isEmpty(_keypoint)) {
+                    _.remove(_keypoint, function (k) {
+                        return k["position"]["x"] == _point.x && k["position"]["y"] == _point.y && k["position"]["z"] == _point.z;
+                    });
+                }
 
                 setModelKeypoint(currModelID, _keypoint);
 
@@ -118,10 +120,12 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 var _spray: any = states[currModelID];
                 var _vertex: Number[] = deletedClass.coordinates;
 
-                Object.keys(_spray).forEach(v => {
-                    if (_.includes(_vertex, (Number)(v)))
-                        delete _spray[v];
-                })
+                if (!_.isEmpty(_state)) {
+                    Object.keys(_spray).forEach(v => {
+                        if (_.includes(_vertex, (Number)(v)))
+                            delete _spray[v];
+                    });
+                }
 
                 setModelSpray(currModelID, _spray);
                 break;
@@ -129,12 +133,14 @@ export default function Problem({ problemName, classes, problemKey, updateProble
                 var _state: any = states[currModelID];
                 var _faces: FaceLabel[] = deletedClass.coordinates[0].faces;
 
-                Object.keys(_state).forEach(v => {
-                    if (_.findIndex(_faces, function (f) {
-                        return f.vertex == (Number)(v);
-                    }) != -1)
-                        delete _state[v];
-                })
+                if (!_.isEmpty(_state)) {
+                    Object.keys(_state).forEach(v => {
+                        if (_.findIndex(_faces, function (f) {
+                            return f.vertex == (Number)(v);
+                        }) != -1)
+                            delete _state[v];
+                    });
+                }
 
                 setModelSpray(currModelID, _state);
                 break;

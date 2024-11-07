@@ -299,7 +299,8 @@ const AppContent = () => {
             getCurrentAnnotationColor={getCurrentAnnotationColor} />
         </Grid>
         <Grid size={modelGridWidth} sx={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-          {modelData && <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate} />}
+          {modelData && 
+          <ModelDisplay modelData={modelData} currProblem={currProblems} updateProblems={updateDataLabels} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate} isShowColorSpraySelector={isShowColorSpraySelector}/>}
         </Grid>
         <Grid size={detailPaneWidth} offset={'auto'}>
           <DetailPane

@@ -30,9 +30,10 @@ type ModelDisplayProps = {
   currentFile: string | null;
   updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
   checkIfNowCanAnnotate: () => boolean;
+  isShowColorSpraySelector: boolean;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate }) => {
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
   const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
@@ -61,7 +62,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
 
-    
+
 
     const loader = new STLLoader();
     let geometry: BufferGeometry = loader.parse(modelData);
@@ -79,7 +80,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     meshRef.current.raycast = acceleratedRaycast;
     geometry.computeBoundsTree();
 
-    
+
     modelStore.setModelId(modelID);
 
     //mapping for modelId and fileName;
@@ -105,7 +106,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     setModelId(modelID);
 
     // add the color into geometry, each vertex use three data to record color
-    
+
     geometry = showAnnotationsInLoader(geometry);
     meshRef.current.geometry = geometry;
     meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
@@ -135,7 +136,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     //load the saved states of color
     const { colors: savedColors } = modelStore.getCurrentState(modelId);
 
-    if (savedColors) {
+    if (!_.isEmpty(savedColors) && savedColors) {
       Object.entries(savedColors).forEach(([index, colorState]) => {
         const color = new THREE.Color(colorState.color);
         const i = Number(index);
@@ -373,7 +374,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       }
     };
 
-    if (tool === 'keypoint' && checkIfNowCanAnnotate()) {
+    if (tool === 'keypoint' && checkIfNowCanAnnotate() && !isShowColorSpraySelector) {
       window.addEventListener('click', handlePointerClick);
     }
 
@@ -926,7 +927,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   };
 
   useEffect(() => {
-    if (tool === 'path' && checkIfNowCanAnnotate()) {
+    if (tool === 'path' && checkIfNowCanAnnotate() && !isShowColorSpraySelector) {
       window.addEventListener('click', e => handlePathToolClick(e, color));
     }
     return () => {
@@ -1457,10 +1458,19 @@ const ModelDisplay: React.FC<{
   currentFile: string | null;
   updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
   checkIfNowCanAnnotate: () => boolean;
-}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate }) => {
+  isShowColorSpraySelector: boolean;
+}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
   return (
     <Canvas style={{ background: 'black' }}>
-      <ModelContent modelData={modelData} currProblem={currProblem} updateProblems={updateProblems} currentFile={currentFile} updateModelIDFileMapping={updateModelIDFileMapping} checkIfNowCanAnnotate={checkIfNowCanAnnotate} />
+      <ModelContent
+        modelData={modelData}
+        currProblem={currProblem}
+        updateProblems={updateProblems}
+        currentFile={currentFile}
+        updateModelIDFileMapping={updateModelIDFileMapping}
+        checkIfNowCanAnnotate={checkIfNowCanAnnotate}
+        isShowColorSpraySelector={isShowColorSpraySelector}
+      />
     </Canvas>
   );
 };
