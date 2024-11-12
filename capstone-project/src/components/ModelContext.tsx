@@ -59,7 +59,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
         nextStep: ']',
         brush: '1',
         spray: '2',
-        switchClass: 'Tab'
+        switchClass: 'TAB'
     });
     const [size, setSize] = useState<number>(1);
     const controlsRef = useRef<any>(null);
