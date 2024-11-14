@@ -49,16 +49,22 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
   const [value, setValue] = useState(0);
   const [color, setColor] = useState("#ffffff");
   const [showColorSelector, setColorSelector] = useState(false);
-  const { setTool, setSpray, activateBrush, activateSpray, currentTool, tool } = useContext(ModelContext);
+  const { setTool, setSpray, activateBrush, activateSpray,activateArrow, currentTool, tool } = useContext(ModelContext);
   const [, updateState] = useState({});
   const forceUpdate = useCallback(() => updateState({}), []);
   
   useEffect(() => {
     // Update the selected tab based on the current tool
     switch (currentTool) {
+
+        case 'arrow':
+            setValue(1);
+            break;
+
         case 'pan':
             setValue(2);
             break;
+
         case 'brush':
             setValue(3);
             break;
@@ -121,6 +127,11 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     setValue(newValue);
 
     switch (newValue) {
+
+      case 1:
+            setTool('arrow')
+            activateArrow();
+          break;
       case 2:
           setTool('pan');
           break;
@@ -197,3 +208,4 @@ export default function Sidebar({ showFilePane, onFileSelect, showColorSpraySele
     </div>
   );
 }
+

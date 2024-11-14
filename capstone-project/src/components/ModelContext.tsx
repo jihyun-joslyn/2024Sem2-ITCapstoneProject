@@ -21,6 +21,7 @@ interface ModelType {
     setPathPoints : React.Dispatch<React.SetStateAction<THREE.Vector3[]>>;//for shortest path
     hotkeysEnabled: boolean;
     setHotkeysEnabled: (enabled: boolean) => void;
+    activateArrow: () => void;
 }
 
 export type Hotkeys = {
@@ -71,13 +72,19 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
         setTool('brush');
     };
 
+    const activateArrow=()=> {
+        setCurrentTool('arrow');
+        setTool('arrow');
+        
+    }
+
     const activateSpray = () => {
         setCurrentTool('spray');
         setTool('spray');
     };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray, hotkeysEnabled,setHotkeysEnabled,}}>
+        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, activateArrow, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateBrush, activateSpray, hotkeysEnabled,setHotkeysEnabled,}}>
             {children}
         </ModelContext.Provider>
     );

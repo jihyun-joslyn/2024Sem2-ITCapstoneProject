@@ -1,4 +1,4 @@
-import { Line, OrbitControls } from '@react-three/drei';
+import { Html, Line, OrbitControls } from '@react-three/drei';
 import { Canvas, ThreeEvent, extend, useThree } from '@react-three/fiber';
 import * as _ from "lodash";
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -15,6 +15,7 @@ import { PriorityQueue } from '../utils/PriorityQueue';
 import { CoordinatesType } from '../datatypes/CoordinateType';
 import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import ModelContext from './ModelContext';
+import DisplayClass from './DisplayClass';
 
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
@@ -34,7 +35,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateArrow, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -52,6 +53,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   const [filledShape, setFilledShape] = useState<THREE.Mesh | null>(null);
   const [isPathClosed, setIsPathClosed] = useState(false);
   const [closedPath, setClosedPath] = useState<THREE.Vector3[][]>([]);
+
+ 
 
   const getDistance = (positions: ArrayLike<number>, i: number, j: number) => {
     const x1 = positions[i * 3], y1 = positions[i * 3 + 1], z1 = positions[i * 3 + 2];
@@ -170,7 +173,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       savedKeypoints.forEach(({ position, color }) => {
         if (position && color) { // Ensure both position and color are valid
           const keypointSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.05, 16, 16),
+            new THREE.SphereGeometry(0.07, 16, 16),
             new THREE.MeshBasicMaterial({ color })
           );
           keypointSphere.position.set(position.x, position.y, position.z);
@@ -266,6 +269,75 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     return geometry;
   }
+
+  //Call Display Class
+
+            const [clickedPoint, setClickedPoint] = useState(null);
+
+            const [vertexId, setVertexId] = useState<number | null>(null);
+
+
+            const handleArrowClick = (event: MouseEvent) => {
+              if (!meshRef.current || tool !== 'arrow') return;
+              const rect = gl.domElement.getBoundingClientRect();
+              const mousePosition = new THREE.Vector2(
+                ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                -((event.clientY - rect.top) / rect.height) * 2 + 1
+              );
+            
+              raycasterRef.current.setFromCamera(mousePosition, camera);
+              const intersects = raycasterRef.current.intersectObject(meshRef.current, true);
+            
+              if (intersects.length > 0) {
+                const intersection = intersects[0];
+                const localPoint = intersection.point.clone();
+                const inverseMatrix = new THREE.Matrix4();
+                inverseMatrix.copy(meshRef.current.matrixWorld).invert();
+                localPoint.applyMatrix4(inverseMatrix);
+            
+                // Find the closest vertex
+                const vertexId = findClosestVertexId(localPoint, meshRef.current);
+                setVertexId(vertexId);  // Set the vertexId in the state
+
+                //console.log("Clicked on mesh at:", localPoint);
+                setClickedPoint({ x: localPoint.x, y: localPoint.y, z: localPoint.z });  // Update state
+              }
+            };
+            
+            const findClosestVertexId = (point: THREE.Vector3, mesh: THREE.Mesh): number => {
+              const geometry = mesh.geometry;
+              const positions = geometry.attributes.position.array; // This is a flat array of vertex positions (x, y, z)
+              let closestVertexId = -1;
+              let minDistance = Infinity;
+            
+              // Loop through the vertices array (note: it's a flat array, every 3 elements represent one vertex)
+              for (let i = 0; i < positions.length; i += 3) {
+                const vertex = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+                
+                // Calculate the distance between the point and the current vertex
+                const distance = point.distanceTo(vertex);
+            
+                // If the current vertex is closer, update the closest vertex ID
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestVertexId = i / 3; // Get the vertex index (i / 3 because every vertex is 3 values: x, y, z)
+                }
+              }
+            
+              return closestVertexId;
+            };
+
+          // Attach handleArrowClick only when tool is 'arrow'
+          useEffect(() => {
+            if (tool === 'arrow') {
+              window.addEventListener('click', handleArrowClick);
+            }
+
+            return () => {
+              window.removeEventListener('click', handleArrowClick);
+            };
+          }, [tool]);
+
 
   const spray = useCallback((position: THREE.Vector2) => {
     if (checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
@@ -364,7 +436,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
 
         // Debugging log to show precise coordinates
-        console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
+        //console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
 
         modelStore.setKeypoint(modelStore.modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, color);
         modelStore.startPaintAction(modelStore.modelId, 'point');
@@ -1383,6 +1455,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     updateProblems(_currProblem);
   }
 
+  
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -1446,6 +1519,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           />
         )
       ))}
+
+      {/* Render DisplayClass if clickedPointRef is set and tool is 'arrow', then reset clickedPointRef */}
+      
+      {tool === 'arrow' && clickedPoint && (
+        <Html>
+          <DisplayClass clickedPoint={clickedPoint} modelName={currentFile} vertexID={vertexId} />
+        </Html>
+      )}
+
+
 
     </>
   );
