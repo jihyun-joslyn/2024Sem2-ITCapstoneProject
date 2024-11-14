@@ -1,4 +1,3 @@
-import { Mode } from '@mui/icons-material';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 

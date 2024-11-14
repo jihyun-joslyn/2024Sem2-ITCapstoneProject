@@ -4,18 +4,42 @@ import { useState } from 'react';
 
 
 export type UpsertMenu = {
+    /**
+     * When users click the add menu item
+     */
     onClickAdd: () => void;
+    /**
+     * When users click the edit menu item
+     */
     onClickEdit: () => void;
+    /**
+     * When users click the delete menu item
+     */
     onClickDelete: () => void;
+    /**
+     * Whether the item needs an add menu item
+     */
     isNeedAdd: boolean;
 };
 
 export default function UpsertMenu({ onClickEdit, onClickDelete, isNeedAdd, onClickAdd }: UpsertMenu) {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    /**
+     * Whether the menu is open or not
+     */
     const open = Boolean(anchorEl);
+
+    /**
+     * Open the menu
+     * @param event 
+     */
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
     };
+
+    /**
+     * Close the menu
+     */
     const handleClose = () => {
         setAnchorEl(null);
     };

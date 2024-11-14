@@ -9,104 +9,116 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import { AnnotationType } from '../datatypes/ClassDetail';
+import { CoordinatesType } from '../datatypes/CoordinateType';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
-import { CoordinatesType } from '../datatypes/CoordinateType';
-import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import ModelContext from './ModelContext';
 
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
-type HotkeyHandler = (event: HotkeyEvent) => void;
-
 
 extend({ WireframeGeometry });
 
 type ModelDisplayProps = {
+  /**
+   * The file content of the current STL file 
+   */
   modelData: ArrayBuffer;
+  /**
+    * The data labels of the current file
+    */
   currProblem: ProblemType[];
+  /**
+    * Update the new problem array into the centralized file array
+    * @param updateProblems the updated problem array
+    */
   updateProblems: (updateProblems: ProblemType[]) => void;
+  /**
+    * The name of the current file displaying on UI
+    */
   currentFile: string | null;
+  /**
+    * Update the modelId and file name mapping array
+    * @param mapping the new array
+    */
   updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
+  /**
+    * Check if there are any classes that are currently allowed for annotating
+    * @returns whether there are classes having the flag isAnnotating set to true
+    */
   checkIfNowCanAnnotate: () => boolean;
+  /**
+   * Whether showingthe color selector
+   */
   isShowColorSpraySelector: boolean;
+  /**
+    * Check whether there are any data in local storage that are under the given key
+    * @param storageKey the key to be checked
+    * @returns whether there are no data under the key in local storage
+    */
+  checkIfLocalStorageIsEmpty: (storageKey: string) => boolean;
 };
 
-const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
+const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector, checkIfLocalStorageIsEmpty }) => {
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateSpray } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
   const [isSpray, setIsSpray] = useState(false);
   const raycasterRef = useRef(new THREE.Raycaster());
   const modelStore = useModelStore();
-  const { states, keypoints, setState, modelId, setModelId } = useModelStore();
-  const sprayRadius = 1;
-  const [problems, setProblems] = useState(currProblem);
-  const [path, setPath] = useState<THREE.Vector3[]>([]);
   const [redPoints, setRedPoints] = useState<THREE.Vector3[]>([]);
   const [paths, setPaths] = useState<THREE.Vector3[][]>([]);
   const redSphereRef = useRef<THREE.Group>(new THREE.Group());
-  const pathRef = useRef<THREE.Line>(null);
-  const [filledShape, setFilledShape] = useState<THREE.Mesh | null>(null);
   const [isPathClosed, setIsPathClosed] = useState(false);
   const [closedPath, setClosedPath] = useState<THREE.Vector3[][]>([]);
 
-  const getDistance = (positions: ArrayLike<number>, i: number, j: number) => {
-    const x1 = positions[i * 3], y1 = positions[i * 3 + 1], z1 = positions[i * 3 + 2];
-    const x2 = positions[j * 3], y2 = positions[j * 3 + 1], z2 = positions[j * 3 + 2];
-    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
-  };
-
+  //triggered when the value of modelData changes
   useEffect(() => {
     if (!meshRef.current || !wireframeRef.current) return;
 
-
-
+    //initialize new STL loader
     const loader = new STLLoader();
     let geometry: BufferGeometry = loader.parse(modelData);
 
+    //set file modelID according to the length of the model data
     const modelID = modelData.byteLength.toString();
+
     if (!geometry.index) {
       geometry = BufferGeometryUtils.mergeVertices(geometry); // Merge the vertex to optimize performance
       geometry.computeVertexNormals();
     }
 
     // Use the BVH to accelerate the geometry
-
     geometry.computeBoundsTree = computeBoundsTree;
     geometry.disposeBoundsTree = disposeBoundsTree;
     meshRef.current.raycast = acceleratedRaycast;
     geometry.computeBoundsTree();
 
-
     modelStore.setModelId(modelID);
 
     //mapping for modelId and fileName;
-    {
-      const modelIDFileNameMappingKey: string = "ModelIDFileNameMapping";
-      var mappingArr: ModelIDFileNameMap[] = [];
-      var mapping: ModelIDFileNameMap = { modelID: modelID, fileName: currentFile };
+    const ModelIDFileNameMappingKey: string = "ModelIDFileNameMapping";
+    var mappingArr: ModelIDFileNameMap[] = [];
+    var mapping: ModelIDFileNameMap = { modelID: modelID, fileName: currentFile };
 
+    //if there are data under the mapping key in local storage
+    if (!checkIfLocalStorageIsEmpty(ModelIDFileNameMappingKey))
+      mappingArr = JSON.parse(localStorage.getItem(ModelIDFileNameMappingKey));
 
-      if ((!_.isUndefined(localStorage.getItem(modelIDFileNameMappingKey)) && !_.isNull(localStorage.getItem(modelIDFileNameMappingKey))))
-        mappingArr = JSON.parse(localStorage.getItem(modelIDFileNameMappingKey));
+    //if the array does not have element related to the current file
+    if (_.findIndex(mappingArr, function (m) {
+      return _.eq(m.fileName, currentFile)
+    }) == -1)
+      mappingArr.push(mapping);
 
-      if (_.findIndex(mappingArr, function (m) {
-        return _.eq(m.fileName, currentFile)
-      }) == -1)
-        mappingArr.push(mapping);
+    localStorage.setItem(ModelIDFileNameMappingKey, JSON.stringify(mappingArr));
+    //update the mapping array
+    updateModelIDFileMapping(mappingArr);
 
-      localStorage.setItem(modelIDFileNameMappingKey, JSON.stringify(mappingArr));
-      updateModelIDFileMapping(mappingArr);
-    }
-
-
-    setModelId(modelID);
-
-    // add the color into geometry, each vertex use three data to record color
-
+    //initialize and display mesh and annotations according to local storage and files imported
     geometry = showAnnotationsInLoader(geometry);
     meshRef.current.geometry = geometry;
     meshRef.current.material = new MeshStandardMaterial({ vertexColors: true });
@@ -118,10 +130,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     fitModel();
   }, [modelData]);
 
+  //triggered when there are annotations changes in the 3D image
   useEffect(() => {
     meshRef.current.geometry = showAnnotationsInLoader(meshRef.current.geometry);
-  }, [keypoints, states]);
+  }, [modelStore.keypoints, modelStore.states]);
 
+  /**
+   * Initialize the mesh for 3D image and display the annotations
+   * @param geometry the mesh of the 3D image
+   * @returns the updated mesh
+   */
   const showAnnotationsInLoader = (geometry: BufferGeometry): BufferGeometry => {
     // Remove previous keypoint spheres
     while (meshRef.current.children.length > 0) {
@@ -132,13 +150,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const vertexCount = geometry.attributes.position.count;
     const colors = new Float32Array(vertexCount * 3).fill(1);
 
-
     //load the saved states of color
-    const { colors: savedColors } = modelStore.getCurrentState(modelId);
+    const { colors: savedColors } = modelStore.getCurrentState(modelStore.modelId);
 
+    //if the array of saved colored faces is not empty
     if (!_.isEmpty(savedColors) && savedColors) {
       Object.entries(savedColors).forEach(([index, colorState]) => {
         const color = new THREE.Color(colorState.color);
+        //color the face according to the saved information
         const i = Number(index);
         colors[i * 3] = color.r;
         colors[i * 3 + 1] = color.g;
@@ -146,7 +165,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       });
     }
 
-    const savedData = states[modelId] || {}; // Default to empty object if no saved data exists
+    const savedData = modelStore.states[modelStore.modelId] || {}; // Default to empty object if no saved data exists
 
     // Check if there are any spray annotations
     var hasSprayAnnotations = Object.keys(savedData).some(
@@ -156,7 +175,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     // If there are spray annotations, apply the colors to the vertices
     if (hasSprayAnnotations) {
       Object.keys(savedData).forEach((index) => {
-        const color = new THREE.Color(savedData[Number(index)]?.color || '#ffffff'); // Default to white if color is missing
+        // Default to white if color is missing
+        const color = new THREE.Color(savedData[Number(index)]?.color || '#ffffff');
         colors[Number(index) * 3] = color.r;
         colors[Number(index) * 3 + 1] = color.g;
         colors[Number(index) * 3 + 2] = color.b;
@@ -164,21 +184,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
 
     // Load keypoints and add spheres at the saved positions
-    const savedKeypoints = keypoints[modelId] || []; // Default to empty array if no keypoints exist
+    const savedKeypoints = modelStore.keypoints[modelStore.modelId] || []; // Default to empty array if no keypoints exist
 
     if (savedKeypoints.length > 0) {
       savedKeypoints.forEach(({ position, color }) => {
-        if (position && color) { // Ensure both position and color are valid
+        // Ensure both position and color are valid
+        if (position && color) {
           const keypointSphere = new THREE.Mesh(
             new THREE.SphereGeometry(0.05, 16, 16),
             new THREE.MeshBasicMaterial({ color })
           );
           keypointSphere.position.set(position.x, position.y, position.z);
+          //add the sphere to the mesh
           meshRef.current.add(keypointSphere);
         }
       });
     }
 
+    //if there are linked annotations in the currProblem
     if (_.findIndex(currProblem, function (p) {
       return _.findIndex(p.classes, function (c) {
         return c.coordinates.length > 0
@@ -186,12 +209,15 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }) != -1) {
       currProblem.forEach(p => {
         p.classes.forEach(c => {
+          //if there are annotations linked to the class
           if (c.coordinates.length > 0) {
             switch (c.annotationType) {
               case AnnotationType.SPRAY:
+                //set the color according to the color of the linked annotations, else set it to white
                 const color = new THREE.Color(c.color || '#ffffff');
 
                 c.coordinates.forEach(_c => {
+                  //color the face according to the color information
                   colors[Number(_c) * 3] = color.r;
                   colors[Number(_c) * 3 + 1] = color.g;
                   colors[Number(_c) * 3 + 2] = color.b;
@@ -199,60 +225,77 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
                 hasSprayAnnotations = true;
                 break;
               case AnnotationType.KEYPOINT:
+                //initialize the sphere for keypoints
                 const keypointSphere = new THREE.Mesh(
                   new THREE.SphereGeometry(0.07, 16, 16),
                   new THREE.MeshBasicMaterial({ color: c.color })
                 );
 
+                //loop the coordinates array three by three
                 for (var i = 0; i < c.coordinates.length; i += 3) {
+                  //set the point point using (x, y, z) coordinates
                   keypointSphere.position.set(c.coordinates[i], c.coordinates[i + 1], c.coordinates[i + 2]);
+                  //add the sphere to the mesh
                   meshRef.current.add(keypointSphere);
                 }
                 break;
               case AnnotationType.PATH:
+                //one label can only have a path annotation
                 var _path: PathAnnotation = c.coordinates[0];
 
+                //if there are colored faces in the path annotaion
                 if (!_.isEmpty(_path.faces)) {
                   _path.faces.forEach(f => {
+                    //set the color according to the element
                     const _color = new THREE.Color(f.color || '#ffffff');
 
+                    //color the face
                     colors[Number(f.vertex) * 3] = _color.r;
                     colors[Number(f.vertex) * 3 + 1] = _color.g;
                     colors[Number(f.vertex) * 3 + 2] = _color.b;
                   });
                 }
 
+                //if there are more than three points for the path and the edge array is not null
                 if (_path.point.length >= 3 && !_.isEmpty(_path.edge)) {
                   var _pathVertex: THREE.Vector3[] = [];
 
+                  //create the path for the annotation
                   _path.edge.forEach(p => {
                     _pathVertex.push(new THREE.Vector3(p.x as number, p.y as number, p.z as number));
                   });
+
                   _pathVertex.push(new THREE.Vector3(_path.edge[0].x as number, _path.edge[0].y as number, _path.edge[0].z as number));
 
                   const pathGeometry = new BufferGeometry();
+                  //create the line according to the path coordinates
                   pathGeometry.setFromPoints(_pathVertex);
+                  //create a blue line
                   const pathMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, transparent: false, linewidth: 3 });
 
+                  //create the line according to the created position and the color
                   const pathLine = new THREE.Line(pathGeometry, pathMaterial);
+                  //add the line to the current mesh
                   meshRef.current.add(pathLine);
                 } else {
                   console.warn(`Not enough points to create a closed path for class: ${c.name}`);
                 }
 
+                //if the point array is not empty
                 if (!_.isEmpty(_path.point)) {
                   _path.point.forEach(p => {
+                    //initialize the point sphere
                     var _sphere = new THREE.Mesh(
                       new THREE.SphereGeometry(0.07, 16, 16),
                       new THREE.MeshBasicMaterial({ color: p.color })
                     );
 
+                    //set the point position using the (x, y, z) coordinates
                     _sphere.position.set((Number)(p.coordinates.x), (Number)(p.coordinates.y), (Number)(p.coordinates.z));
+                    //add the sphere to the mesh
                     meshRef.current.add(_sphere);
                   })
                 }
-
-
                 break;
               default:
                 break;
@@ -262,16 +305,25 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       })
     }
 
+    // add the color into geometry, each vertex use three data to record color
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     return geometry;
   }
 
+  /**
+   * Color the given face when the spray tool is selected
+   * 
+   * Triggered when the values of color, camera or modelStore changes
+   */
   const spray = useCallback((position: THREE.Vector2) => {
-    if (checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
+    //if no class are being selected now
+    if (!checkIfNowCanAnnotate() && (!meshRef.current || !meshRef.current.geometry.boundsTree)) return;
+
     const raycaster = raycasterRef.current;
     const geometry = meshRef.current.geometry as BufferGeometry;
     const colorAttributes = geometry.attributes.color as THREE.BufferAttribute;
+
     const newColor = new THREE.Color(color);
     raycaster.setFromCamera(position, camera);
 
@@ -281,10 +333,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       intersects.forEach((intersect: THREE.Intersection) => {
         if (intersect.face) {
           const faceIndices = [intersect.face.a, intersect.face.b, intersect.face.c];
+
           faceIndices.forEach(index => {
             colorAttributes.setXYZ(index, newColor.r, newColor.g, newColor.b);
+
             modelStore.addPaintChange(modelStore.modelId, index, color);
-            setState(modelId, index, color);
+            modelStore.setState(modelStore.modelId, index, color);
+
+            //link the colored face to the currently selected class
             linkAnnotationToClass(index, color, CoordinatesType.FACE);
           });
           colorAttributes.needsUpdate = true;
@@ -293,16 +349,27 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
   }, [color, camera, modelStore]);
 
+  /**
+   * When users selected the spray tool and clicked the mouse
+   */
   const handleMouseDown = useCallback((event: ThreeEvent<PointerEvent>) => {
     if (tool != 'spray') return;
+
     event.stopPropagation();
+
     setIsSpray(true);
+
+    //start recording for hotkey
     modelStore.startPaintAction(modelStore.modelId, 'spray');
   }, [tool, modelStore, gl, spray]);
 
+  /**
+   * When users move their mouse with pressing the mouse key and selected spray as the annotation tool
+   */
   const handleMouseMove = useCallback((event: ThreeEvent<PointerEvent>) => {
     //only spray when tool is spray and click the mouse
     if (!isSpray || tool !== 'spray') return;
+
     event.stopPropagation();
 
     // Get the width and height from the canvas
@@ -316,24 +383,28 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     spray(point);
   }, [isSpray, gl, spray, tool]);
 
+  /**
+   * When users release the mouse key and selected spray as the annotation tool
+   */
   const handleMouseUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     setIsSpray(false);
+
     if (tool === 'spray') {
+      //end recording for the hotkey
       modelStore.endPaintAction(modelStore.modelId);
     }
-    // setClassToNotAnnotating();
   }, [tool, modelStore]);
-
 
   //Starting KeyPoint Marking function.
   const KPsphereGeometry = new THREE.SphereGeometry(0.07, 16, 16); // Small sphere
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
 
-
   useEffect(() => {
-
+    /**
+     * When users clicked on the image with keypoint selected as the annotation tool
+     * @param event MouseEvent
+     */
     const handlePointerClick = (event: MouseEvent) => {
-
       if (!meshRef.current || tool !== 'keypoint') return;
 
       const rect = gl.domElement.getBoundingClientRect();
@@ -362,18 +433,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         preciseSphere.position.copy(localPoint); // Apply precise local point
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
-
-        // Debugging log to show precise coordinates
-        console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
-
         modelStore.setKeypoint(modelStore.modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, color);
+        //start recording for the hotkey
         modelStore.startPaintAction(modelStore.modelId, 'point');
         modelStore.addPaintChange(modelStore.modelId, -1, color); // Use -1 as a special index for keypoints
+        //end recording for the hotkey
         modelStore.endPaintAction(modelStore.modelId);
+
+        //link the point annotation to the current selected class
         linkAnnotationToClass(localPoint, color, CoordinatesType.POINT);
       }
     };
 
+    //if users selected keypoint as the annotation tool and has a class selected and finish selecting a color for the sphere
     if (tool === 'keypoint' && checkIfNowCanAnnotate() && !isShowColorSpraySelector) {
       window.addEventListener('click', handlePointerClick);
     }
@@ -385,10 +457,12 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
 
   //Starting coding for Shortest Path  
-
-  //// Add new functions to handle points of path tool 添加新的函数来处理路径工具的点
+  // Add new functions to handle points of path tool
+  /**
+   * Triggered when users select path as the annotation tool and create points on the image (i.e. clicked on the image)
+   */
   const handlePathToolClick = useCallback((event: MouseEvent, faceColor: string) => {
-    if (!meshRef.current || tool !== 'path') return;
+    if (!checkIfNowCanAnnotate() && (!meshRef.current || tool !== 'path')) return;
 
     const rect = gl.domElement.getBoundingClientRect();
     const mousePosition = new THREE.Vector2(
@@ -407,6 +481,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       localPoint.applyMatrix4(inverseMatrix);
 
       const graph = buildGraph(meshRef.current.geometry);
+      //find the nearest vertex of the clicked point
       const nearestVertex = findNearestVertex(localPoint, graph);
       const nearestPoint = new THREE.Vector3(
         meshRef.current.geometry.attributes.position.getX(nearestVertex),
@@ -414,8 +489,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         meshRef.current.geometry.attributes.position.getZ(nearestVertex)
       );
 
+      //set the sphere color to read
       const SPHERE_COLOR: string = '#FF0000';
-      // Create a red sphere and add it to the scene 创建红色球体并添加到场景
+      // Create a red sphere and add it to the scene 
       const redSphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 16, 16),
         new THREE.MeshBasicMaterial({ color: SPHERE_COLOR })
@@ -423,13 +499,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       redSphere.position.copy(nearestPoint);
       redSphereRef.current.add(redSphere);
 
+      //link the clicked point to the current selected class
       linkAnnotationToClass(nearestPoint, SPHERE_COLOR, CoordinatesType.POINT);
+
       setRedPoints(prevPoints => {
         const newPoints = [...prevPoints, nearestPoint];
-        console.log('Red points:', newPoints);
 
+        //users have created two or mote points on the mesh
         if (newPoints.length >= 2) {
           const lastIndex = newPoints.length - 1;
+          //find the shortest path between the latest two points
           const path = findShortestPath(newPoints[lastIndex - 1], newPoints[lastIndex], meshRef.current!.geometry);
           console.log('New path:', path);
           if (path.length >= 2) {
@@ -437,19 +516,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
               const newPaths = [...prevPaths, path];
               console.log('All paths:', newPaths);
 
-              // Check if the shape is closed 检查图形是否封闭
+              // Check if the shape is closed 
               const closed = isShapeClosed(newPaths);
-              setIsPathClosed(closed);  // Update closed state 更新闭合状态
+              setIsPathClosed(closed);  // Update closed state
 
-
+              //if the shape is closed
               if (closed) {
                 console.log('Shape is closed, creating filled shape');
                 const fillingSuccess = createFilledShape(newPaths, faceColor);
                 if (fillingSuccess) {
-                  // Save closed paths 保存闭合的路径
+                  // Save closed paths 
                   setClosedPath(newPaths);
 
-                  // Clear the current path and red dot 清除当前路径和红点
+                  // Clear the current path and red dot
                   setTimeout(() => {
                     setRedPoints([]);
                     setPaths([]);
@@ -471,11 +550,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
   }, [tool, camera, gl, meshRef]);
 
-  // Modify the findShortestPath function 修改 findShortestPath 函数
+  // Modify the findShortestPath variable
+  /**
+   * Find the shortest path between two points
+   * @param start the point to start
+   * @param end the point to end
+   * @param geometry the current mesh
+   * @returns the path coordinates of the path between two points
+   */
   const findShortestPath = (start: THREE.Vector3, end: THREE.Vector3, geometry: THREE.BufferGeometry) => {
     console.log('Finding path from', start, 'to', end);
     const graph = buildGraph(geometry);
     console.log('Graph built, size:', graph.size);
+
     const startVertex = findNearestVertex(start, graph);
     const endVertex = findNearestVertex(end, graph);
     console.log('Start vertex:', startVertex, 'End vertex:', endVertex);
@@ -494,48 +581,66 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     if (validPath.length < 2) {
       console.warn('No valid path found, attempting direct connection');
+
       const directPath = attemptDirectConnection(start, end, geometry);
       if (directPath.length >= 2) {
         console.log('Direct connection successful:', directPath);
         return directPath;
       }
+
       console.warn('Direct connection failed, returning straight line');
+
       return [start, end];
     }
 
     return validPath;
   };
+
   // Modify the aStar function 修改 aStar 函数
+  /**
+   * Execute A* algorithm for finding the shortest path
+   * @param graph the mapping for the mesh vertex
+   * @param start the starting point for the path
+   * @param goal the end point of the path
+   * @returns the coordinates of the path
+   */
   const aStar = (graph: Map<number, Set<number>>, start: number, goal: number) => {
     const openSet = new PriorityQueue<number>((a, b) => a[1] < b[1]);
     openSet.enqueue([start, 0]);
 
-    const cameFrom: Map<number, number> = new Map();
-    const gScore: Map<number, number> = new Map();
+    // Maps to store the path and cost information
+    const cameFrom: Map<number, number> = new Map(); // Tracks the optimal path
+    const gScore: Map<number, number> = new Map(); // Cost from start to a given node
     gScore.set(start, 0);
 
-    const fScore: Map<number, number> = new Map();
+    const fScore: Map<number, number> = new Map(); // Estimated cost from start to goal through a given node
     fScore.set(start, heuristic(start, goal));
 
+    // Set a maximum number of iterations to prevent infinite loops
     const maxIterations = 10000;
     let iterations = 0;
 
+    // Main loop of the A* algorithm
     while (!openSet.isEmpty() && iterations < maxIterations) {
       iterations++;
-      const current = openSet.dequeue()![0];
+      const current = openSet.dequeue()![0]; // Get the node with the lowest cost
 
+      // If the goal is reached, reconstruct the path
       if (current === goal) {
         return reconstructPath(cameFrom, current);
       }
 
+      // Explore the neighbors of the current node
       for (const neighbor of graph.get(current) || []) {
-        const tentativeGScore = gScore.get(current)! + 1; // 使用固定重1
+        const tentativeGScore = gScore.get(current)! + 1; // Assume uniform cost for simplicity
 
+        // If this path to the neighbor is better, record it
         if (!gScore.has(neighbor) || tentativeGScore < gScore.get(neighbor)!) {
-          cameFrom.set(neighbor, current);
-          gScore.set(neighbor, tentativeGScore);
-          fScore.set(neighbor, gScore.get(neighbor)! + heuristic(neighbor, goal));
+          cameFrom.set(neighbor, current); // Update path to neighbor
+          gScore.set(neighbor, tentativeGScore); // Update cost to neighbor
+          fScore.set(neighbor, gScore.get(neighbor)! + heuristic(neighbor, goal)); // Update estimated cost to goal
 
+          // Add the neighbor to the open set if it's not already there
           if (!openSet.includes([neighbor, fScore.get(neighbor)!])) {
             openSet.enqueue([neighbor, fScore.get(neighbor)!]);
           }
@@ -546,7 +651,13 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     console.warn('A* algorithm reached maximum iterations without finding a path');
     return [];
   };
-  // Modify the buildGraph function to ensure graph connectivity 修改 buildGraph 函数以确保图的连通性
+
+  // Modify the buildGraph function to ensure graph connectivity
+  /**
+   * Build the graph according to the current mesh
+   * @param geometry the current mesh
+   * @returns the created graph
+   */
   const buildGraph = (geometry: THREE.BufferGeometry) => {
     const graph: Map<number, Set<number>> = new Map();
     const positions = geometry.attributes.position.array;
@@ -576,14 +687,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     return graph;
   };
-  // 添加边
-  const addEdge = (graph: Map<number, Set<number>>, from: number, to: number) => {
-    if (!graph.has(from)) graph.set(from, new Set());
-    if (!graph.has(to)) graph.set(to, new Set());
-    graph.get(from)!.add(to);
-    graph.get(to)!.add(from);
-  };
+  
   // 找到最近的顶点
+  /**
+   * Find the nearest vertex of the given point in the mesh
+   * @param point the point for finding the nearest vertex
+   * @param graph the graph created according to mesh
+   * @returns the nearest vertex of the given point
+   */
   const findNearestVertex = (point: THREE.Vector3, graph: Map<number, Set<number>>) => {
     let nearestVertex = -1;
     let minDistance = Infinity;
@@ -594,7 +705,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         meshRef.current!.geometry.attributes.position.getY(vertex),
         meshRef.current!.geometry.attributes.position.getZ(vertex)
       );
+
       const distance = point.distanceTo(vertexPosition);
+
       if (distance < minDistance) {
         minDistance = distance;
         nearestVertex = vertex;
@@ -603,21 +716,37 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     return nearestVertex;
   };
+  
   // 启发式函
+  /**
+   * Calculate the distance between two points
+   * @param a start point
+   * @param b end point 
+   * @returns the distance between two points
+   */
   const heuristic = (a: number, b: number) => {
     const posA = new THREE.Vector3(
       meshRef.current!.geometry.attributes.position.getX(a),
       meshRef.current!.geometry.attributes.position.getY(a),
       meshRef.current!.geometry.attributes.position.getZ(a)
     );
+
     const posB = new THREE.Vector3(
       meshRef.current!.geometry.attributes.position.getX(b),
       meshRef.current!.geometry.attributes.position.getY(b),
       meshRef.current!.geometry.attributes.position.getZ(b)
     );
-    return Math.round(posA.distanceTo(posB) * 100) / 100; // 保持与边权重相同的精度
+
+    //round the result with the same decimal points as the edge
+    return Math.round(posA.distanceTo(posB) * 100) / 100; 
   };
   // Reconstruction Path 重建路径
+  /**
+   * Reconstructing path 
+   * @param cameFrom 
+   * @param current 
+   * @returns 
+   */
   const reconstructPath = (cameFrom: Map<number, number>, current: number) => {
     const totalPath = [current];
     while (cameFrom.has(current)) {
@@ -871,9 +1000,9 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       linkAnnotationToClass(ib, fillColor.getHexString(), CoordinatesType.FACE);
       linkAnnotationToClass(ic, fillColor.getHexString(), CoordinatesType.FACE);
 
-      setState(modelId, ia, "#".concat(fillColor.getHexString()));
-      setState(modelId, ib, "#".concat(fillColor.getHexString()));
-      setState(modelId, ib, "#".concat(fillColor.getHexString()));
+      modelStore.setState(modelStore.modelId, ia, "#".concat(fillColor.getHexString()));
+      modelStore.setState(modelStore.modelId, ib, "#".concat(fillColor.getHexString()));
+      modelStore.setState(modelStore.modelId, ib, "#".concat(fillColor.getHexString()));
     });
 
     colors.needsUpdate = true;
@@ -1198,11 +1327,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       }
 
       // 工具切换热键处理
-      if (keyString === hotkeys.brush) {
-        activateBrush();
-        return;
-      }
-
       if (keyString === hotkeys.spray) {
         activateSpray();
         setSpray('#ffffff'); // 设置默认颜色
@@ -1255,7 +1379,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     rotateVertical,
     modelStore,
     switchToNextClass,
-    activateBrush,
     activateSpray,
     setSpray,
     setTool,
@@ -1452,14 +1575,44 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 };
 
 const ModelDisplay: React.FC<{
-  modelData: ArrayBuffer,
-  currProblem: ProblemType[],
+  /**
+   * The file content of the current STL file 
+   */
+  modelData: ArrayBuffer;
+  /**
+    * The data labels of the current file
+    */
+  currProblem: ProblemType[];
+  /**
+    * Update the new problem array into the centralized file array
+    * @param updateProblems the updated problem array
+    */
   updateProblems: (updateProblems: ProblemType[]) => void;
+  /**
+    * The name of the current file displaying on UI
+    */
   currentFile: string | null;
+  /**
+    * Update the modelId and file name mapping array
+    * @param mapping the new array
+    */
   updateModelIDFileMapping: (mapping: ModelIDFileNameMap[]) => void;
+  /**
+    * Check if there are any classes that are currently allowed for annotating
+    * @returns whether there are classes having the flag isAnnotating set to true
+    */
   checkIfNowCanAnnotate: () => boolean;
+  /**
+   * Whether showingthe color selector
+   */
   isShowColorSpraySelector: boolean;
-}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
+  /**
+    * Check whether there are any data in local storage that are under the given key
+    * @param storageKey the key to be checked
+    * @returns whether there are no data under the key in local storage
+    */
+  checkIfLocalStorageIsEmpty: (storageKey: string) => boolean;
+}> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector, checkIfLocalStorageIsEmpty }) => {
   return (
     <Canvas style={{ background: 'black' }}>
       <ModelContent
@@ -1470,6 +1623,7 @@ const ModelDisplay: React.FC<{
         updateModelIDFileMapping={updateModelIDFileMapping}
         checkIfNowCanAnnotate={checkIfNowCanAnnotate}
         isShowColorSpraySelector={isShowColorSpraySelector}
+        checkIfLocalStorageIsEmpty={checkIfLocalStorageIsEmpty}
       />
     </Canvas>
   );
