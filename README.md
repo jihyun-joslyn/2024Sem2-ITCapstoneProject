@@ -36,21 +36,43 @@ This project is a desktop 3D model annotation tool built with Electron and Three
 ---
 
 ## Installation and Usage
-
-### Prerequisites
-- Node.js and npm installed on your system.
-
-### Steps
-1. Clone the repository:
-   git clone https://github.com/yourusername/yourprojectname.git
-2. Navigate to the project directory:
-   cd yourprojectname
-3. Install dependencies:
-   npm install
-4. Start the application:
-   npm start
+Provide steps to install the project and start using it:
+1. **Clone the repository**: `git clone https://github.com/yourusername/yourprojectname.git`
+2. **Install dependencies**: `npm install`
+3. **Start the application**: `npm start`
 
 ---
+
+## Feature Demonstration
+Include screenshots or GIFs demonstrating key features like loading models, annotation, and saving, so users can intuitively understand the project.
+
+---
+
+## Developer Guide
+Provide common commands and explanations to help other developers get started with the project:
+- **Development mode**: `npm run dev`
+- **Build the application**: `npm run build`
+- **Testing**: `npm test`
+
+---
+
+## Contributing
+Briefly describe how to contribute, including your branch management strategy and code style requirements.
+
+---
+
+## License
+Specify the project's license, for example:
+> This project is licensed under the MIT License. See the LICENSE file for more details.
+
+---
+
+## Contact
+Provide contact information for further support:
+- **Email**: your.email@example.com
+- **GitHub Issues**: Submit issues or suggestions
+
+   
 
 
 
