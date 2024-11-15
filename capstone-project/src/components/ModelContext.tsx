@@ -3,11 +3,11 @@ import React, { ReactNode, createContext, useContext, useRef, useState } from 'r
 import * as THREE from 'three';
 
 interface ModelType {
-    tool : string;
-    color : string;
+    tool: string;
+    color: string;
     hotkeys: Hotkeys;
-    setTool : (tool : string) => void;
-    setSpray : (color : string) => void;
+    setTool: (tool: string) => void;
+    setSpray: (color: string) => void;
     setHotkeys: React.Dispatch<React.SetStateAction<Hotkeys>>;
     orbitControlsRef: React.MutableRefObject<any>;
     controlsRef: React.RefObject<any>;
@@ -16,10 +16,11 @@ interface ModelType {
     currentTool: string;
     setCurrentTool: (tool: string) => void;
     activateSpray: () => void;
-    pathPoints : THREE.Vector3[];//for shortest path
-    setPathPoints : React.Dispatch<React.SetStateAction<THREE.Vector3[]>>;//for shortest path
+    pathPoints: THREE.Vector3[];//for shortest path
+    setPathPoints: React.Dispatch<React.SetStateAction<THREE.Vector3[]>>;//for shortest path
     hotkeysEnabled: boolean;
     setHotkeysEnabled: (enabled: boolean) => void;
+    activateArrow: () => void;
 }
 
 /**
@@ -40,13 +41,13 @@ export type Hotkeys = {
 };
 
 interface ModelProvider {
-    children:ReactNode;
+    children: ReactNode;
 }
 
 const ModelContext = createContext<ModelType | undefined>(undefined);
 
 export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children }) => {
-    const [tool,setTool] = useState<string>('none');
+    const [tool, setTool] = useState<string>('none');
     const [color, setSpray] = useState<string>('#ffffff');
     const [pathPoints, setPathPoints] = useState<THREE.Vector3[]>([]);//shortest path 
     const [hotkeysEnabled, setHotkeysEnabled] = useState<boolean>(true);
@@ -69,6 +70,15 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     const [currentTool, setCurrentTool] = useState<string>('none');
 
     /**
+     * Set the current tool to arrow tool
+     */
+    const activateArrow = () => {
+        setCurrentTool('arrow');
+        setTool('arrow');
+
+    }
+
+    /**
      * Set the current tool to spray tool
      */
     const activateSpray = () => {
@@ -77,7 +87,7 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
     };
 
     return (
-        <ModelContext.Provider value ={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef,setPathPoints, hotkeys, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateSpray, hotkeysEnabled,setHotkeysEnabled,}}>
+        <ModelContext.Provider value={{ tool, color, setTool, setSpray, pathPoints, orbitControlsRef, setPathPoints, hotkeys, activateArrow, setHotkeys, controlsRef, setSize, size, currentTool, setCurrentTool, activateSpray, hotkeysEnabled, setHotkeysEnabled, }}>
             {children}
         </ModelContext.Provider>
     );
@@ -85,8 +95,8 @@ export const ModelProvider: React.FunctionComponent<ModelProvider> = ({ children
 
 export function useModelContext() {
     const context = useContext(ModelContext);
-    if (context == undefined){
-        throw new Error ('Error on Model Context');
+    if (context == undefined) {
+        throw new Error('Error on Model Context');
     }
     return context;
 }

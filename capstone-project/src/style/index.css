@@ -248,3 +248,34 @@ body {
   text-transform: none !important;
   font-size: 1rem;
 }
+
+.sticker {
+  background-color: white;
+  /* White background */
+  background-size: 50% 50%;
+  /* Adaptive background size, scales with the size of the container */
+  padding: 20px;
+  /* Padding around the text */
+  border-radius: 10px;
+  /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  /* Optional shadow for depth */
+  color: black;
+  /* Black text color */
+  font-weight: bold;
+  /* Make the text bold */
+  font-size: 14px;
+  /* Adjust font size */
+  position: absolute;
+  /* Absolute positioning */
+  top: 10px;
+  /* Top distance from the parent */
+  left: 10px;
+  /* Left distance from the parent */
+  display: flex;
+  /* Use flexbox to center content */
+  justify-content: center;
+  /* Center the text horizontally */
+  align-items: center;
+  /* Center the text vertically */
+}
