@@ -14,9 +14,8 @@ import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
 import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
-import ModelContext from './ModelContext';
 import DisplayClass from './DisplayClass';
-
+import ModelContext from './ModelContext';
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
 
@@ -63,7 +62,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector, checkIfLocalStorageIsEmpty }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateArrow, activateSpray } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateArrow, activateSpray, activateKeypoint, activatePath, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -641,7 +640,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     const path = aStar(graph, startVertex, endVertex);
 
-   // console.log('Raw path:', path);
+    // console.log('Raw path:', path);
 
     const validPath = path.map(vertexIndex => new THREE.Vector3(
       geometry.attributes.position.getX(vertexIndex),
@@ -649,7 +648,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       geometry.attributes.position.getZ(vertexIndex)
     ));
 
-   // console.log('Valid path:', validPath);
+    // console.log('Valid path:', validPath);
 
     if (validPath.length < 2) {
       console.warn('No valid path found, attempting direct connection');
@@ -1007,7 +1006,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.EDGE);
     });
 
-
     // First find all the bounding triangles 首先找到所有边界三角形
     paths.forEach(path => {
       for (let i = 0; i < path.length - 1; i++) {
@@ -1173,8 +1171,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   };
 
   //End Shortest Path function
-
-
 
   const isKeyboardEvent = (event: HotkeyEvent): event is KeyboardEvent => {
     return 'key' in event;
@@ -1401,6 +1397,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         return;
       }
 
+      if (keyString === hotkeys.keypoint) {
+        activateKeypoint();
+        return;
+      }
+
+      if (keyString === hotkeys.path) {
+        activatePath();
+        return;
+      }
+
       // Other hotkey handling 其他热键处理
       switch (keyString) {
         case hotkeys.zoomIn:
@@ -1448,6 +1454,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     modelStore,
     switchToNextClass,
     activateSpray,
+    activateKeypoint,
+    activatePath,
     setSpray,
     setTool,
     updateMeshColors
@@ -1554,19 +1562,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     updateProblems(_currProblem);
   }
 
-  const setClassToNotAnnotating = () => {
-    var _currProblem = currProblem;
-
-    _currProblem.forEach(p => {
-      p.classes.forEach(c => {
-        c.isAnnotating = c.isAnnotating ? false : c.isAnnotating;
-      })
-    });
-
-    updateProblems(_currProblem);
-  }
-
-
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -1585,7 +1580,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       />
       <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
 
-
       {/* Render red dots- related to Shortest Path function 渲红点 */}
       <primitive object={redSphereRef.current} />
 
@@ -1602,11 +1596,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         );
       })}
 
-
-      {/* Rendering filled shapes 渲染填充形状 */}
-      {/* {filledShape && <primitive object={filledShape} />} */}
-
-      {/* 渲染当前路径（黄色） */}
+      {/* Color the current path (Yellow) 渲染当前路径（黄色） */}
       {paths.map((path, index) => (
         path && Array.isArray(path) && path.length >= 2 && (
           <Line
@@ -1632,7 +1622,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       ))}
 
       {/* Render DisplayClass if clickedPointRef is set and tool is 'arrow', then reset clickedPointRef */}
-
       {tool === 'arrow' && clickedPoint && (
         <Html>
           <DisplayClass clickedPoint={clickedPoint} modelName={currentFile} vertexID={vertexId} />

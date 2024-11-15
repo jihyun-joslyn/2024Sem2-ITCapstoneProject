@@ -1,8 +1,5 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-
-
-
+import { persist } from 'zustand/middleware';
 
 /**
  * This tsx is in charge of saving locally spray and keypoint annotatio in order to use the functions undo-redo of hotkey
@@ -51,7 +48,6 @@ interface ModelColorState {
   redo: (modelId: string) => void;
   getCurrentState: (modelId: string) => { colors: { [vertexIndex: number]: ColorState }, keypoints: KeypointState[] };
 }
-
 
 const useModelStore = create<ModelColorState>()(
  // devtools(
@@ -212,7 +208,6 @@ const useModelStore = create<ModelColorState>()(
         name: 'model-colors-storage',
       }
     )
-  //)
 );
 
 export default useModelStore;
