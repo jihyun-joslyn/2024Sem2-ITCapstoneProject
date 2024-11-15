@@ -7,7 +7,6 @@
 - [Installation and Usage](#installation-and-usage)
 - [Demo](#demo)
 - [Developer Guide](#developer-guide)
-- [Contribution](#contribution)
 - [License](#license)
 - [Contact Us](#contact-us)
 
@@ -44,7 +43,7 @@ Provide steps to install the project and start using it:
 ---
 
 ## Feature Demonstration
-Include screenshots or GIFs demonstrating key features like loading models, annotation, and saving, so users can intuitively understand the project.
+![image](https://github.com/user-attachments/assets/ab8795c9-6d1c-4709-ac95-1be31d25e4a6)
 
 ---
 
@@ -53,12 +52,7 @@ Provide common commands and explanations to help other developers get started wi
 - **Development mode**: `npm run dev`
 - **Build the application**: `npm run build`
 - **Testing**: `npm test`
-
----
-
-## Contributing
-Briefly describe how to contribute, including your branch management strategy and code style requirements.
-
+- 
 ---
 
 ## License
