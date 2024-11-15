@@ -313,13 +313,15 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return geometry;
   }
 
-  //Call Display Class
+  /* Call Display Class to show a label in case where the mouse clicked is part of an annotated area
+   
+  */
 
-  const [clickedPoint, setClickedPoint] = useState(null);
+  const [clickedPoint, setClickedPoint] = useState(null); // variable to save the click coordinates to pass to DisplayClass.tsx
 
-  const [vertexId, setVertexId] = useState<number | null>(null);
+  const [vertexId, setVertexId] = useState<number | null>(null); //variable to get the vertexID of the clicked point to pass to DisplayClass.tsx
 
-
+  //button of the Sidebar to activate the Display Class function.
   const handleArrowClick = (event: MouseEvent) => {
     if (!meshRef.current || tool !== 'arrow') return;
     const rect = gl.domElement.getBoundingClientRect();
@@ -342,11 +344,10 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       const vertexId = findClosestVertexId(localPoint, meshRef.current);
       setVertexId(vertexId);  // Set the vertexId in the state
 
-      //console.log("Clicked on mesh at:", localPoint);
       setClickedPoint({ x: localPoint.x, y: localPoint.y, z: localPoint.z });  // Update state
     }
   };
-
+  //function used to get the VertexID of clicked point (in the future it could be fusioned with the one used by Shortest path function)
   const findClosestVertexId = (point: THREE.Vector3, mesh: THREE.Mesh): number => {
     const geometry = mesh.geometry;
     const positions = geometry.attributes.position.array; // This is a flat array of vertex positions (x, y, z)
@@ -370,7 +371,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return closestVertexId;
   };
 
-  // Attach handleArrowClick only when tool is 'arrow'
+  // Attach handleArrowClick only when tool is 'arrow' (Display Class function)
   useEffect(() => {
     if (tool === 'arrow') {
       window.addEventListener('click', handleArrowClick);
@@ -504,9 +505,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         meshRef.current.add(preciseSphere); // Add sphere to the mesh in local space
 
 
-        // Debugging log to show precise coordinates
-        //console.log(`Clicked point (local):\nX: ${localPoint.x.toFixed(2)}\nY: ${localPoint.y.toFixed(2)}\nZ: ${localPoint.z.toFixed(2)}`);
-
         modelStore.setKeypoint(modelStore.modelId, { x: localPoint.x, y: localPoint.y, z: localPoint.z }, color);
         //start recording for the hotkey
         modelStore.startPaintAction(modelStore.modelId, 'point');
@@ -584,11 +582,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           const lastIndex = newPoints.length - 1;
           //find the shortest path between the latest two points
           const path = findShortestPath(newPoints[lastIndex - 1], newPoints[lastIndex], meshRef.current!.geometry);
-          console.log('New path:', path);
+          //console.log('New path:', path);
           if (path.length >= 2) {
             setPaths(prevPaths => {
               const newPaths = [...prevPaths, path];
-              console.log('All paths:', newPaths);
+              //console.log('All paths:', newPaths);
 
               // Check if the shape is closed 
               const closed = isShapeClosed(newPaths);
@@ -596,7 +594,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
               //if the shape is closed
               if (closed) {
-                console.log('Shape is closed, creating filled shape');
+                //console.log('Shape is closed, creating filled shape');
                 const fillingSuccess = createFilledShape(newPaths, faceColor);
                 if (fillingSuccess) {
                   // Save closed paths 
@@ -620,7 +618,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         return newPoints;
       });
 
-      console.log(`Clicked point (nearest vertex):\nX: ${nearestPoint.x.toFixed(2)}\nY: ${nearestPoint.y.toFixed(2)}\nZ: ${nearestPoint.z.toFixed(2)}`);
+      //console.log(`Clicked point (nearest vertex):\nX: ${nearestPoint.x.toFixed(2)}\nY: ${nearestPoint.y.toFixed(2)}\nZ: ${nearestPoint.z.toFixed(2)}`);
     }
   }, [tool, camera, gl, meshRef]);
 
@@ -633,17 +631,17 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
    * @returns the path coordinates of the path between two points
    */
   const findShortestPath = (start: THREE.Vector3, end: THREE.Vector3, geometry: THREE.BufferGeometry) => {
-    console.log('Finding path from', start, 'to', end);
+    //console.log('Finding path from', start, 'to', end);
     const graph = buildGraph(geometry);
-    console.log('Graph built, size:', graph.size);
+    //console.log('Graph built, size:', graph.size);
 
     const startVertex = findNearestVertex(start, graph);
     const endVertex = findNearestVertex(end, graph);
-    console.log('Start vertex:', startVertex, 'End vertex:', endVertex);
+    //console.log('Start vertex:', startVertex, 'End vertex:', endVertex);
 
     const path = aStar(graph, startVertex, endVertex);
 
-    console.log('Raw path:', path);
+   // console.log('Raw path:', path);
 
     const validPath = path.map(vertexIndex => new THREE.Vector3(
       geometry.attributes.position.getX(vertexIndex),
@@ -651,14 +649,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       geometry.attributes.position.getZ(vertexIndex)
     ));
 
-    console.log('Valid path:', validPath);
+   // console.log('Valid path:', validPath);
 
     if (validPath.length < 2) {
       console.warn('No valid path found, attempting direct connection');
 
       const directPath = attemptDirectConnection(start, end, geometry);
       if (directPath.length >= 2) {
-        console.log('Direct connection successful:', directPath);
+        //console.log('Direct connection successful:', directPath);
         return directPath;
       }
 
@@ -829,7 +827,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     }
     return totalPath;
   };
-  // 添加一个新的类型定义
+  // Add a new type definition 添加一个新的类型定义
   type EdgeToTriangles = Map<string, Set<number>>;
 
   // Add a useRef to the ModelContent component to store the mapping of edges to triangles 在 ModelContent 组件中添加一个 useRef 来存储边到三角形的映射
@@ -843,7 +841,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const positions = geometry.attributes.position;
     const indices = geometry.index;
 
-    // 建立边到三角形的映射
+    // Create a mapping from edges to triangles 建立边到三角形的映射
     const edgeToTriangles = new Map<string, Set<number>>();
 
     for (let i = 0; i < indices!.count; i += 3) {
@@ -886,7 +884,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     return sum > 0;
   };
 
-  // 修三角形内外侧判断函数
+  // Repair triangle inside and outside judgment function 修三角形内外侧判断函数
   const isTriangleOnInnerSide = (
     triangleIndex: number,
     pathEdge: [THREE.Vector3, THREE.Vector3],
@@ -896,36 +894,36 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const indices = geometry.index!;
     const positions = geometry.attributes.position;
 
-    // 获取三角形的三个顶点
+    // Get the three vertices of a triangle 获取三角形的三个顶点
     const i = triangleIndex * 3;
     const va = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i));
     const vb = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 1));
     const vc = new THREE.Vector3().fromBufferAttribute(positions, indices.getX(i + 2));
 
-    // 计算三角形的质心
+    // Calculate the centroid of a triangle 计算三角形的质心
     const centroid = new THREE.Vector3()
       .add(va)
       .add(vb)
       .add(vc)
       .divideScalar(3);
 
-    // 计算路径边的方向向量
+    // Calculate the direction vector of the path edge 计算路径边的方向向量
     const edgeDirection = new THREE.Vector3()
       .subVectors(pathEdge[1], pathEdge[0]);
 
-    // 计算从路径起点到三角形质心的向量
+    // Calculate the vector from the path start to the triangle centroid 计算从路径起点到三角形质心的向量
     const toCentroid = new THREE.Vector3()
       .subVectors(centroid, pathEdge[0]);
 
-    // 计算叉积来判断方向
+    // Calculate the cross product to determine the direction 计算叉积来判断方向
     const crossProduct = new THREE.Vector3()
       .crossVectors(edgeDirection, toCentroid);
 
-    // 根据路径的方向（顺时针/逆时针）来判断内外侧
+    // Determine the inside and outside according to the direction of the path (clockwise/counterclockwise) 根据路径的方向（顺时针/逆时针）来判断内外侧
     return isPathClockwise ? crossProduct.z < 0 : crossProduct.z > 0;
   };
 
-  // 修改获取相邻三角形的函数，使用边来判断相邻关系
+  // Modify the function of getting adjacent triangles and use edges to determine the adjacent relationship 修改获取相邻三角形的函数，使用边来判断相邻关系
   const getAdjacentTriangles = (
     triangleIndex: number,
     geometry: THREE.BufferGeometry
@@ -934,25 +932,25 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     const positions = geometry.attributes.position;
     const adjacent = new Set<number>();
 
-    // 获取当前三角形的三个顶点
+    // Get the three vertices of the current triangle 获取当前三角形的三个顶点
     const i = triangleIndex * 3;
     const v1 = indices.getX(i);
     const v2 = indices.getX(i + 1);
     const v3 = indices.getX(i + 2);
 
-    // 获取三个顶点的位置
+    // Get the positions of the three vertices 获取三个顶点的位置
     const p1 = new THREE.Vector3().fromBufferAttribute(positions, v1);
     const p2 = new THREE.Vector3().fromBufferAttribute(positions, v2);
     const p3 = new THREE.Vector3().fromBufferAttribute(positions, v3);
 
-    // 创建三条边的key
+    // Create three edge keys 创建三条边的key
     const edges = [
       createEdgeKey(p1, p2),
       createEdgeKey(p2, p3),
       createEdgeKey(p3, p1)
     ];
 
-    // 通过边找到相邻的三角形
+    // Find adjacent triangles by edge 通过边找到相邻的三角形
     edges.forEach(edge => {
       const adjacentToEdge = edgeToTrianglesRef.current.get(edge);
       if (adjacentToEdge) {
@@ -985,14 +983,11 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
 
     const isPathClockwise = isClockwise(completePath);
 
-    // 收集边界三角形
+    // Collect boundary triangles 收集边界三角形
     const boundaryTriangles = new Set<number>();
     const allTrianglesToColor = new Set<number>();
     const processedTriangles = new Set<number>();
 
-    // Add print statements to view the value of color 添加打印语句来查看 color 的值
-    console.log('Current color value:', faceColor);
-    console.log('Color type:', typeof faceColor);
 
     // Modify the color judgment logic 修改颜色判断逻辑
     const fillColor = new THREE.Color(faceColor === '#ffffff' ? '#00FF00' : faceColor);  // If the default is white, use green 默认白色，则使用绿色
@@ -1007,9 +1002,6 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     // Loop through each unique point and create a THREE.Vector3 instance
     uniqueCompletePath.forEach(point => {
       const vector3Point = new THREE.Vector3(point.x, point.y, point.z);
-
-      // Print the result to verify
-      //console.log("Unique Vector3 Point:", vector3Point);
 
       // Use vector3Point in linkAnnotationToClass
       linkAnnotationToClass(vector3Point, fillColor.getHexString(), CoordinatesType.EDGE);
@@ -1046,34 +1038,36 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
           const adjCentroid = getTriangleCentroid(adjTriangle, geometry);
           if (isPointInPolygon(adjCentroid, completePath)) {
             allTrianglesToColor.add(adjTriangle);
-            // 递归处理相邻三角形
+            // Recursively process adjacent triangles 递归处理相邻三角形
             fillRecursively(adjTriangle);
           }
         }
       });
     };
 
-    // 从每个边界三角形开始递归填充
+    // Recursively fill in each boundary triangle 从每个边界三角形开始递归填充
     boundaryTriangles.forEach(triangleIndex => {
       fillRecursively(triangleIndex);
     });
 
-    // 对所有收集到的三角形进行染色
+    // Color all the collected triangles 对所有收集到的三角形进行染色
     allTrianglesToColor.forEach(triangleIndex => {
       const i = triangleIndex * 3;
       const ia = indices!.getX(i);
       const ib = indices!.getX(i + 1);
       const ic = indices!.getX(i + 2);
 
-      // 使用选择的颜色进行填充
+      // Fill with the selected color 使用选择的颜色进行填充
       colors.setXYZ(ia, fillColor.r, fillColor.g, fillColor.b);
       colors.setXYZ(ib, fillColor.r, fillColor.g, fillColor.b);
       colors.setXYZ(ic, fillColor.r, fillColor.g, fillColor.b);
 
+      //link annotation to the class and save the color and vertexID
       linkAnnotationToClass(ia, fillColor.getHexString(), CoordinatesType.FACE);
       linkAnnotationToClass(ib, fillColor.getHexString(), CoordinatesType.FACE);
       linkAnnotationToClass(ic, fillColor.getHexString(), CoordinatesType.FACE);
 
+      //save in the local storage per modelID (current model)) 
       modelStore.setState(modelStore.modelId, ia, "#".concat(fillColor.getHexString()));
       modelStore.setState(modelStore.modelId, ib, "#".concat(fillColor.getHexString()));
       modelStore.setState(modelStore.modelId, ib, "#".concat(fillColor.getHexString()));
@@ -1138,19 +1132,19 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     };
   }, [tool, handlePathToolClick, color]);
   useEffect(() => {
-    console.log('Paths updated:', paths);
+    //console.log('Paths updated:', paths);
   }, [paths]);
   // Add this function before the return statement 在 return 语句之前添加这个函数
   const formatPathForLine = (path: THREE.Vector3[]) => {
     return path.flatMap(p => [p.x, p.y, p.z]);
   };
-  // 在其他函数定义之后，添加这个新函数
+  // // Add this new function after other function definitions 在其他函数定义之后，添加这个新函数
   const attemptDirectConnection = (start: THREE.Vector3, end: THREE.Vector3, geometry: THREE.BufferGeometry) => {
     const direction = end.clone().sub(start);
     const distance = direction.length();
-    const step = distance / 100; // 将路径分成100个步骤
+    const step = distance / 100; //Divide the path into 100 steps 将路径分成100个步骤
     const path = [start.clone()];
-    const graph = buildGraph(geometry); // 构建图结构一次，避免重复计算
+    const graph = buildGraph(geometry); //Build the graph structure once to avoid repeated calculations 构建图结构一次，避免重复计算
 
     for (let i = 1; i <= 100; i++) {
       const point = start.clone().add(direction.clone().multiplyScalar(i / 100));
@@ -1367,13 +1361,13 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         return;
       }
 
-      // 忽略输入框中的按键事件
+      // Ignore key events in the input box 忽略输入框中的按键事件
       if (document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA') {
         return;
       }
 
-      // 创建热键字符串
+      // Creating a Hotkey String 创建热键字符串
       const keyString = [
         event.ctrlKey && 'CONTROL',
         event.shiftKey && 'SHIFT',
@@ -1381,7 +1375,7 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         event.key.toUpperCase()
       ].filter(Boolean).join('+');
 
-      // 防止默认行为
+      // Preventing default behavior 防止默认行为
       const preventDefaultFor = [
         hotkeys.zoomIn,
         hotkeys.zoomOut,
@@ -1400,14 +1394,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         event.preventDefault();
       }
 
-      // 工具切换热键处理
+      // Tool switching hotkey handling 工具切换热键处理
       if (keyString === hotkeys.spray) {
         activateSpray();
-        setSpray('#ffffff'); // 设置默认颜色
+        setSpray('#ffffff'); // Set Default Color 设置默认颜色
         return;
       }
 
-      // 其他热键处理
+      // Other hotkey handling 其他热键处理
       switch (keyString) {
         case hotkeys.zoomIn:
           zoomCamera(0.9);
@@ -1460,22 +1454,14 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
   ]);
 
 
-  // debugging function to log session actions
-  // const logSessionActions = (modelId: string) => {
-  //   const sessionState = modelStore.sessionStates[modelId];
-  //   if (sessionState) {
-  //     console.log("Current Session State:");
-  //     console.log(`Total Actions: ${sessionState.actions.length}`);
-  //     console.log(`Current Action Index: ${sessionState.currentActionIndex}`);
-  //     console.log("Actions:");
-  //     sessionState.actions.forEach((action, index) => {
-  //       console.log(`${index}: ${action.type} - ${JSON.stringify(action.changes)}`);
-  //     });
-  //   } else {
-  //     console.log("No session state found for this model.");
-  //   }
-  // };
 
+  /**
+   * Function to link a Class with a type of annotation and data related to annotation by annotation type.
+   * @param coordinates 
+   * @param color 
+   * @param type 
+   * @returns 
+   */
   const linkAnnotationToClass = (coordinates: any, color: string, type: CoordinatesType) => {
     if (_.findIndex(currProblem, function (p) {
       return _.findIndex(p.classes, function (c) {
@@ -1600,24 +1586,24 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
       <lineSegments ref={wireframeRef} material={new LineBasicMaterial({ color: 'white' })} />
 
 
-      {/* 渲红点 */}
+      {/* Render red dots- related to Shortest Path function 渲红点 */}
       <primitive object={redSphereRef.current} />
 
-      {/* 渲染路径 */}
+      {/* Rendering Path -Shortest Path function 渲染路径 */}
       {paths.map((path, index) => {
-        console.log(`Rendering path ${index}:`, path);
+        //console.log(`Rendering path ${index}:`, path);
         return path && Array.isArray(path) && path.length >= 2 && (
           <Line
             key={index}
             points={formatPathForLine(path)}
-            color={isPathClosed ? "blue" : "yellow"}  // 根据闭合状态决定颜色
+            color={isPathClosed ? "blue" : "yellow"}  // Determine the color based on the closed state 根据闭合状态决定颜色
             lineWidth={2}
           />
         );
       })}
 
 
-      {/* 渲染填充形状 */}
+      {/* Rendering filled shapes 渲染填充形状 */}
       {/* {filledShape && <primitive object={filledShape} />} */}
 
       {/* 渲染当前路径（黄色） */}
