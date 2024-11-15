@@ -56,7 +56,6 @@ Provide common commands and explanations to help other developers get started wi
 ---
 
 ## License
-Specify the project's license, for example:
 > This project is licensed under the MIT License. See the LICENSE file for more details.
 
 ---
