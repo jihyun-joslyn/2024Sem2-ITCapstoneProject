@@ -52,7 +52,7 @@ Provide common commands and explanations to help other developers get started wi
 - **Development mode**: `npm run dev`
 - **Build the application**: `npm run build`
 - **Testing**: `npm test`
-- 
+  
 ---
 
 ## License
