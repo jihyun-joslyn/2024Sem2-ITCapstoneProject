@@ -20,6 +20,8 @@ export type Hotkeys = {
   nextStep: string;
   brush: string;
   spray: string;
+  keypoint: string;
+  path: string;
   switchClass: string;
 };
 

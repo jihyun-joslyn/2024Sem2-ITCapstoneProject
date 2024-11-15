@@ -9,13 +9,13 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import useModelStore from '../components/StateStore';
 import { AnnotationType } from '../datatypes/ClassDetail';
+import { CoordinatesType } from '../datatypes/CoordinateType';
 import { ModelIDFileNameMap } from '../datatypes/ModelIDFileNameMap';
+import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
 import { ProblemType } from '../datatypes/ProblemType';
 import { PriorityQueue } from '../utils/PriorityQueue';
-import { CoordinatesType } from '../datatypes/CoordinateType';
-import { FaceLabel, PathAnnotation, Point, PointCoordinates } from '../datatypes/PathAnnotation';
-import ModelContext from './ModelContext';
 import DisplayClass from './DisplayClass';
+import ModelContext from './ModelContext';
 
 
 type HotkeyEvent = KeyboardEvent | MouseEvent | WheelEvent;
@@ -35,7 +35,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateArrow, activateSpray, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateArrow, activateSpray, activateKeypoint, activatePath, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
@@ -1281,6 +1281,16 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
         return;
       }
 
+      if (keyString === hotkeys.keypoint) {
+        activateKeypoint();
+        return;
+      }
+
+      if (keyString === hotkeys.path) {
+        activatePath();
+        return;
+      }
+
       // 其他热键处理
       switch (keyString) {
         case hotkeys.zoomIn:
@@ -1329,6 +1339,8 @@ const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, upd
     switchToNextClass,
     activateBrush,
     activateSpray,
+    activateKeypoint,
+    activatePath,
     setSpray,
     setTool,
     updateMeshColors
