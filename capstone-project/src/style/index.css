@@ -42,7 +42,7 @@ body {
 
 #toolbar,
 #file-pane {
-  height: 100vh !important;
+  height: calc(100vh - 36px) !important
 }
 
 #toolbar .MuiTabs-scroller .MuiTabs-flexContainer button svg {
@@ -230,8 +230,9 @@ body {
   word-wrap: break-word;
 }
 
-.selected-file {
-  background-color: #DDC5B0!important;
+.selected-file,
+#detail-list .selected-class {
+  background-color: #DDC5B0 !important;
   font-weight: bold !important;
   border-left: 4px solid #824D28 !important;
 }
@@ -240,4 +241,41 @@ body {
   min-width: 0px !important;
   margin-right: 8px !important;
   color: #824D28 !important;
+}
+
+.class-list-item button {
+  color: #824D28 !important;
+  text-transform: none !important;
+  font-size: 1rem;
+}
+
+.sticker {
+  background-color: white;
+  /* White background */
+  background-size: 50% 50%;
+  /* Adaptive background size, scales with the size of the container */
+  padding: 20px;
+  /* Padding around the text */
+  border-radius: 10px;
+  /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  /* Optional shadow for depth */
+  color: black;
+  /* Black text color */
+  font-weight: bold;
+  /* Make the text bold */
+  font-size: 14px;
+  /* Adjust font size */
+  position: absolute;
+  /* Absolute positioning */
+  top: 10px;
+  /* Top distance from the parent */
+  left: 10px;
+  /* Left distance from the parent */
+  display: flex;
+  /* Use flexbox to center content */
+  justify-content: center;
+  /* Center the text horizontally */
+  align-items: center;
+  /* Center the text vertically */
 }

@@ -32,7 +32,10 @@ interface ModelColorState {
   setState: (modelId: string, vertexIndex: number, color: string) => void; // get the color information
   setKeypoint: (modelId: string, position: { x: number; y: number; z: number }, color: string) => void; // Set keypoint at a specific 3D position
   setModelId: (modelId: string) => void;
-  
+  setModelKeypoint: (modelId: string, keypointArr: KeypointState[]) => void;
+  setModelSpray: (modelId: string, sprayArr: any) => void;
+  removeModel: (modelId: string) => void;
+
   // New methods for session-based actions
   startPaintAction: (modelId: string, type: 'spray' | 'point') => void;
   addPaintChange: (modelId: string, vertexIndex: number, color: string) => void;
@@ -76,6 +79,38 @@ const useModelStore = create<ModelColorState>()(
             },
           })),
 
+        setModelKeypoint: (modelId, keypointArr) =>
+          set((state) => ({
+            ...state,
+            keypoints: {
+              ...state.keypoints,
+              [modelId]: keypointArr,
+            },
+          })),
+
+        setModelSpray: (modelId, sprayArr) => {
+          set((state) => ({
+            ...state,
+            states: {
+              ...state.states,
+              [modelId]: {
+                sprayArr,
+              }
+            }
+          }))
+        },
+
+        removeModel: (modelId) => 
+            set((state) => {
+              delete state.keypoints[modelId];
+              delete state.states[modelId];
+              
+              return {
+                ...state
+              }
+            })
+        ,
+
         setModelId: (id) =>
           set((state) => ({
             ...state,
@@ -100,10 +135,10 @@ const useModelStore = create<ModelColorState>()(
         addPaintChange: (modelId, vertexIndex, color) => set((state) => {
           const sessionState = state.sessionStates[modelId];
           if (!sessionState || sessionState.currentActionIndex === -1) return state;
-          
+
           const currentAction = sessionState.actions[sessionState.currentActionIndex];
           currentAction.changes.push({ vertexIndex, color });
-          
+
           return {
             sessionStates: {
               ...state.sessionStates,
@@ -120,7 +155,7 @@ const useModelStore = create<ModelColorState>()(
         undo: (modelId) => set((state) => {
           const sessionState = state.sessionStates[modelId];
           if (!sessionState || sessionState.currentActionIndex < 0) return state;
-          
+
           return {
             sessionStates: {
               ...state.sessionStates,
@@ -135,7 +170,7 @@ const useModelStore = create<ModelColorState>()(
         redo: (modelId) => set((state) => {
           const sessionState = state.sessionStates[modelId];
           if (!sessionState || sessionState.currentActionIndex >= sessionState.actions.length - 1) return state;
-          
+
           return {
             sessionStates: {
               ...state.sessionStates,
