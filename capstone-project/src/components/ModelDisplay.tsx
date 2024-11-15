@@ -62,7 +62,7 @@ type ModelDisplayProps = {
 };
 
 const ModelContent: React.FC<ModelDisplayProps> = ({ modelData, currProblem, updateProblems, currentFile, updateModelIDFileMapping, checkIfNowCanAnnotate, isShowColorSpraySelector, checkIfLocalStorageIsEmpty }) => {
-  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateBrush, activateArrow, activateSpray, activateKeypoint, activatePath, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
+  const { tool, color, hotkeys, orbitControlsRef, controlsRef, hotkeysEnabled, setTool, setSpray, activateArrow, activateSpray, activateKeypoint, activatePath, currentTool } = useContext(ModelContext);//get the tool and color state from siderbar
   const { camera, gl } = useThree();
   const meshRef = useRef<Mesh>(null);
   const wireframeRef = useRef<LineSegments>(null);
